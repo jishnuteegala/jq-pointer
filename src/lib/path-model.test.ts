@@ -102,9 +102,10 @@ describe("evaluateSteps", () => {
   it("applies optional steps only to type errors and supports negative indices", () => {
     const model = buildPathModel({ values: [1, 2], mixed: [{ name: "a" }, 7] });
     expect(
-      evaluateSteps(model.root, [{ kind: "key", key: "values" }, { kind: "index", index: -1 }]).map(
-        (node) => node.value,
-      ),
+      evaluateSteps(model.root, [
+        { kind: "key", key: "values" },
+        { kind: "index", index: -1 },
+      ]).map((node) => node.value),
     ).toEqual([2]);
     expect(() =>
       evaluateSteps(model.root, [

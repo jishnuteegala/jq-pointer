@@ -87,9 +87,9 @@ describe("jq expression parser and evaluator", () => {
     const expression = parseExpression('."face 😀".value');
     if (expression === null) throw new Error("expression did not parse");
     expect(printExpression(expression)).toBe('."face 😀".value');
-    expect(evaluateExpression(buildPathModel(document).root, expression).map((node) => node.value)).toEqual([
-      true,
-    ]);
+    expect(
+      evaluateExpression(buildPathModel(document).root, expression).map((node) => node.value),
+    ).toEqual([true]);
   });
 
   it("evaluates parsed flat construction shorthand to field nodes", () => {

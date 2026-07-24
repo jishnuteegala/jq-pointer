@@ -3,7 +3,14 @@ import { existsSync } from "node:fs";
 import { platform } from "node:os";
 import { assert, constantFrom, property, string } from "fast-check";
 import { describe, expect, it } from "vitest";
-import { printPath, type JqExpression } from "./jq-expression";
+import {
+  evaluateExpression,
+  parseExpression,
+  printExpression,
+  printPath,
+  type JqExpression,
+} from "./jq-expression";
+import { buildPathModel } from "./path-model";
 
 const jq = process.env.JQ_BINARY ?? "./jq-1.7.1";
 const canRunOracle = platform() !== "win32" && existsSync(jq);
@@ -44,5 +51,37 @@ oracle("jq 1.7.1 printer oracle", () => {
       ],
     };
     expect(runJq(document, printPath(expression.steps))).toEqual(["a", null, "c"]);
+  });
+
+  it("matches jq for parsed paths and flat constructions", () => {
+    const document = {
+      items: [
+        { name: "a", "a-b": 1, "face 😀": true },
+        { name: "b", "a-b": 2, "face 😀": false },
+      ],
+    };
+    const expressions: JqExpression[] = [
+      {
+        kind: "path",
+        steps: [
+          { kind: "key", key: "items" },
+          { kind: "iterate" },
+          { kind: "key", key: "face 😀" },
+        ],
+      },
+      {
+        kind: "construction",
+        source: { kind: "path", steps: [{ kind: "key", key: "items" }, { kind: "iterate" }] },
+        keys: ["name", "a-b", "face 😀"],
+      },
+    ];
+    for (const expression of expressions) {
+      const printed = printExpression(expression);
+      const parsed = parseExpression(printed);
+      if (parsed === null) throw new Error("printed expression did not parse");
+      expect(
+        evaluateExpression(buildPathModel(document).root, parsed).map((node) => node.value),
+      ).toEqual(runJq(document, printed));
+    }
   });
 });

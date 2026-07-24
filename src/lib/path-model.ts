@@ -43,7 +43,8 @@ export function buildPathModel(value: JsonValue): PathModel {
       const keys = Object.keys(v);
       const children: ModelNode[] = [];
       for (const key of keys) {
-        if (hasLoneSurrogate(key)) throw new RangeError("jq cannot represent keys with lone surrogates");
+        if (hasLoneSurrogate(key))
+          throw new RangeError("jq cannot represent keys with lone surrogates");
         const child: ModelNode = {
           value: v[key],
           parent: node,
