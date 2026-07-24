@@ -1,12 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { generateFixture } from './fixture';
-import {
-  buildPathModel,
-  commonArrayAncestor,
-  evaluateSteps,
-  type ModelNode,
-  type PathStep,
-} from '../src/lib/path-model';
+import { runClickPair } from './click-pipeline';
+import { buildPathModel, type ModelNode } from '../src/lib/path-model';
 import type { JsonValue } from '../src/lib/json-value';
 
 const TARGET_BYTES = 10 * 1024 * 1024;
@@ -17,6 +12,18 @@ const CLICK_SAMPLES = 50;
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
   return sorted[Math.floor(sorted.length / 2)];
+}
+
+function descend(node: ModelNode, keys: string[]): ModelNode {
+  let current = node;
+  for (const key of keys) {
+    const found = current.children?.find(
+      (child) => child.segment?.kind === 'key' && child.segment.key === key,
+    );
+    if (found === undefined) throw new Error(`missing key ${key}`);
+    current = found;
+  }
+  return current;
 }
 
 describe('D7 performance spike: 10MB parse + path model + click evaluation', () => {
@@ -44,45 +51,40 @@ describe('D7 performance spike: 10MB parse + path model + click evaluation', () 
     expect(totalMs).toBeLessThan(INTERACTIVE_BUDGET_MS);
   });
 
-  it(`evaluates a click-pair generalisation under ${CLICK_BUDGET_MS}ms`, () => {
+  it(`runs the full click-pair pipeline under ${CLICK_BUDGET_MS}ms cold and per run`, () => {
     const parsed = JSON.parse(json) as JsonValue;
     const model = buildPathModel(parsed);
-    const itemsNode = model.root.children?.find(
-      (child) => child.segment?.kind === 'key' && child.segment.key === 'items',
-    );
-    expect(itemsNode).toBeDefined();
-    const items = itemsNode as ModelNode;
-    const first = items.children?.[0];
-    const last = items.children?.[items.children.length - 1];
-    expect(first).toBeDefined();
-    expect(last).toBeDefined();
-
-    const ancestor = commonArrayAncestor(first as ModelNode, last as ModelNode);
-    expect(ancestor).toBe(items);
-
-    const steps: PathStep[] = [
-      { kind: 'iterate' },
-      { kind: 'key', key: 'meta' },
-      { kind: 'key', key: 'owner' },
-      { kind: 'key', key: 'login' },
-    ];
+    const items = descend(model.root, ['items']);
+    const elements = items.children;
+    expect(elements).not.toBeNull();
+    const first = descend((elements as ModelNode[])[0], ['meta', 'owner', 'login']);
+    const last = descend((elements as ModelNode[])[(elements as ModelNode[]).length - 1], [
+      'meta',
+      'owner',
+      'login',
+    ]);
 
     const timings: number[] = [];
-    let resultCount = 0;
+    let matchCount = 0;
     for (let i = 0; i < CLICK_SAMPLES; i++) {
       const start = performance.now();
-      const results = evaluateSteps(items, steps);
+      const result = runClickPair(first, last);
       timings.push(performance.now() - start);
-      resultCount = results.length;
+      expect(result).not.toBeNull();
+      expect(result?.ancestor).toBe(items);
+      matchCount = result?.matches.length ?? 0;
     }
 
+    const coldMs = timings[0];
     const medianMs = median(timings);
     const maxMs = Math.max(...timings);
     console.log(
-      `[perf-spike] click-eval matches=${resultCount}/${itemCount} median=${medianMs.toFixed(2)}ms max=${maxMs.toFixed(2)}ms budget=${CLICK_BUDGET_MS}ms`,
+      `[perf-spike] click-pipeline matches=${matchCount}/${itemCount} cold=${coldMs.toFixed(2)}ms median=${medianMs.toFixed(2)}ms max=${maxMs.toFixed(2)}ms budget=${CLICK_BUDGET_MS}ms`,
     );
 
-    expect(resultCount).toBe(itemCount);
+    expect(matchCount).toBe(itemCount);
+    expect(coldMs).toBeLessThan(CLICK_BUDGET_MS);
+    expect(maxMs).toBeLessThan(CLICK_BUDGET_MS);
     expect(medianMs).toBeLessThan(CLICK_BUDGET_MS);
   });
 });
