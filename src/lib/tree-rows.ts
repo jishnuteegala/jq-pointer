@@ -3,30 +3,43 @@ import type { ModelNode } from "./path-model";
 export interface TreeRow {
   node: ModelNode;
   depth: number;
+  expandable: boolean;
+  expanded: boolean;
 }
 
-export function visibleTreeRows(root: ModelNode, expanded: ReadonlySet<ModelNode>): TreeRow[] {
+export function flattenVisible(root: ModelNode, expanded: ReadonlySet<ModelNode>): TreeRow[] {
   const rows: TreeRow[] = [];
-  const stack: TreeRow[] = [{ node: root, depth: 0 }];
-  let row: TreeRow | undefined;
-  while ((row = stack.pop()) !== undefined) {
-    rows.push(row);
-    if (row.node.children !== null && expanded.has(row.node)) {
-      for (let index = row.node.children.length - 1; index >= 0; index--) {
-        stack.push({ node: row.node.children[index], depth: row.depth + 1 });
+  const stack: { node: ModelNode; depth: number }[] = [{ node: root, depth: 0 }];
+  let entry: { node: ModelNode; depth: number } | undefined;
+  while ((entry = stack.pop()) !== undefined) {
+    const { node, depth } = entry;
+    const expandable = node.children !== null && node.children.length > 0;
+    const isExpanded = expandable && expanded.has(node);
+    rows.push({ node, depth, expandable, expanded: isExpanded });
+    if (isExpanded && node.children !== null) {
+      for (let index = node.children.length - 1; index >= 0; index--) {
+        stack.push({ node: node.children[index], depth: depth + 1 });
       }
     }
   }
   return rows;
 }
 
-export function valuePreview(node: ModelNode): string {
-  if (Array.isArray(node.value)) return `[${node.value.length}]`;
-  if (node.value !== null && typeof node.value === "object") return `{${Object.keys(node.value).length}}`;
-  return JSON.stringify(node.value);
+export function rowLabel(node: ModelNode): string {
+  if (node.segment === null) return "$";
+  return node.segment.kind === "key" ? node.segment.key : `[${node.segment.index}]`;
 }
 
-export function nodeLabel(node: ModelNode): string {
-  if (node.segment === null) return "root";
-  return node.segment.kind === "key" ? node.segment.key : `[${node.segment.index}]`;
+export function valuePreview(node: ModelNode): string {
+  const value = node.value;
+  if (Array.isArray(value)) return value.length === 0 ? "[]" : `[${value.length}]`;
+  if (value !== null && typeof value === "object") {
+    const size = Object.keys(value).length;
+    return size === 0 ? "{}" : `{${size}}`;
+  }
+  if (typeof value === "string") {
+    const truncated = value.length > 80 ? `${value.slice(0, 80)}\u2026` : value;
+    return JSON.stringify(truncated);
+  }
+  return String(value);
 }
