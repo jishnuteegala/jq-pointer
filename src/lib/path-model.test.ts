@@ -88,13 +88,42 @@ describe("evaluateSteps", () => {
 
   it("does not index into objects or key into arrays", () => {
     const model = buildPathModel(doc);
-    expect(
+    expect(() =>
       evaluateSteps(model.root, [
         { kind: "key", key: "items" },
         { kind: "key", key: "name" },
       ]),
-    ).toEqual([]);
-    expect(evaluateSteps(model.root, [{ kind: "index", index: 0 }])).toEqual([]);
+    ).toThrow("cannot index a scalar with a key");
+    expect(() => evaluateSteps(model.root, [{ kind: "index", index: 0 }])).toThrow(
+      "cannot index a non-array",
+    );
+  });
+
+  it("applies optional steps only to type errors and supports negative indices", () => {
+    const model = buildPathModel({ values: [1, 2], mixed: [{ name: "a" }, 7] });
+    expect(
+      evaluateSteps(model.root, [{ kind: "key", key: "values" }, { kind: "index", index: -1 }]).map(
+        (node) => node.value,
+      ),
+    ).toEqual([2]);
+    expect(() =>
+      evaluateSteps(model.root, [
+        { kind: "key", key: "mixed" },
+        { kind: "iterate" },
+        { kind: "key", key: "name" },
+      ]),
+    ).toThrow("cannot index a scalar with a key");
+    expect(
+      evaluateSteps(model.root, [
+        { kind: "key", key: "mixed" },
+        { kind: "iterate" },
+        { kind: "key", key: "name", optional: true },
+      ]).map((node) => node.value),
+    ).toEqual(["a"]);
+  });
+
+  it("rejects documents with keys jq cannot address", () => {
+    expect(() => buildPathModel({ "bad \ud800 key": 1 })).toThrow("lone surrogates");
   });
 });
 

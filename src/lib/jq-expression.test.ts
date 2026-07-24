@@ -23,7 +23,7 @@ describe("jq expression printer", () => {
   });
 
   it("does not emit lone surrogate escapes", () => {
-    expect(printKey("bad \ud800 key")).toBe('."bad � key"');
+    expect(() => printKey("bad \ud800 key")).toThrow("lone surrogates");
   });
 
   it("prints optional paths and construction shorthand", () => {
@@ -81,6 +81,15 @@ describe("jq expression parser and evaluator", () => {
       (node) => node.value,
     );
     expect(values).toEqual(["first", "second"]);
+  });
+
+  it("prints and evaluates chained keys with jq separators", () => {
+    const expression = parseExpression('."face 😀".value');
+    if (expression === null) throw new Error("expression did not parse");
+    expect(printExpression(expression)).toBe('."face 😀".value');
+    expect(evaluateExpression(buildPathModel(document).root, expression).map((node) => node.value)).toEqual([
+      true,
+    ]);
   });
 
   it("evaluates parsed flat construction shorthand to field nodes", () => {

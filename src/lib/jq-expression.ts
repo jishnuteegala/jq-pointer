@@ -36,6 +36,7 @@ export interface ConstructionExpression {
 export type JqExpression = PathExpression | ConstructionExpression;
 
 export function quoteKey(key: string): string {
+  if (hasLoneSurrogate(key)) throw new RangeError("jq cannot represent keys with lone surrogates");
   let result = '"';
   for (const character of key) {
     const code = character.codePointAt(0);
@@ -48,7 +49,6 @@ export function quoteKey(key: string): string {
     else if (character === "\r") result += "\\r";
     else if (code !== undefined && code <= 0x1f)
       result += `\\u${code.toString(16).padStart(4, "0")}`;
-    else if (code !== undefined && code >= 0xd800 && code <= 0xdfff) result += "�";
     else result += character;
   }
   return `${result}"`;
@@ -59,14 +59,14 @@ export function printKey(key: string): string {
 }
 
 export function printPath(steps: PathStep[]): string {
-  let result = ".";
+  let result = "";
   for (const step of steps) {
-    if (step.kind === "key") result += printKey(step.key).slice(1);
+    if (step.kind === "key") result += printKey(step.key);
     else if (step.kind === "index") result += `[${step.index}]`;
     else result += "[]";
     if (step.optional) result += "?";
   }
-  return result;
+  return result === "" ? "." : result;
 }
 
 export function printExpression(expression: JqExpression): string {
@@ -146,4 +146,16 @@ function parseString(input: string): string | null {
   } catch {
     return null;
   }
+}
+
+function hasLoneSurrogate(value: string): boolean {
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      if (value.charCodeAt(index + 1) >= 0xdc00 && value.charCodeAt(index + 1) <= 0xdfff) {
+        index++;
+      } else return true;
+    } else if (code >= 0xdc00 && code <= 0xdfff) return true;
+  }
+  return false;
 }

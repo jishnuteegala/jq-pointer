@@ -43,6 +43,7 @@ export function buildPathModel(value: JsonValue): PathModel {
       const keys = Object.keys(v);
       const children: ModelNode[] = [];
       for (const key of keys) {
+        if (hasLoneSurrogate(key)) throw new RangeError("jq cannot represent keys with lone surrogates");
         const child: ModelNode = {
           value: v[key],
           parent: node,
@@ -77,12 +78,13 @@ export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {
       if (step.kind === "iterate") {
         if (node.children !== null) {
           for (const child of node.children) next.push(child);
-        }
+        } else if (!step.optional) throw new TypeError("cannot iterate over a scalar");
       } else if (step.kind === "index") {
         if (Array.isArray(node.value) && node.children !== null) {
-          const child = node.children[step.index];
+          const index = step.index < 0 ? node.children.length + step.index : step.index;
+          const child = node.children[index];
           if (child !== undefined) next.push(child);
-        }
+        } else if (!step.optional) throw new TypeError("cannot index a non-array");
       } else {
         if (
           node.value !== null &&
@@ -96,12 +98,26 @@ export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {
               break;
             }
           }
+        } else if (node.value !== null && !step.optional) {
+          throw new TypeError("cannot index a scalar with a key");
         }
       }
     }
     current = next;
   }
   return current;
+}
+
+function hasLoneSurrogate(value: string): boolean {
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code >= 0xd800 && code <= 0xdbff) {
+      if (value.charCodeAt(index + 1) >= 0xdc00 && value.charCodeAt(index + 1) <= 0xdfff) {
+        index++;
+      } else return true;
+    } else if (code >= 0xdc00 && code <= 0xdfff) return true;
+  }
+  return false;
 }
 
 export function commonArrayAncestor(a: ModelNode, b: ModelNode): ModelNode | null {
