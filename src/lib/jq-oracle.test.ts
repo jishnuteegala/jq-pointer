@@ -68,7 +68,7 @@ oracle("jq 1.7.1 printer oracle", () => {
       runJq({ items: [1, { child: { value: "a" } }, { child: 2 }] }, ".items[].child?.value?"),
     ).toEqual(["a"]);
     expect(
-      runJq({ items: [1, { child: { value: "a" } }, { child: 2 }] }, ".items[].child?[]?.value?"),
+      runJq({ items: [1, { child: [{ value: "a" }] }, { child: 2 }] }, ".items[].child?[]?.value?"),
     ).toEqual(["a"]);
   });
 
