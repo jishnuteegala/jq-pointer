@@ -10,7 +10,7 @@ import {
   printPath,
   type JqExpression,
 } from "./jq-expression";
-import { buildPathModel } from "./path-model";
+import { buildPathModel, pathTo } from "./path-model";
 
 const jq = process.env.JQ_BINARY ?? "./jq-1.7.1";
 const canRunOracle = platform() !== "win32" && existsSync(jq);
@@ -116,6 +116,26 @@ oracle("jq 1.7.1 printer oracle", () => {
       }),
       { numRuns: 100, seed: 17 },
     );
+  });
+
+  it("matches jq for paths generated from selected model nodes", () => {
+    const document = { items: [{ name: "a" }, { name: "b" }], meta: { "a-b": true } };
+    const model = buildPathModel(document);
+    const selected = [
+      model.root.children?.[0].children?.[0].children?.[0],
+      model.root.children?.[0].children?.[1].children?.[0],
+      model.root.children?.[1].children?.[0],
+    ];
+    for (const node of selected) {
+      if (node === undefined) throw new Error("selected node missing from model");
+      const expression = printPath(pathTo(node));
+      const parsed = parseExpression(expression);
+      if (parsed === null) throw new Error("generated expression did not parse");
+      expect(evaluateExpression(model.root, parsed).map((result) => result.value)).toEqual([
+        node.value,
+      ]);
+      expect(runJq(document, expression)).toEqual([node.value]);
+    }
   });
 
   it("prints flat constructions jq evaluates as objects", () => {

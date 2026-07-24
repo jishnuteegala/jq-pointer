@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPathModel } from "./path-model";
+import { buildPathModel, pathTo } from "./path-model";
 import {
   evaluateExpression,
   parseExpression,
@@ -112,16 +112,21 @@ describe("jq expression parser and evaluator", () => {
     });
   });
 
-  it("round-trips generated paths to the originating node set", () => {
+  it("round-trips paths generated from every addressable model node", () => {
     const model = buildPathModel(document);
-    const source: JqExpression = {
-      kind: "path",
-      steps: [{ kind: "key", key: "items" }, { kind: "iterate" }, { kind: "key", key: "name" }],
-    };
-    const parsed = parseExpression(printExpression(source));
-    if (parsed === null) throw new Error("generated expression did not parse");
-    expect(evaluateExpression(model.root, parsed)).toEqual(evaluateExpression(model.root, source));
-    expect(printExpression(parsed)).toBe(printExpression(source));
+    const nodes = [
+      model.root,
+      ...(model.root.children ?? []),
+      ...(model.root.children?.[0].children ?? []).flatMap((item) => item.children ?? []),
+    ];
+    for (const modelNode of nodes.filter((candidate) => candidate.jqAddressable)) {
+      const source: JqExpression = { kind: "path", steps: pathTo(modelNode) };
+      const printed = printExpression(source);
+      const parsed = parseExpression(printed);
+      if (parsed === null) throw new Error("generated expression did not parse");
+      expect(evaluateExpression(model.root, parsed)).toEqual([modelNode]);
+      expect(printExpression(parsed)).toBe(printed);
+    }
   });
 
   it("rejects expressions outside the shared grammar", () => {

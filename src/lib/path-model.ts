@@ -11,6 +11,7 @@ export interface ModelNode {
   parent: ModelNode | null;
   segment: PathSegment | null;
   children: ModelNode[] | null;
+  jqAddressable: boolean;
 }
 
 export interface PathModel {
@@ -20,7 +21,13 @@ export interface PathModel {
 
 export function buildPathModel(value: JsonValue): PathModel {
   let nodeCount = 0;
-  const root: ModelNode = { value, parent: null, segment: null, children: null };
+  const root: ModelNode = {
+    value,
+    parent: null,
+    segment: null,
+    children: null,
+    jqAddressable: true,
+  };
   const stack: ModelNode[] = [root];
   let node: ModelNode | undefined;
   while ((node = stack.pop()) !== undefined) {
@@ -34,6 +41,7 @@ export function buildPathModel(value: JsonValue): PathModel {
           parent: node,
           segment: { kind: "index", index: i },
           children: null,
+          jqAddressable: node.jqAddressable,
         };
         children.push(child);
         stack.push(child);
@@ -43,13 +51,12 @@ export function buildPathModel(value: JsonValue): PathModel {
       const keys = Object.keys(v);
       const children: ModelNode[] = [];
       for (const key of keys) {
-        if (hasLoneSurrogate(key))
-          throw new RangeError("jq cannot represent object keys with lone surrogates");
         const child: ModelNode = {
           value: v[key],
           parent: node,
           segment: { kind: "key", key },
           children: null,
+          jqAddressable: node.jqAddressable && !hasLoneSurrogate(key),
         };
         children.push(child);
         stack.push(child);
@@ -130,7 +137,13 @@ export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {
 }
 
 function nullNode(parent: ModelNode): ModelNode {
-  return { value: null, parent, segment: null, children: null };
+  return {
+    value: null,
+    parent,
+    segment: null,
+    children: null,
+    jqAddressable: parent.jqAddressable,
+  };
 }
 
 export function commonArrayAncestor(a: ModelNode, b: ModelNode): ModelNode | null {
