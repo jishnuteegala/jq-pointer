@@ -55,4 +55,30 @@ describe('runClickPair', () => {
     const a = descend(model.root, ['plain', 'x']);
     expect(runClickPair(a, a)).toBeNull();
   });
+
+  it('keeps equal nested indices as indexed steps', () => {
+    const nested: JsonValue = {
+      items: [{ tags: ['x', 'y'] }, { tags: ['p', 'q'] }],
+    };
+    const m = buildPathModel(nested);
+    const a = descend(m.root, ['items', 0, 'tags', 1]);
+    const b = descend(m.root, ['items', 1, 'tags', 1]);
+    const result = runClickPair(a, b);
+    expect(result?.steps).toEqual([
+      { kind: 'iterate' },
+      { kind: 'key', key: 'tags' },
+      { kind: 'index', index: 1 },
+    ]);
+    expect(result?.matches.map((n) => n.value)).toEqual(['y', 'q']);
+  });
+
+  it('returns null when nested indices differ', () => {
+    const nested: JsonValue = {
+      items: [{ tags: ['x', 'y'] }, { tags: ['p', 'q'] }],
+    };
+    const m = buildPathModel(nested);
+    const a = descend(m.root, ['items', 0, 'tags', 0]);
+    const b = descend(m.root, ['items', 1, 'tags', 1]);
+    expect(runClickPair(a, b)).toBeNull();
+  });
 });

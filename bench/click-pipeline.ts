@@ -26,7 +26,13 @@ export function runClickPair(a: ModelNode, b: ModelNode): ClickPairResult | null
     const segA = relativeA[i];
     const segB = relativeB[i];
     if (segA.kind === 'index' && segB.kind === 'index') {
-      steps.push(i === 0 ? { kind: 'iterate' } : segA);
+      if (i === 0) {
+        steps.push({ kind: 'iterate' });
+      } else if (segA.index === segB.index) {
+        steps.push(segA);
+      } else {
+        return null;
+      }
     } else if (segA.kind === 'key' && segB.kind === 'key' && segA.key === segB.key) {
       steps.push(segA);
     } else {
