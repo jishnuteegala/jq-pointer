@@ -83,6 +83,9 @@ export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {
           const index = step.index < 0 ? node.children.length + step.index : step.index;
           const child = node.children[index];
           if (child !== undefined) next.push(child);
+          else next.push(nullNode(node));
+        } else if (node.value === null) {
+          next.push(nullNode(node));
         } else if (!step.optional) throw new TypeError("cannot index a non-array");
       } else {
         if (
@@ -91,12 +94,17 @@ export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {
           !Array.isArray(node.value) &&
           node.children !== null
         ) {
+          let found = false;
           for (const child of node.children) {
             if (child.segment?.kind === "key" && child.segment.key === step.key) {
               next.push(child);
+              found = true;
               break;
             }
           }
+          if (!found) next.push(nullNode(node));
+        } else if (node.value === null) {
+          next.push(nullNode(node));
         } else if (node.value !== null && !step.optional) {
           throw new TypeError("cannot index a scalar with a key");
         }
@@ -105,6 +113,10 @@ export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {
     current = next;
   }
   return current;
+}
+
+function nullNode(parent: ModelNode): ModelNode {
+  return { value: null, parent, segment: null, children: null };
 }
 
 export function commonArrayAncestor(a: ModelNode, b: ModelNode): ModelNode | null {

@@ -14,6 +14,7 @@ describe("jq expression printer", () => {
     expect(printKey("name")).toBe(".name");
     expect(printKey("if")).toBe('."if"');
     expect(printKey("and")).toBe('."and"');
+    expect(printKey("null")).toBe('."null"');
     expect(printKey("two words")).toBe('."two words"');
     expect(printKey('x"\\\n')).toBe('."x\\\"\\\\\\n"');
   });
@@ -124,6 +125,7 @@ describe("jq expression parser and evaluator", () => {
     expect(parseExpression('.foo"bar"')).toBeNull();
     expect(parseExpression('."a""b"')).toBeNull();
     expect(parseExpression("..foo")).toBeNull();
+    expect(parseExpression(".[9007199254740992]")).toBeNull();
   });
 
   it("prints root array paths with their required dot prefix", () => {

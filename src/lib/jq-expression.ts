@@ -17,12 +17,15 @@ const keywords = new Set([
   "label",
   "module",
   "not",
+  "null",
   "or",
   "reduce",
   "then",
+  "true",
   "try",
   "until",
   "while",
+  "false",
 ]);
 
 export interface PathExpression {
@@ -138,9 +141,11 @@ function parsePath(input: string): PathExpression | null {
     const token = match[1];
     const optional = match[2] === "?" ? { optional: true } : {};
     if (token === "[]") steps.push({ kind: "iterate", ...optional });
-    else if (token.startsWith("["))
-      steps.push({ kind: "index", index: Number(token.slice(1, -1)), ...optional });
-    else {
+    else if (token.startsWith("[")) {
+      const index = Number(token.slice(1, -1));
+      if (!Number.isSafeInteger(index)) return null;
+      steps.push({ kind: "index", index, ...optional });
+    } else {
       const rawKey = token.startsWith(".") ? token.slice(1) : token;
       const key = rawKey.startsWith('"') ? parseString(rawKey) : rawKey;
       if (key === null) return null;

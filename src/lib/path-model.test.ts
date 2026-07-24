@@ -75,15 +75,17 @@ describe("evaluateSteps", () => {
     expect(results.map((n) => n.value)).toEqual([1, 2]);
   });
 
-  it("returns empty for missing keys and out-of-range indices", () => {
+  it("returns jq nulls for missing keys and out-of-range indices", () => {
     const model = buildPathModel(doc);
-    expect(evaluateSteps(model.root, [{ kind: "key", key: "nope" }])).toEqual([]);
+    expect(
+      evaluateSteps(model.root, [{ kind: "key", key: "nope" }]).map((node) => node.value),
+    ).toEqual([null]);
     expect(
       evaluateSteps(model.root, [
         { kind: "key", key: "scalars" },
         { kind: "index", index: 99 },
-      ]),
-    ).toEqual([]);
+      ]).map((node) => node.value),
+    ).toEqual([null]);
   });
 
   it("does not index into objects or key into arrays", () => {
@@ -121,6 +123,16 @@ describe("evaluateSteps", () => {
         { kind: "key", key: "name", optional: true },
       ]).map((node) => node.value),
     ).toEqual(["a"]);
+  });
+
+  it("treats null indexing as jq null propagation", () => {
+    const model = buildPathModel({ value: null });
+    expect(
+      evaluateSteps(model.root, [
+        { kind: "key", key: "value" },
+        { kind: "index", index: 0 },
+      ]).map((node) => node.value),
+    ).toEqual([null]);
   });
 
   it("preserves documents with keys jq cannot address", () => {
