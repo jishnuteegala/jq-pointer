@@ -3,6 +3,7 @@ import {
   buildPathModel,
   commonArrayAncestor,
   evaluateSteps,
+  matchingNodes,
   pathTo,
   type ModelNode,
 } from "./path-model";
@@ -89,6 +90,22 @@ describe("evaluateSteps", () => {
         { kind: "index", index: 99 },
       ]).map((node) => node.value),
     ).toEqual([null]);
+  });
+
+  it("keeps jq's synthetic nulls out of highlightable matches", () => {
+    const model = buildPathModel({ missing: null, values: [1] });
+    expect(
+      matchingNodes(model.root, [{ kind: "key", key: "missing" }]).map((node) => node.value),
+    ).toEqual([null]);
+    expect(matchingNodes(model.root, [{ kind: "key", key: "absent" }])).toEqual([]);
+    expect(
+      matchingNodes(model.root, [
+        { kind: "key", key: "values" },
+        { kind: "index", index: 1 },
+      ]),
+    ).toEqual([]);
+    const missing = evaluateSteps(model.root, [{ kind: "key", key: "absent" }])[0];
+    expect(pathTo(missing)).toEqual({ kind: "unsupported", reason: "synthetic-result" });
   });
 
   it("does not index into objects or key into arrays", () => {

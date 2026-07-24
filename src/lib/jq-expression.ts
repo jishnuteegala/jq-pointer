@@ -1,4 +1,4 @@
-import { evaluateSteps, type ModelNode, type PathStep } from "./path-model";
+import { evaluateSteps, matchingNodes, type ModelNode, type PathStep } from "./path-model";
 
 const identifier = /^[a-zA-Z_][a-zA-Z_0-9]*$/;
 const keywords = new Set([
@@ -85,7 +85,8 @@ export function printExpression(expression: JqExpression): string {
   return `${printPath(expression.source.steps)} | {${fields}}`;
 }
 
-export function evaluateExpression(root: ModelNode, expression: JqExpression): ModelNode[] {
+/** Evaluates jq's value stream, including synthetic nulls for absent fields. */
+export function evaluateJqExpression(root: ModelNode, expression: JqExpression): ModelNode[] {
   const source = evaluateSteps(
     root,
     expression.kind === "path" ? expression.steps : expression.source.steps,
@@ -94,6 +95,19 @@ export function evaluateExpression(root: ModelNode, expression: JqExpression): M
   const keys = [...new Set(expression.keys)];
   return source.flatMap((node) =>
     keys.flatMap((key) => evaluateSteps(node, [{ kind: "key", key }])),
+  );
+}
+
+/** Evaluates an expression to highlightable document nodes, excluding absent jq nulls. */
+export function evaluateExpression(root: ModelNode, expression: JqExpression): ModelNode[] {
+  const source = matchingNodes(
+    root,
+    expression.kind === "path" ? expression.steps : expression.source.steps,
+  );
+  if (expression.kind === "path") return source;
+  const keys = [...new Set(expression.keys)];
+  return source.flatMap((node) =>
+    keys.flatMap((key) => matchingNodes(node, [{ kind: "key", key }])),
   );
 }
 

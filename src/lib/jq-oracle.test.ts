@@ -4,6 +4,7 @@ import { platform } from "node:os";
 import {
   array,
   assert,
+  boolean,
   constantFrom,
   integer,
   jsonValue,
@@ -11,10 +12,11 @@ import {
   property,
   string,
   subarray,
+  tuple,
 } from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
-  evaluateExpression,
+  evaluateJqExpression,
   parseExpression,
   printExpression,
   printPath,
@@ -85,7 +87,7 @@ oracle("jq 1.7.1 printer oracle", () => {
     const parsed = parseExpression(printed);
     if (parsed === null) throw new Error("printed expression did not parse");
     expect(
-      evaluateExpression(buildPathModel(document).root, parsed).map((node) => node.value),
+      evaluateJqExpression(buildPathModel(document).root, parsed).map((node) => node.value),
     ).toEqual(runJq(document, printed));
   });
 
@@ -116,7 +118,7 @@ oracle("jq 1.7.1 printer oracle", () => {
           const parsed = parseExpression(printed);
           if (parsed === null) throw new Error("printed expression did not parse");
           expect(
-            evaluateExpression(buildPathModel(document).root, parsed).map((node) => node.value),
+            evaluateJqExpression(buildPathModel(document).root, parsed).map((node) => node.value),
           ).toEqual(runJq(document, printed));
         },
       ),
@@ -129,20 +131,20 @@ oracle("jq 1.7.1 printer oracle", () => {
     assert(
       property(
         array(
-          jsonValue({ maxDepth: 3 }).map(
-            (name) =>
-              ({
-                name,
-                "a-b": null,
-                nested: { value: name },
-                if: name,
-              }) as JsonValue & {
-                name: JsonValue;
-                "a-b": null;
-                nested: { value: JsonValue };
-                if: JsonValue;
-              },
-          ),
+          tuple(
+            boolean(),
+            boolean(),
+            boolean(),
+            boolean(),
+            jsonValue({ maxDepth: 3 }).map((value) => value as JsonValue),
+          ).map(([hasName, hasDashedKey, hasNested, hasKeyword, value]) => {
+            const item: Record<string, JsonValue> = {};
+            if (hasName) item.name = value;
+            if (hasDashedKey) item["a-b"] = null;
+            if (hasNested) item.nested = { value };
+            if (hasKeyword) item.if = value;
+            return item;
+          }),
           { maxLength: 8 },
         ),
         subarray([...constructionKeys], { minLength: 1 }),
@@ -162,7 +164,7 @@ oracle("jq 1.7.1 printer oracle", () => {
           const printed = printExpression(expression);
           expect(parseExpression(printed)).toEqual(expression);
           expect(runJq(document, printed)).toEqual(
-            items.map((item) => Object.fromEntries(keys.map((key) => [key, item[key]]))),
+            items.map((item) => Object.fromEntries(keys.map((key) => [key, item[key] ?? null]))),
           );
         },
       ),
@@ -186,7 +188,7 @@ oracle("jq 1.7.1 printer oracle", () => {
       const parsed = parseExpression(expression);
       if (parsed === null) throw new Error("generated expression did not parse");
       expect(
-        evaluateExpression(model.root, parsed).map((matchedNode) => matchedNode.value),
+        evaluateJqExpression(model.root, parsed).map((matchedNode) => matchedNode.value),
       ).toEqual([node.value]);
       expect(runJq(document, expression)).toEqual([node.value]);
     }

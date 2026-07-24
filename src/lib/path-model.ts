@@ -12,6 +12,7 @@ export interface ModelNode {
   segment: PathSegment | null;
   children: ModelNode[] | null;
   jqAddressable: boolean;
+  exists: boolean;
 }
 
 export interface PathModel {
@@ -21,7 +22,7 @@ export interface PathModel {
 
 export type PathResult =
   | { kind: "path"; segments: PathSegment[] }
-  | { kind: "unsupported"; reason: "lone-surrogate-key" };
+  | { kind: "unsupported"; reason: "lone-surrogate-key" | "synthetic-result" };
 
 export function buildPathModel(value: JsonValue): PathModel {
   let nodeCount = 0;
@@ -31,6 +32,7 @@ export function buildPathModel(value: JsonValue): PathModel {
     segment: null,
     children: null,
     jqAddressable: true,
+    exists: true,
   };
   const stack: ModelNode[] = [root];
   let node: ModelNode | undefined;
@@ -46,6 +48,7 @@ export function buildPathModel(value: JsonValue): PathModel {
           segment: { kind: "index", index: i },
           children: null,
           jqAddressable: node.jqAddressable,
+          exists: true,
         };
         children.push(child);
         stack.push(child);
@@ -61,6 +64,7 @@ export function buildPathModel(value: JsonValue): PathModel {
           segment: { kind: "key", key },
           children: null,
           jqAddressable: node.jqAddressable && !hasLoneSurrogate(key),
+          exists: true,
         };
         children.push(child);
         stack.push(child);
@@ -85,6 +89,7 @@ function hasLoneSurrogate(value: string): boolean {
 
 /** Returns an explicit unsupported result when jq cannot represent the node's key path. */
 export function pathTo(node: ModelNode): PathResult {
+  if (!node.exists) return { kind: "unsupported", reason: "synthetic-result" };
   if (!node.jqAddressable) return { kind: "unsupported", reason: "lone-surrogate-key" };
   const segments: PathSegment[] = [];
   let current: ModelNode | null = node;
@@ -142,6 +147,11 @@ export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {
   return current;
 }
 
+/** Returns only document nodes that can be highlighted, excluding jq's synthetic null results. */
+export function matchingNodes(root: ModelNode, steps: PathStep[]): ModelNode[] {
+  return evaluateSteps(root, steps).filter((node) => node.exists);
+}
+
 function nullNode(parent: ModelNode): ModelNode {
   return {
     value: null,
@@ -149,6 +159,7 @@ function nullNode(parent: ModelNode): ModelNode {
     segment: null,
     children: null,
     jqAddressable: parent.jqAddressable,
+    exists: false,
   };
 }
 

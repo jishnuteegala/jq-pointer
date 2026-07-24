@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildPathModel, pathTo } from "./path-model";
 import {
   evaluateExpression,
+  evaluateJqExpression,
   parseExpression,
   printExpression,
   printKey,
@@ -79,7 +80,7 @@ describe("jq expression parser and evaluator", () => {
   it("evaluates parsed iterator paths to their matching nodes", () => {
     const expression = parseExpression(".items[].name");
     if (expression === null) throw new Error("expression did not parse");
-    const values = evaluateExpression(buildPathModel(document).root, expression).map(
+    const values = evaluateJqExpression(buildPathModel(document).root, expression).map(
       (node) => node.value,
     );
     expect(values).toEqual(["first", "second"]);
@@ -90,17 +91,28 @@ describe("jq expression parser and evaluator", () => {
     if (expression === null) throw new Error("expression did not parse");
     expect(printExpression(expression)).toBe('."face 😀".value');
     expect(
-      evaluateExpression(buildPathModel(document).root, expression).map((node) => node.value),
+      evaluateJqExpression(buildPathModel(document).root, expression).map((node) => node.value),
     ).toEqual([true]);
   });
 
   it("evaluates parsed flat construction shorthand to field nodes", () => {
     const expression = parseExpression('.items[] | {name, "a-b"}');
     if (expression === null) throw new Error("expression did not parse");
-    const values = evaluateExpression(buildPathModel(document).root, expression).map(
+    const values = evaluateJqExpression(buildPathModel(document).root, expression).map(
       (node) => node.value,
     );
     expect(values).toEqual(["first", 1, "second", 2]);
+  });
+
+  it("keeps missing construction fields out of reverse-highlight matches", () => {
+    const expression = parseExpression('.items[] | {name, "a-b"}');
+    if (expression === null) throw new Error("expression did not parse");
+    expect(
+      evaluateExpression(
+        buildPathModel({ items: [{ name: "first" }, { "a-b": 2 }] }).root,
+        expression,
+      ).map((node) => node.value),
+    ).toEqual(["first", 2]);
   });
 
   it("parses construction keys containing the construction delimiter", () => {
