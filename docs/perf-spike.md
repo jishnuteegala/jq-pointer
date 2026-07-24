@@ -25,8 +25,10 @@ Two measurements:
    segment-wise generalisation, and evaluation of the generalised steps
    over the ancestor's subtree (`bench/click-pipeline.ts`). The worst case
    is measured: the ancestor is the full 22k-element array. Cold (first
-   run), median, and max of 50 runs are all asserted against the 100ms
-   budget, so a JIT-warm median cannot mask a slow first click.
+   run) and median of 50 runs are asserted against the 100ms budget, so a
+   JIT-warm median cannot mask a slow first click; the max is reported as
+   diagnostic output but not asserted, so a one-off scheduler pause on a
+   shared CI runner cannot flake the suite.
 
 ## Measured results
 

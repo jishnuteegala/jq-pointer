@@ -72,6 +72,17 @@ describe('runClickPair', () => {
     expect(result?.matches.map((n) => n.value)).toEqual(['y', 'q']);
   });
 
+  it('returns null for two clicks on the same node', () => {
+    const a = descend(model.root, ['items', 0, 'name']);
+    expect(runClickPair(a, a)).toBeNull();
+  });
+
+  it('returns null for two clicks within the same array element', () => {
+    const a = descend(model.root, ['items', 0, 'name']);
+    const b = descend(model.root, ['items', 0, 'meta', 'id']);
+    expect(runClickPair(a, b)).toBeNull();
+  });
+
   it('returns null when nested indices differ', () => {
     const nested: JsonValue = {
       items: [{ tags: ['x', 'y'] }, { tags: ['p', 'q'] }],
