@@ -3,6 +3,7 @@ import {
   buildPathModel,
   commonArrayAncestor,
   evaluateSteps,
+  matchingNodes,
   pathTo,
   type ModelNode,
 } from "./path-model";
@@ -45,11 +46,14 @@ describe("buildPathModel", () => {
     const model = buildPathModel(doc);
     const name = child(at(child(model.root, "items"), 1), "name");
     expect(name.value).toBe("b");
-    expect(pathTo(name)).toEqual([
-      { kind: "key", key: "items" },
-      { kind: "index", index: 1 },
-      { kind: "key", key: "name" },
-    ]);
+    expect(pathTo(name)).toEqual({
+      kind: "path",
+      segments: [
+        { kind: "key", key: "items" },
+        { kind: "index", index: 1 },
+        { kind: "key", key: "name" },
+      ],
+    });
   });
 });
 
@@ -75,26 +79,94 @@ describe("evaluateSteps", () => {
     expect(results.map((n) => n.value)).toEqual([1, 2]);
   });
 
-  it("returns empty for missing keys and out-of-range indices", () => {
+  it("returns jq nulls for missing keys and out-of-range indices", () => {
     const model = buildPathModel(doc);
-    expect(evaluateSteps(model.root, [{ kind: "key", key: "nope" }])).toEqual([]);
+    expect(
+      evaluateSteps(model.root, [{ kind: "key", key: "nope" }]).map((node) => node.value),
+    ).toEqual([null]);
     expect(
       evaluateSteps(model.root, [
         { kind: "key", key: "scalars" },
         { kind: "index", index: 99 },
+      ]).map((node) => node.value),
+    ).toEqual([null]);
+  });
+
+  it("keeps jq's synthetic nulls out of highlightable matches", () => {
+    const model = buildPathModel({ missing: null, values: [1] });
+    expect(
+      matchingNodes(model.root, [{ kind: "key", key: "missing" }]).map((node) => node.value),
+    ).toEqual([null]);
+    expect(matchingNodes(model.root, [{ kind: "key", key: "absent" }])).toEqual([]);
+    expect(
+      matchingNodes(model.root, [
+        { kind: "key", key: "values" },
+        { kind: "index", index: 1 },
       ]),
     ).toEqual([]);
+    const missing = evaluateSteps(model.root, [{ kind: "key", key: "absent" }])[0];
+    expect(pathTo(missing)).toEqual({ kind: "unsupported", reason: "synthetic-result" });
   });
 
   it("does not index into objects or key into arrays", () => {
     const model = buildPathModel(doc);
-    expect(
+    expect(() =>
       evaluateSteps(model.root, [
         { kind: "key", key: "items" },
         { kind: "key", key: "name" },
       ]),
-    ).toEqual([]);
-    expect(evaluateSteps(model.root, [{ kind: "index", index: 0 }])).toEqual([]);
+    ).toThrow("cannot index a scalar with a key");
+    expect(() => evaluateSteps(model.root, [{ kind: "index", index: 0 }])).toThrow(
+      "cannot index a non-array",
+    );
+  });
+
+  it("applies optional steps only to type errors and supports negative indices", () => {
+    const model = buildPathModel({ values: [1, 2], mixed: [{ name: "a" }, 7] });
+    expect(
+      evaluateSteps(model.root, [
+        { kind: "key", key: "values" },
+        { kind: "index", index: -1 },
+      ]).map((node) => node.value),
+    ).toEqual([2]);
+    expect(() =>
+      evaluateSteps(model.root, [
+        { kind: "key", key: "mixed" },
+        { kind: "iterate" },
+        { kind: "key", key: "name" },
+      ]),
+    ).toThrow("cannot index a scalar with a key");
+    expect(
+      evaluateSteps(model.root, [
+        { kind: "key", key: "mixed" },
+        { kind: "iterate" },
+        { kind: "key", key: "name", optional: true },
+      ]).map((node) => node.value),
+    ).toEqual(["a"]);
+  });
+
+  it("treats null indexing as jq null propagation", () => {
+    const model = buildPathModel({ value: null });
+    expect(
+      evaluateSteps(model.root, [
+        { kind: "key", key: "value" },
+        { kind: "index", index: 0 },
+      ]).map((node) => node.value),
+    ).toEqual([null]);
+  });
+
+  it("marks keys jq cannot address without rejecting the document", () => {
+    const model = buildPathModel({ "bad \ud800 key": { value: 1 } });
+    expect(model.nodeCount).toBe(3);
+    expect(model.root.children?.[0].jqAddressable).toBe(false);
+    expect(pathTo(model.root.children?.[0] as ModelNode)).toEqual({
+      kind: "unsupported",
+      reason: "lone-surrogate-key",
+    });
+    expect(pathTo(model.root.children?.[0].children?.[0] as ModelNode)).toEqual({
+      kind: "unsupported",
+      reason: "lone-surrogate-key",
+    });
   });
 });
 

@@ -22,9 +22,19 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
+      - name: Install pinned jq oracle
+        run: |
+          curl --fail --location --output jq \
+            https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
+          echo "5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5  jq" | sha256sum --check
+          chmod +x jq
+          ./jq --version | grep -Fx jq-1.7.1
+          mv jq jq-1.7.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
       - run: pnpm run format
       - run: pnpm run typecheck
       - run: pnpm run test
+        env:
+          JQ_BINARY: ./jq-1.7.1
       - run: pnpm run build
