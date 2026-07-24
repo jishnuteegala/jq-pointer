@@ -2,6 +2,10 @@ node_modules
 dist
 coverage
 *.local
+*.log
 .DS_Store
 .env
 .env.*
+.vscode/*
+!.vscode/extensions.json
+.idea
