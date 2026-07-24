@@ -92,6 +92,18 @@ describe("jq expression parser and evaluator", () => {
     expect(values).toEqual(["first", 1, "second", 2]);
   });
 
+  it("round-trips generated paths to the originating node set", () => {
+    const model = buildPathModel(document);
+    const source: JqExpression = {
+      kind: "path",
+      steps: [{ kind: "key", key: "items" }, { kind: "iterate" }, { kind: "key", key: "name" }],
+    };
+    const parsed = parseExpression(printExpression(source));
+    if (parsed === null) throw new Error("generated expression did not parse");
+    expect(evaluateExpression(model.root, parsed)).toEqual(evaluateExpression(model.root, source));
+    expect(printExpression(parsed)).toBe(printExpression(source));
+  });
+
   it("rejects expressions outside the shared grammar", () => {
     expect(parseExpression(".items | map(.name)")).toBeNull();
     expect(parseExpression(".items[0:1]")).toBeNull();
