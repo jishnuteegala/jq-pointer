@@ -20,11 +20,23 @@ export function parseJsonInput(source: string): JsonInputResult {
 
 function inputHint(source: string, detail: string): string {
   const trimmed = source.trim();
+  let hint = "";
   if (trimmed.split("\n").filter(Boolean).length > 1 && !trimmed.startsWith("[")) {
-    return `This looks like NDJSON. Paste one JSON value instead. ${detail}`;
+    hint = "This looks like NDJSON. Paste one JSON value instead. ";
+  } else if (/[{,]\s*'|,\s*[a-zA-Z_$][\w$]*\s*:|,\s*[}\]]/.test(source)) {
+    hint = "This looks like a JavaScript literal, not strict JSON. ";
   }
-  if (/[{,]\s*'|,\s*[a-zA-Z_$][\w$]*\s*:|,\s*[}\]]/.test(source)) {
-    return `This looks like a JavaScript literal, not strict JSON. ${detail}`;
-  }
-  return detail;
+  return `${hint}${detail}\n${caretExcerpt(source, detail)}`;
+}
+
+function caretExcerpt(source: string, detail: string): string {
+  const match = /position (\d+)/.exec(detail);
+  const token = /Unexpected token '(.+?)'/.exec(detail);
+  const position = match === null ? (token === null ? -1 : source.indexOf(token[1])) : Number(match[1]);
+  if (position < 0) return "";
+  const before = source.slice(0, position);
+  const lineStart = before.lastIndexOf("\n") + 1;
+  const lineEnd = source.indexOf("\n", position);
+  const line = source.slice(lineStart, lineEnd === -1 ? source.length : lineEnd);
+  return `${line}\n${" ".repeat(position - lineStart)}^`;
 }

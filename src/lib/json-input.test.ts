@@ -11,6 +11,11 @@ describe("parseJsonInput", () => {
     expect(result.kind === "error" && result.message).toContain("JavaScript literal");
   });
 
+  it("includes a caret at the JSON error position", () => {
+    const result = parseJsonInput('{\n  "item":,\n}');
+    expect(result.kind === "error" && result.message).toContain('  "item":,\n         ^');
+  });
+
   it("rejects input over the document cap", () => {
     expect(parseJsonInput(`"${"x".repeat(MAX_JSON_BYTES)}"`)).toEqual({
       kind: "error", message: "JSON must be 10MB or smaller.",
