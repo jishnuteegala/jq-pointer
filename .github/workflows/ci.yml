@@ -28,10 +28,12 @@ jobs:
             https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
           chmod +x jq
           ./jq --version | grep -Fx jq-1.7.1
-          mv jq /usr/local/bin/jq-1.7.1
+          mv jq jq-1.7.1
       - run: pnpm install --frozen-lockfile
       - run: pnpm run lint
       - run: pnpm run format
       - run: pnpm run typecheck
       - run: pnpm run test
+        env:
+          JQ_BINARY: ./jq-1.7.1
       - run: pnpm run build

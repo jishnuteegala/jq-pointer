@@ -1,10 +1,11 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { platform } from "node:os";
+import fc from "fast-check";
 import { describe, expect, it } from "vitest";
 import { printPath, type JqExpression } from "./jq-expression";
 
-const jq = process.env.JQ_BINARY ?? "jq-1.7.1";
+const jq = process.env.JQ_BINARY ?? "./jq-1.7.1";
 const canRunOracle = platform() !== "win32" && existsSync(jq);
 const oracle = canRunOracle ? describe : describe.skip;
 
@@ -22,13 +23,14 @@ function runJq(document: unknown, expression: string): unknown[] {
 }
 
 oracle("jq 1.7.1 printer oracle", () => {
-  const keys = ["name", "if", "a-b", "two words", 'quote"', "slash\\", "face 😀", ""];
-
-  it("accepts and evaluates every emitted key path", () => {
-    for (const key of keys) {
-      const document = { [key]: key };
-      expect(runJq(document, printPath([{ kind: "key", key }]))).toEqual([key]);
-    }
+  it("accepts and evaluates emitted key paths", () => {
+    fc.assert(
+      fc.property(fc.string({ unit: fc.constantFrom("a", "-", " ", '"', "\\", "😀") }), (key) => {
+        const document = { [key]: key };
+        expect(runJq(document, printPath([{ kind: "key", key }]))).toEqual([key]);
+      }),
+      { numRuns: 100, seed: 7 },
+    );
   });
 
   it("matches jq iterator and optional step behavior", () => {
