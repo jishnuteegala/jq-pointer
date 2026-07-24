@@ -18,10 +18,15 @@ export function runClickPair(a: ModelNode, b: ModelNode): ClickPairResult | null
   const pathA = pathTo(a);
   const pathB = pathTo(b);
   const ancestorPath = pathTo(ancestor);
-  if (pathA === null || pathB === null || ancestorPath === null) return null;
-  const ancestorDepth = ancestorPath.length;
-  const relativeA = pathA.slice(ancestorDepth);
-  const relativeB = pathB.slice(ancestorDepth);
+  if (
+    pathA.kind === "unsupported" ||
+    pathB.kind === "unsupported" ||
+    ancestorPath.kind === "unsupported"
+  )
+    return null;
+  const ancestorDepth = ancestorPath.segments.length;
+  const relativeA = pathA.segments.slice(ancestorDepth);
+  const relativeB = pathB.segments.slice(ancestorDepth);
   if (relativeA.length !== relativeB.length) return null;
   const steps: PathStep[] = [];
   for (let i = 0; i < relativeA.length; i++) {

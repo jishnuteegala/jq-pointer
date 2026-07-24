@@ -19,6 +19,10 @@ export interface PathModel {
   nodeCount: number;
 }
 
+export type PathResult =
+  | { kind: "path"; segments: PathSegment[] }
+  | { kind: "unsupported"; reason: "lone-surrogate-key" };
+
 export function buildPathModel(value: JsonValue): PathModel {
   let nodeCount = 0;
   const root: ModelNode = {
@@ -79,8 +83,9 @@ function hasLoneSurrogate(value: string): boolean {
   return false;
 }
 
-export function pathTo(node: ModelNode): PathSegment[] | null {
-  if (!node.jqAddressable) return null;
+/** Returns an explicit unsupported result when jq cannot represent the node's key path. */
+export function pathTo(node: ModelNode): PathResult {
+  if (!node.jqAddressable) return { kind: "unsupported", reason: "lone-surrogate-key" };
   const segments: PathSegment[] = [];
   let current: ModelNode | null = node;
   while (current !== null && current.segment !== null) {
@@ -88,7 +93,7 @@ export function pathTo(node: ModelNode): PathSegment[] | null {
     current = current.parent;
   }
   segments.reverse();
-  return segments;
+  return { kind: "path", segments };
 }
 
 export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {

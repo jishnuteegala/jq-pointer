@@ -1,7 +1,17 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { platform } from "node:os";
-import { assert, constantFrom, property, string } from "fast-check";
+import {
+  array,
+  assert,
+  constantFrom,
+  integer,
+  jsonValue,
+  oneof,
+  property,
+  string,
+  subarray,
+} from "fast-check";
 import { describe, expect, it } from "vitest";
 import {
   evaluateExpression,
@@ -10,6 +20,7 @@ import {
   printPath,
   type JqExpression,
 } from "./jq-expression";
+import type { JsonValue } from "./json-value";
 import { buildPathModel, pathTo } from "./path-model";
 
 const jq = process.env.JQ_BINARY ?? "./jq-1.7.1";
@@ -55,7 +66,7 @@ oracle("jq 1.7.1 printer oracle", () => {
       runJq({ items: [1, { child: { value: "a" } }, { child: 2 }] }, ".items[].child?.value?"),
     ).toEqual(["a"]);
     expect(
-      runJq({ items: [1, { child: { value: "a" } }, { child: 2 }] }, ".items[].child[]?.value?"),
+      runJq({ items: [1, { child: { value: "a" } }, { child: 2 }] }, ".items[].child?[]?.value?"),
     ).toEqual(["a"]);
   });
 
@@ -78,49 +89,84 @@ oracle("jq 1.7.1 printer oracle", () => {
     ).toEqual(runJq(document, printed));
   });
 
-  it("matches jq semantic results for generated supported paths", () => {
-    const document = {
-      items: [
-        { name: "a", "a-b": 1, nested: { value: true } },
-        { name: "b", "a-b": null, nested: { value: false } },
-      ],
-    };
-    const expressions: JqExpression[] = [
-      {
-        kind: "path",
-        steps: [
-          { kind: "key", key: "items" },
-          { kind: "index", index: 0 },
-        ],
-      },
-      {
-        kind: "path",
-        steps: [
-          { kind: "key", key: "items" },
-          { kind: "iterate", optional: true },
-          { kind: "key", key: "a-b", optional: true },
-        ],
-      },
-      {
-        kind: "path",
-        steps: [
-          { kind: "key", key: "items" },
-          { kind: "iterate" },
-          { kind: "key", key: "nested" },
-          { kind: "key", key: "value", optional: true },
-        ],
-      },
-    ];
+  it("matches jq semantic results for generated heterogeneous documents and paths", () => {
+    const step = oneof(
+      constantFrom("name", "a-b", "child", "nested", "value", "missing").map(
+        (key) => ({ kind: "key", key, optional: true }) as const,
+      ),
+      constantFrom({ kind: "iterate", optional: true } as const),
+      integer({ min: -2, max: 2 }).map(
+        (index) => ({ kind: "index", index, optional: true }) as const,
+      ),
+    );
     assert(
-      property(constantFrom(...expressions), (expression) => {
-        const printed = printExpression(expression);
-        const parsed = parseExpression(printed);
-        if (parsed === null) throw new Error("printed expression did not parse");
-        expect(
-          evaluateExpression(buildPathModel(document).root, parsed).map((node) => node.value),
-        ).toEqual(runJq(document, printed));
-      }),
+      property(
+        array(
+          jsonValue({ maxDepth: 3 }).map((value) => value as JsonValue),
+          { maxLength: 8 },
+        ),
+        array(step, { minLength: 1, maxLength: 5 }),
+        (items, suffix) => {
+          const document = { items };
+          const expression: JqExpression = {
+            kind: "path",
+            steps: [{ kind: "key", key: "items" }, { kind: "iterate", optional: true }, ...suffix],
+          };
+          const printed = printExpression(expression);
+          const parsed = parseExpression(printed);
+          if (parsed === null) throw new Error("printed expression did not parse");
+          expect(
+            evaluateExpression(buildPathModel(document).root, parsed).map((node) => node.value),
+          ).toEqual(runJq(document, printed));
+        },
+      ),
       { numRuns: 100, seed: 17 },
+    );
+  });
+
+  it("matches jq for generated flat constructions with null and missing fields", () => {
+    const constructionKeys = ["name", "a-b", "nested", "if"] as const;
+    assert(
+      property(
+        array(
+          jsonValue({ maxDepth: 3 }).map(
+            (name) =>
+              ({
+                name,
+                "a-b": null,
+                nested: { value: name },
+                if: name,
+              }) as JsonValue & {
+                name: JsonValue;
+                "a-b": null;
+                nested: { value: JsonValue };
+                if: JsonValue;
+              },
+          ),
+          { maxLength: 8 },
+        ),
+        subarray([...constructionKeys], { minLength: 1 }),
+        (items, keys) => {
+          const document = { items };
+          const expression: JqExpression = {
+            kind: "construction",
+            source: {
+              kind: "path",
+              steps: [
+                { kind: "key", key: "items" },
+                { kind: "iterate", optional: true },
+              ],
+            },
+            keys,
+          };
+          const printed = printExpression(expression);
+          expect(parseExpression(printed)).toEqual(expression);
+          expect(runJq(document, printed)).toEqual(
+            items.map((item) => Object.fromEntries(keys.map((key) => [key, item[key]]))),
+          );
+        },
+      ),
+      { numRuns: 100, seed: 23 },
     );
   });
 
@@ -134,14 +180,14 @@ oracle("jq 1.7.1 printer oracle", () => {
     ];
     for (const node of selected) {
       if (node === undefined) throw new Error("selected node missing from model");
-      const steps = pathTo(node);
-      if (steps === null) throw new Error("selected node is not jq-addressable");
-      const expression = printPath(steps);
+      const result = pathTo(node);
+      if (result.kind === "unsupported") throw new Error("selected node is not jq-addressable");
+      const expression = printPath(result.segments);
       const parsed = parseExpression(expression);
       if (parsed === null) throw new Error("generated expression did not parse");
-      expect(evaluateExpression(model.root, parsed).map((result) => result.value)).toEqual([
-        node.value,
-      ]);
+      expect(
+        evaluateExpression(model.root, parsed).map((matchedNode) => matchedNode.value),
+      ).toEqual([node.value]);
       expect(runJq(document, expression)).toEqual([node.value]);
     }
   });

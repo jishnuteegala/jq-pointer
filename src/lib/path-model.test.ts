@@ -45,11 +45,14 @@ describe("buildPathModel", () => {
     const model = buildPathModel(doc);
     const name = child(at(child(model.root, "items"), 1), "name");
     expect(name.value).toBe("b");
-    expect(pathTo(name)).toEqual([
-      { kind: "key", key: "items" },
-      { kind: "index", index: 1 },
-      { kind: "key", key: "name" },
-    ]);
+    expect(pathTo(name)).toEqual({
+      kind: "path",
+      segments: [
+        { kind: "key", key: "items" },
+        { kind: "index", index: 1 },
+        { kind: "key", key: "name" },
+      ],
+    });
   });
 });
 
@@ -136,10 +139,17 @@ describe("evaluateSteps", () => {
   });
 
   it("marks keys jq cannot address without rejecting the document", () => {
-    const model = buildPathModel({ "bad \ud800 key": 1 });
-    expect(model.nodeCount).toBe(2);
+    const model = buildPathModel({ "bad \ud800 key": { value: 1 } });
+    expect(model.nodeCount).toBe(3);
     expect(model.root.children?.[0].jqAddressable).toBe(false);
-    expect(pathTo(model.root.children?.[0] as ModelNode)).toBeNull();
+    expect(pathTo(model.root.children?.[0] as ModelNode)).toEqual({
+      kind: "unsupported",
+      reason: "lone-surrogate-key",
+    });
+    expect(pathTo(model.root.children?.[0].children?.[0] as ModelNode)).toEqual({
+      kind: "unsupported",
+      reason: "lone-surrogate-key",
+    });
   });
 });
 

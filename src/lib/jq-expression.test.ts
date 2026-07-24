@@ -120,9 +120,9 @@ describe("jq expression parser and evaluator", () => {
       ...(model.root.children?.[0].children ?? []).flatMap((item) => item.children ?? []),
     ];
     for (const modelNode of nodes.filter((candidate) => candidate.jqAddressable)) {
-      const steps = pathTo(modelNode);
-      if (steps === null) throw new Error("addressable node did not have a path");
-      const source: JqExpression = { kind: "path", steps };
+      const result = pathTo(modelNode);
+      if (result.kind === "unsupported") throw new Error("addressable node did not have a path");
+      const source: JqExpression = { kind: "path", steps: result.segments };
       const printed = printExpression(source);
       const parsed = parseExpression(printed);
       if (parsed === null) throw new Error("generated expression did not parse");
@@ -144,6 +144,10 @@ describe("jq expression parser and evaluator", () => {
     expect(parseExpression(".[9007199254740992]")).toBeNull();
     expect(parseExpression(".if")).toBeNull();
     expect(parseExpression('."name"')).toBeNull();
+    expect(parseExpression('."a\\u002db"')).toBeNull();
+    expect(parseExpression('."\\ud83d\\ude00"')).toBeNull();
+    expect(parseExpression('. | {"name"}')).toBeNull();
+    expect(parseExpression(". | {if}")).toBeNull();
     expect(parseExpression(".[01]")).toBeNull();
     expect(parseExpression(".[-0]")).toBeNull();
     expect(parseExpression(". | {name, name}")).toBeNull();
