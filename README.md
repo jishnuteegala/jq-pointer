@@ -4,7 +4,7 @@ Paste JSON, click the value you want, get the jq expression that extracts it - t
 
 ## Development
 
-Requires Node 20+ and [pnpm](https://pnpm.io).
+Requires Node 20.19+ (or 22.12+) and [pnpm](https://pnpm.io).
 
 ```sh
 pnpm install
