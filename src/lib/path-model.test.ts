@@ -135,8 +135,8 @@ describe("evaluateSteps", () => {
     ).toEqual([null]);
   });
 
-  it("preserves documents with keys jq cannot address", () => {
-    expect(buildPathModel({ "bad \ud800 key": 1 }).nodeCount).toBe(2);
+  it("rejects documents with keys jq cannot address", () => {
+    expect(() => buildPathModel({ "bad \ud800 key": 1 })).toThrow("lone surrogates");
   });
 });
 

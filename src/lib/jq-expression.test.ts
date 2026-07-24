@@ -103,6 +103,15 @@ describe("jq expression parser and evaluator", () => {
     expect(values).toEqual(["first", 1, "second", 2]);
   });
 
+  it("parses construction keys containing the construction delimiter", () => {
+    const expression = parseExpression('.items[] | {"x | {y"}');
+    expect(expression).toEqual({
+      kind: "construction",
+      source: { kind: "path", steps: [{ kind: "key", key: "items" }, { kind: "iterate" }] },
+      keys: ["x | {y"],
+    });
+  });
+
   it("round-trips generated paths to the originating node set", () => {
     const model = buildPathModel(document);
     const source: JqExpression = {

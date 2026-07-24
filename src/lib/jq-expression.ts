@@ -97,13 +97,28 @@ export function evaluateExpression(root: ModelNode, expression: JqExpression): M
 }
 
 export function parseExpression(input: string): JqExpression | null {
-  const construction = input.match(/^(.*) \| \{(.*)\}$/);
-  if (construction !== null) {
-    const source = parsePath(construction[1]);
-    const keys = parseFields(construction[2]);
+  const delimiter = constructionDelimiter(input);
+  if (delimiter !== null && input.endsWith("}")) {
+    const source = parsePath(input.slice(0, delimiter));
+    const keys = parseFields(input.slice(delimiter + 4, -1));
     return source === null || keys === null ? null : { kind: "construction", source, keys };
   }
   return parsePath(input);
+}
+
+function constructionDelimiter(input: string): number | null {
+  let quoted = false;
+  let escaped = false;
+  for (let index = 0; index < input.length - 3; index++) {
+    const character = input[index];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (character === "\\") escaped = true;
+      else if (character === '"') quoted = false;
+    } else if (character === '"') quoted = true;
+    else if (input.startsWith(" | {", index)) return index;
+  }
+  return null;
 }
 
 function parseFields(input: string): string[] | null {

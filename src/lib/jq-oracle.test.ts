@@ -72,6 +72,52 @@ oracle("jq 1.7.1 printer oracle", () => {
     ).toEqual(runJq(document, printed));
   });
 
+  it("matches jq semantic results for generated supported paths", () => {
+    const document = {
+      items: [
+        { name: "a", "a-b": 1, nested: { value: true } },
+        { name: "b", "a-b": null, nested: { value: false } },
+      ],
+    };
+    const expressions: JqExpression[] = [
+      {
+        kind: "path",
+        steps: [
+          { kind: "key", key: "items" },
+          { kind: "index", index: 0 },
+        ],
+      },
+      {
+        kind: "path",
+        steps: [
+          { kind: "key", key: "items" },
+          { kind: "iterate", optional: true },
+          { kind: "key", key: "a-b", optional: true },
+        ],
+      },
+      {
+        kind: "path",
+        steps: [
+          { kind: "key", key: "items" },
+          { kind: "iterate" },
+          { kind: "key", key: "nested" },
+          { kind: "key", key: "value", optional: true },
+        ],
+      },
+    ];
+    assert(
+      property(constantFrom(...expressions), (expression) => {
+        const printed = printExpression(expression);
+        const parsed = parseExpression(printed);
+        if (parsed === null) throw new Error("printed expression did not parse");
+        expect(
+          evaluateExpression(buildPathModel(document).root, parsed).map((node) => node.value),
+        ).toEqual(runJq(document, printed));
+      }),
+      { numRuns: 100, seed: 17 },
+    );
+  });
+
   it("prints flat constructions jq evaluates as objects", () => {
     const document = {
       items: [
