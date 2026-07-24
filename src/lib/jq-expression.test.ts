@@ -169,4 +169,11 @@ describe("jq expression parser and evaluator", () => {
     expect(printPath([{ kind: "index", index: 0 }])).toBe(".[0]");
     expect(printPath([{ kind: "iterate" }])).toBe(".[]");
   });
+
+  it.each([1.5, Infinity, NaN, Number.MAX_SAFE_INTEGER + 1])(
+    "rejects non-safe integer index %s",
+    (index) => {
+      expect(() => printPath([{ kind: "index", index }])).toThrow("safe integers");
+    },
+  );
 });

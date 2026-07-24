@@ -70,8 +70,11 @@ export function printPath(steps: PathStep[]): string {
     const step = steps[index];
     if (step.kind === "key")
       result += index === 0 ? printKey(step.key).slice(1) : printKey(step.key);
-    else if (step.kind === "index") result += `[${step.index}]`;
-    else result += "[]";
+    else if (step.kind === "index") {
+      if (!Number.isSafeInteger(step.index))
+        throw new RangeError("jq indices must be safe integers");
+      result += `[${step.index}]`;
+    } else result += "[]";
     if (step.optional) result += "?";
   }
   return result;
