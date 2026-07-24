@@ -1,52 +1,130 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import type { KeyboardEvent, UIEvent } from "react";
 import type { ModelNode } from "../lib/path-model";
-import { flattenVisible, rowLabel, valuePreview } from "../lib/tree-rows";
+import { flattenVisible, rowLabel, valuePreview, type TreeRow } from "../lib/tree-rows";
 
-const ROW_HEIGHT = 32;
-const OVERSCAN = 8;
+const ROW_HEIGHT = 28;
+const OVERSCAN = 10;
 
 interface TreeViewProps {
   root: ModelNode;
-  selected: ModelNode | null;
+  highlighted: ReadonlySet<ModelNode>;
   onSelect: (node: ModelNode) => void;
 }
 
-export function TreeView({ root, selected, onSelect }: TreeViewProps) {
+export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
   const [expanded, setExpanded] = useState<ReadonlySet<ModelNode>>(() => new Set([root]));
   const [scrollTop, setScrollTop] = useState(0);
-  const viewport = useRef<HTMLDivElement>(null);
+  const [focusedIndex, setFocusedIndex] = useState(0);
+  const containerRef = useRef<HTMLDivElement>(null);
   const rows = useMemo(() => flattenVisible(root, expanded), [root, expanded]);
-  const visibleCount = Math.ceil((viewport.current?.clientHeight ?? 384) / ROW_HEIGHT);
+
+  const viewportHeight = containerRef.current?.clientHeight ?? 480;
   const start = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
-  const end = Math.min(rows.length, start + visibleCount + OVERSCAN * 2);
+  const end = Math.min(
+    rows.length,
+    Math.ceil((scrollTop + viewportHeight) / ROW_HEIGHT) + OVERSCAN,
+  );
 
-  useEffect(() => {
-    setExpanded(new Set([root]));
-    setScrollTop(0);
-    viewport.current?.scrollTo({ top: 0 });
-  }, [root]);
-
-  function toggle(node: ModelNode) {
-    setExpanded((current) => {
-      const next = new Set(current);
+  const toggle = (node: ModelNode) => {
+    setExpanded((previous) => {
+      const next = new Set(previous);
       if (next.has(node)) next.delete(node);
       else next.add(node);
       return next;
     });
-  }
+  };
+
+  const handleScroll = (event: UIEvent<HTMLDivElement>) => {
+    setScrollTop(event.currentTarget.scrollTop);
+  };
+
+  const focusRow = (index: number) => {
+    const clamped = Math.max(0, Math.min(rows.length - 1, index));
+    setFocusedIndex(clamped);
+    const container = containerRef.current;
+    if (container === null) return;
+    const top = clamped * ROW_HEIGHT;
+    if (top < container.scrollTop) container.scrollTop = top;
+    else if (top + ROW_HEIGHT > container.scrollTop + container.clientHeight) {
+      container.scrollTop = top + ROW_HEIGHT - container.clientHeight;
+    }
+  };
+
+  const activateRow = (row: TreeRow) => {
+    if (row.expandable) toggle(row.node);
+    onSelect(row.node);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const row = rows[focusedIndex];
+    if (row === undefined) return;
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      focusRow(focusedIndex + 1);
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      focusRow(focusedIndex - 1);
+    } else if (event.key === "ArrowRight") {
+      event.preventDefault();
+      if (row.expandable && !row.expanded) toggle(row.node);
+      else focusRow(focusedIndex + 1);
+    } else if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      if (row.expandable && row.expanded) toggle(row.node);
+      else {
+        const parentIndex = rows.findIndex((candidate) => candidate.node === row.node.parent);
+        if (parentIndex !== -1) focusRow(parentIndex);
+      }
+    } else if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      activateRow(row);
+    }
+  };
 
   return (
-    <div aria-label="JSON tree" className="tree-viewport" onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)} ref={viewport}>
+    <div
+      ref={containerRef}
+      className="tree-view"
+      role="tree"
+      aria-label="JSON document tree"
+      tabIndex={0}
+      onScroll={handleScroll}
+      onKeyDown={handleKeyDown}
+    >
       <div className="tree-spacer" style={{ height: rows.length * ROW_HEIGHT }}>
-        <div style={{ transform: `translateY(${start * ROW_HEIGHT}px)` }}>
-          {rows.slice(start, end).map(({ node, depth }, index) => {
-            const { expandable, expanded: isExpanded } = rows[start + index];
-            return <div className={`tree-row${selected === node ? " is-selected" : ""}`} key={start + index} style={{ height: ROW_HEIGHT, paddingLeft: `${depth * 20 + 8}px` }}>
-              <button aria-expanded={expandable ? isExpanded : undefined} aria-label={`${isExpanded ? "Collapse" : "Expand"} ${rowLabel(node)}`} className="tree-toggle" disabled={!expandable} onClick={() => toggle(node)} type="button">{expandable ? (isExpanded ? "-" : "+") : ""}</button>
-              <button className="tree-value" onClick={() => onSelect(node)} type="button"><span className="tree-key">{rowLabel(node)}</span><span className="tree-preview">{valuePreview(node)}</span></button>
-            </div>;
-          })}
-        </div>
+        {rows.slice(start, end).map((row, offset) => {
+          const index = start + offset;
+          const selected = highlighted.has(row.node);
+          return (
+            <div
+              key={index}
+              role="treeitem"
+              aria-level={row.depth + 1}
+              aria-expanded={row.expandable ? row.expanded : undefined}
+              aria-selected={selected}
+              tabIndex={-1}
+              className={`tree-row${selected ? " tree-row-highlighted" : ""}${
+                index === focusedIndex ? " tree-row-focused" : ""
+              }`}
+              style={{ top: index * ROW_HEIGHT, paddingLeft: `${row.depth * 1.25 + 0.5}rem` }}
+              onClick={() => {
+                focusRow(index);
+                activateRow(row);
+              }}
+              onKeyDown={(event) => {
+                event.stopPropagation();
+                handleKeyDown(event);
+              }}
+            >
+              <span className="tree-toggle" aria-hidden="true">
+                {row.expandable ? (row.expanded ? "\u25be" : "\u25b8") : ""}
+              </span>
+              <span className="tree-label">{rowLabel(row.node)}</span>
+              <span className="tree-value">{valuePreview(row.node)}</span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

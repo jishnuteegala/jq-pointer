@@ -18,7 +18,8 @@ describe("parseJsonInput", () => {
 
   it("rejects input over the document cap", () => {
     expect(parseJsonInput(`"${"x".repeat(MAX_JSON_BYTES)}"`)).toEqual({
-      kind: "error", message: "JSON must be 10MB or smaller.",
+      kind: "error",
+      message: "JSON must be 10MB or smaller.",
     });
   });
 });

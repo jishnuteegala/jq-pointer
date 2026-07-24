@@ -1,50 +1,113 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import type { ChangeEvent, DragEvent } from "react";
 import { TreeView } from "./components/TreeView";
-import { parseJsonInput } from "./lib/json-input";
 import { printPath } from "./lib/jq-expression";
-import { buildPathModel, pathTo, type ModelNode } from "./lib/path-model";
+import { parseDocument, type ParseOutcome } from "./lib/parse-document";
+import { buildPathModel, pathTo, type ModelNode, type PathModel } from "./lib/path-model";
+
+function describeOutcome(outcome: ParseOutcome): string {
+  if (outcome.kind === "too-large") {
+    const megabytes = (outcome.bytes / 1024 / 1024).toFixed(1);
+    const limit = (outcome.limit / 1024 / 1024).toFixed(0);
+    return `Document is ${megabytes}MB; the cap is ~${limit}MB.`;
+  }
+  if (outcome.kind === "error") return outcome.message;
+  return "";
+}
 
 function App() {
-  const [root, setRoot] = useState<ModelNode | null>(null);
+  const [text, setText] = useState("");
+  const [outcome, setOutcome] = useState<ParseOutcome | null>(null);
   const [selected, setSelected] = useState<ModelNode | null>(null);
-  const [expression, setExpression] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
-  function load(source: string) {
-    const result = parseJsonInput(source);
-    if (result.kind === "error") return setError(result.message);
-    setRoot(buildPathModel(result.value).root);
+  const model: PathModel | null = useMemo(() => {
+    if (outcome === null || outcome.kind !== "ok") return null;
+    return buildPathModel(outcome.value);
+  }, [outcome]);
+
+  const path = useMemo(() => {
+    if (selected === null) return null;
+    const result = pathTo(selected);
+    return result.kind === "path" ? printPath(result.segments) : null;
+  }, [selected]);
+
+  const highlighted = useMemo(() => new Set(selected === null ? [] : [selected]), [selected]);
+
+  const loadText = (value: string) => {
+    setText(value);
     setSelected(null);
-    setExpression(null);
-    setError(null);
-  }
+    setCopied(false);
+    setOutcome(value.trim() === "" ? null : parseDocument(value));
+  };
 
-  function select(node: ModelNode) {
-    const result = pathTo(node);
-    if (result.kind === "unsupported") return setError("This path contains a key jq cannot represent.");
+  const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    loadText(event.target.value);
+  };
+
+  const handleDrop = async (event: DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    const file = event.dataTransfer.files[0];
+    if (file !== undefined) {
+      loadText(await file.text());
+      return;
+    }
+    const dropped = event.dataTransfer.getData("text/plain");
+    if (dropped !== "") loadText(dropped);
+  };
+
+  const handleCopy = async () => {
+    if (path === null) return;
+    await navigator.clipboard.writeText(path);
+    setCopied(true);
+  };
+
+  const handleSelect = (node: ModelNode) => {
     setSelected(node);
-    setExpression(printPath(result.segments));
-    setError(null);
-  }
-
-  async function copy() {
-    if (expression !== null) await navigator.clipboard.writeText(expression);
-  }
+    setCopied(false);
+  };
 
   return (
-    <main className="app-shell">
+    <main>
       <h1>jq-pointer</h1>
-      <p>Paste JSON, click the value you want, get the jq expression that extracts it.</p>
-      <label className="input-panel" onDragOver={(event) => event.preventDefault()} onDrop={(event) => {
-        event.preventDefault();
-        const file = event.dataTransfer.files.item(0);
-        if (file !== null) void file.text().then(load);
-      }}>JSON input (paste or drop a file)
-        <textarea onChange={(event) => load(event.target.value)} placeholder='{"items": ["click me"]}' />
+      <p>Paste or drop JSON, click the value you want, get the jq expression that extracts it.</p>
+      <label className="input-label" htmlFor="json-input">
+        JSON document
       </label>
-      {error !== null && <p className="error" role="alert">{error}</p>}
-      {expression !== null && <section aria-live="polite" className="expression-panel"><code>{expression}</code><button onClick={() => void copy()} type="button">Copy</button></section>}
-      {root !== null && <TreeView onSelect={select} root={root} selected={selected} />}
+      <textarea
+        id="json-input"
+        className="json-input"
+        value={text}
+        onChange={handleChange}
+        onDrop={handleDrop}
+        onDragOver={(event: DragEvent<HTMLTextAreaElement>) => event.preventDefault()}
+        placeholder="Paste JSON here or drop a file onto this box"
+        spellCheck={false}
+      />
+      {outcome !== null && outcome.kind !== "ok" && (
+        <div className="parse-error" role="alert">
+          <p>{describeOutcome(outcome)}</p>
+          {outcome.kind === "error" && outcome.excerpt !== null && <pre>{outcome.excerpt}</pre>}
+        </div>
+      )}
+      {model !== null && (
+        <>
+          <div className="path-bar">
+            <output className="path-output" aria-live="polite">
+              {path ?? "Click a value in the tree to get its jq path"}
+            </output>
+            <button
+              type="button"
+              className="copy-button"
+              onClick={handleCopy}
+              disabled={path === null}
+            >
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+          <TreeView root={model.root} highlighted={highlighted} onSelect={handleSelect} />
+        </>
+      )}
     </main>
   );
 }

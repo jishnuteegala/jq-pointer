@@ -32,7 +32,8 @@ function inputHint(source: string, detail: string): string {
 function caretExcerpt(source: string, detail: string): string {
   const match = /position (\d+)/.exec(detail);
   const token = /Unexpected token '(.+?)'/.exec(detail);
-  const position = match === null ? (token === null ? -1 : source.indexOf(token[1])) : Number(match[1]);
+  const position =
+    match === null ? (token === null ? -1 : source.indexOf(token[1])) : Number(match[1]);
   if (position < 0) return "";
   const before = source.slice(0, position);
   const lineStart = before.lastIndexOf("\n") + 1;

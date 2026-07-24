@@ -8,24 +8,234 @@ body {
   margin: 0;
 }
 
-button, textarea { font: inherit; }
+button,
+textarea {
+  font: inherit;
+}
 .app-shell {
   max-width: 48rem;
   margin: 0 auto;
   padding: 2rem 1rem;
 }
-.input-panel { display: grid; gap: 0.5rem; font-weight: 600; }
-textarea { min-height: 8rem; padding: 0.75rem; border: 1px solid #b8c1d4; border-radius: 0.5rem; resize: vertical; }
-.expression-panel { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin: 1rem 0; padding: 0.75rem; color: #fff; background: #172033; border-radius: 0.5rem; }
-.expression-panel code { overflow-wrap: anywhere; }
-.expression-panel button { flex: none; }
-.error { color: #b42318; }
-.tree-viewport { height: 24rem; overflow: auto; background: #fff; border: 1px solid #b8c1d4; border-radius: 0.5rem; }
-.tree-spacer { position: relative; }
-.tree-row { display: flex; align-items: center; box-sizing: border-box; min-width: max-content; }
-.tree-row.is-selected { background: #dbeafe; }
-.tree-toggle { width: 1.5rem; height: 1.5rem; padding: 0; color: #475569; background: transparent; border: 0; }
-.tree-value { display: flex; gap: 0.75rem; min-width: 0; padding: 0.25rem; color: inherit; text-align: left; background: transparent; border: 0; }
-.tree-key { font-weight: 600; }
-.tree-preview { color: #64748b; font-family: ui-monospace, monospace; }
-button:focus-visible, textarea:focus-visible, .tree-viewport:focus-visible { outline: 3px solid #2563eb; outline-offset: 2px; }
+.input-panel {
+  display: grid;
+  gap: 0.5rem;
+  font-weight: 600;
+}
+textarea {
+  min-height: 8rem;
+  padding: 0.75rem;
+  border: 1px solid #b8c1d4;
+  border-radius: 0.5rem;
+  resize: vertical;
+}
+.expression-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 1rem 0;
+  padding: 0.75rem;
+  color: #fff;
+  background: #172033;
+  border-radius: 0.5rem;
+}
+.expression-panel code {
+  overflow-wrap: anywhere;
+}
+.expression-panel button {
+  flex: none;
+}
+.error {
+  color: #b42318;
+}
+.tree-viewport {
+  height: 24rem;
+  overflow: auto;
+  background: #fff;
+  border: 1px solid #b8c1d4;
+  border-radius: 0.5rem;
+}
+.tree-spacer {
+  position: relative;
+}
+.tree-row {
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  min-width: max-content;
+}
+.tree-row.is-selected {
+  background: #dbeafe;
+}
+.tree-toggle {
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  color: #475569;
+  background: transparent;
+  border: 0;
+}
+.tree-value {
+  display: flex;
+  gap: 0.75rem;
+  min-width: 0;
+  padding: 0.25rem;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+}
+.tree-key {
+  font-weight: 600;
+}
+.tree-preview {
+  color: #64748b;
+  font-family: ui-monospace, monospace;
+}
+button:focus-visible,
+textarea:focus-visible,
+.tree-viewport:focus-visible {
+  outline: 3px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.input-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.json-input {
+  width: 100%;
+  min-height: 8rem;
+  box-sizing: border-box;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  resize: vertical;
+}
+
+.parse-error {
+  border: 1px solid #c0392b;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.parse-error pre {
+  font-family: ui-monospace, monospace;
+  overflow-x: auto;
+  margin: 0.5rem 0 0;
+}
+
+.path-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.path-output {
+  flex: 1;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 4px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.copy-button {
+  font: inherit;
+  padding: 0.5rem 1rem;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.copy-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.copy-button:focus-visible,
+.json-input:focus-visible,
+.tree-view:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.tree-view {
+  position: relative;
+  height: 60vh;
+  overflow-y: auto;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 4px;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+}
+
+.tree-spacer {
+  position: relative;
+}
+
+.tree-row {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.tree-row:hover {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.tree-row-highlighted {
+  background: color-mix(in srgb, #2563eb 25%, transparent);
+}
+
+.tree-row-highlighted:hover {
+  background: color-mix(in srgb, #2563eb 32%, transparent);
+}
+
+.tree-row-focused {
+  box-shadow: inset 0 0 0 2px #2563eb;
+}
+
+.tree-toggle {
+  display: inline-block;
+  width: 1rem;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.tree-label {
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.tree-value {
+  opacity: 0.75;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .copy-button {
+    transition: background-color 120ms ease;
+  }
+}
