@@ -2,7 +2,9 @@ import type { JsonValue } from "./json-value";
 
 export type PathSegment = { kind: "key"; key: string } | { kind: "index"; index: number };
 
-export type PathStep = PathSegment | { kind: "iterate" };
+export type PathStep =
+  | (PathSegment & { optional?: boolean })
+  | { kind: "iterate"; optional?: boolean };
 
 export interface ModelNode {
   value: JsonValue;
