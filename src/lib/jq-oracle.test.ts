@@ -51,6 +51,12 @@ oracle("jq 1.7.1 printer oracle", () => {
       ],
     };
     expect(runJq(document, printPath(expression.steps))).toEqual(["a", null, "c"]);
+    expect(
+      runJq({ items: [1, { child: { value: "a" } }, { child: 2 }] }, ".items[].child?.value?"),
+    ).toEqual(["a"]);
+    expect(
+      runJq({ items: [1, { child: { value: "a" } }, { child: 2 }] }, ".items[].child[]?.value?"),
+    ).toEqual(["a"]);
   });
 
   it("matches jq for parsed paths", () => {
@@ -128,7 +134,9 @@ oracle("jq 1.7.1 printer oracle", () => {
     ];
     for (const node of selected) {
       if (node === undefined) throw new Error("selected node missing from model");
-      const expression = printPath(pathTo(node));
+      const steps = pathTo(node);
+      if (steps === null) throw new Error("selected node is not jq-addressable");
+      const expression = printPath(steps);
       const parsed = parseExpression(expression);
       if (parsed === null) throw new Error("generated expression did not parse");
       expect(evaluateExpression(model.root, parsed).map((result) => result.value)).toEqual([

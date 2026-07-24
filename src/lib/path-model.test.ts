@@ -139,6 +139,7 @@ describe("evaluateSteps", () => {
     const model = buildPathModel({ "bad \ud800 key": 1 });
     expect(model.nodeCount).toBe(2);
     expect(model.root.children?.[0].jqAddressable).toBe(false);
+    expect(pathTo(model.root.children?.[0] as ModelNode)).toBeNull();
   });
 });
 

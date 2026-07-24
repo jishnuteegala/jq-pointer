@@ -79,7 +79,7 @@ export function printPath(steps: PathStep[]): string {
 
 export function printExpression(expression: JqExpression): string {
   if (expression.kind === "path") return printPath(expression.steps);
-  const fields = expression.keys
+  const fields = [...new Set(expression.keys)]
     .map((key) => (identifier.test(key) && !keywords.has(key) ? key : quoteKey(key)))
     .join(", ");
   return `${printPath(expression.source.steps)} | {${fields}}`;
@@ -91,8 +91,9 @@ export function evaluateExpression(root: ModelNode, expression: JqExpression): M
     expression.kind === "path" ? expression.steps : expression.source.steps,
   );
   if (expression.kind === "path") return source;
+  const keys = [...new Set(expression.keys)];
   return source.flatMap((node) =>
-    expression.keys.flatMap((key) => evaluateSteps(node, [{ kind: "key", key }])),
+    keys.flatMap((key) => evaluateSteps(node, [{ kind: "key", key }])),
   );
 }
 
@@ -101,7 +102,9 @@ export function parseExpression(input: string): JqExpression | null {
   if (delimiter !== null && input.endsWith("}")) {
     const source = parsePath(input.slice(0, delimiter));
     const keys = parseFields(input.slice(delimiter + 4, -1));
-    return source === null || keys === null ? null : { kind: "construction", source, keys };
+    return source === null || keys === null || new Set(keys).size !== keys.length
+      ? null
+      : { kind: "construction", source, keys };
   }
   return parsePath(input);
 }
@@ -157,13 +160,20 @@ function parsePath(input: string): PathExpression | null {
     const optional = match[2] === "?" ? { optional: true } : {};
     if (token === "[]") steps.push({ kind: "iterate", ...optional });
     else if (token.startsWith("[")) {
-      const index = Number(token.slice(1, -1));
+      const rawIndex = token.slice(1, -1);
+      const index = Number(rawIndex);
       if (!Number.isSafeInteger(index)) return null;
+      if (String(index) !== rawIndex) return null;
       steps.push({ kind: "index", index, ...optional });
     } else {
       const rawKey = token.startsWith(".") ? token.slice(1) : token;
       const key = rawKey.startsWith('"') ? parseString(rawKey) : rawKey;
-      if (key === null) return null;
+      if (
+        key === null ||
+        (!rawKey.startsWith('"') && keywords.has(key)) ||
+        (rawKey.startsWith('"') && identifier.test(key) && !keywords.has(key))
+      )
+        return null;
       steps.push({ kind: "key", key, ...optional });
     }
     remaining = remaining.slice(match[0].length);

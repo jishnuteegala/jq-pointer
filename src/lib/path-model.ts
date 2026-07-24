@@ -79,7 +79,8 @@ function hasLoneSurrogate(value: string): boolean {
   return false;
 }
 
-export function pathTo(node: ModelNode): PathSegment[] {
+export function pathTo(node: ModelNode): PathSegment[] | null {
+  if (!node.jqAddressable) return null;
   const segments: PathSegment[] = [];
   let current: ModelNode | null = node;
   while (current !== null && current.segment !== null) {

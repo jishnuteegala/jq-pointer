@@ -120,7 +120,9 @@ describe("jq expression parser and evaluator", () => {
       ...(model.root.children?.[0].children ?? []).flatMap((item) => item.children ?? []),
     ];
     for (const modelNode of nodes.filter((candidate) => candidate.jqAddressable)) {
-      const source: JqExpression = { kind: "path", steps: pathTo(modelNode) };
+      const steps = pathTo(modelNode);
+      if (steps === null) throw new Error("addressable node did not have a path");
+      const source: JqExpression = { kind: "path", steps };
       const printed = printExpression(source);
       const parsed = parseExpression(printed);
       if (parsed === null) throw new Error("generated expression did not parse");
@@ -140,6 +142,11 @@ describe("jq expression parser and evaluator", () => {
     expect(parseExpression('."a""b"')).toBeNull();
     expect(parseExpression("..foo")).toBeNull();
     expect(parseExpression(".[9007199254740992]")).toBeNull();
+    expect(parseExpression(".if")).toBeNull();
+    expect(parseExpression('."name"')).toBeNull();
+    expect(parseExpression(".[01]")).toBeNull();
+    expect(parseExpression(".[-0]")).toBeNull();
+    expect(parseExpression(". | {name, name}")).toBeNull();
   });
 
   it("prints root array paths with their required dot prefix", () => {
