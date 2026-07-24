@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, UIEvent } from "react";
 import type { ModelNode } from "../lib/path-model";
 import { flattenVisible, rowLabel, valuePreview, type TreeRow } from "../lib/tree-rows";
@@ -17,6 +17,7 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
   const [scrollTop, setScrollTop] = useState(0);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const treeId = useId();
   const rows = useMemo(() => flattenVisible(root, expanded), [root, expanded]);
 
   const viewportHeight = containerRef.current?.clientHeight ?? 480;
@@ -88,6 +89,7 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
       className="tree-view"
       role="tree"
       aria-label="JSON document tree"
+      aria-activedescendant={`${treeId}-row-${focusedIndex}`}
       tabIndex={0}
       onScroll={handleScroll}
       onKeyDown={handleKeyDown}
@@ -99,8 +101,11 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
           return (
             <div
               key={index}
+              id={`${treeId}-row-${index}`}
               role="treeitem"
               aria-level={row.depth + 1}
+              aria-posinset={row.posInSet}
+              aria-setsize={row.setSize}
               aria-expanded={row.expandable ? row.expanded : undefined}
               aria-selected={selected}
               tabIndex={-1}

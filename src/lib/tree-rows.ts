@@ -5,20 +5,35 @@ export interface TreeRow {
   depth: number;
   expandable: boolean;
   expanded: boolean;
+  posInSet: number;
+  setSize: number;
+}
+
+interface StackEntry {
+  node: ModelNode;
+  depth: number;
+  posInSet: number;
+  setSize: number;
 }
 
 export function flattenVisible(root: ModelNode, expanded: ReadonlySet<ModelNode>): TreeRow[] {
   const rows: TreeRow[] = [];
-  const stack: { node: ModelNode; depth: number }[] = [{ node: root, depth: 0 }];
-  let entry: { node: ModelNode; depth: number } | undefined;
+  const stack: StackEntry[] = [{ node: root, depth: 0, posInSet: 1, setSize: 1 }];
+  let entry: StackEntry | undefined;
   while ((entry = stack.pop()) !== undefined) {
-    const { node, depth } = entry;
+    const { node, depth, posInSet, setSize } = entry;
     const expandable = node.children !== null && node.children.length > 0;
     const isExpanded = expandable && expanded.has(node);
-    rows.push({ node, depth, expandable, expanded: isExpanded });
+    rows.push({ node, depth, expandable, expanded: isExpanded, posInSet, setSize });
     if (isExpanded && node.children !== null) {
-      for (let index = node.children.length - 1; index >= 0; index--) {
-        stack.push({ node: node.children[index], depth: depth + 1 });
+      const count = node.children.length;
+      for (let index = count - 1; index >= 0; index--) {
+        stack.push({
+          node: node.children[index],
+          depth: depth + 1,
+          posInSet: index + 1,
+          setSize: count,
+        });
       }
     }
   }

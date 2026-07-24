@@ -35,6 +35,19 @@ describe("flattenVisible", () => {
     const empty = rows.find((row) => rowLabel(row.node) === "empty");
     expect(empty?.expandable).toBe(false);
   });
+
+  it("tracks position and set size per sibling group", () => {
+    const items = model.root.children?.[0] as ModelNode;
+    const rows = flattenVisible(model.root, new Set([model.root, items]));
+    expect(rows.map((row) => `${row.posInSet}/${row.setSize}`)).toEqual([
+      "1/1",
+      "1/3",
+      "1/2",
+      "2/2",
+      "2/3",
+      "3/3",
+    ]);
+  });
 });
 
 describe("valuePreview", () => {
