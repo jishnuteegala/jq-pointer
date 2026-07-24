@@ -103,13 +103,17 @@ function parseFields(input: string): string[] | null {
   const keys: string[] = [];
   let remaining = input;
   while (remaining !== "") {
-    const match = remaining.match(/^([a-zA-Z_][a-zA-Z_0-9]*|"(?:[^"\\]|\\.)*")(?:, )?/);
+    const match = remaining.match(/^([a-zA-Z_][a-zA-Z_0-9]*|"(?:[^"\\]|\\.)*")/);
     if (match === null) return null;
     const token = match[1];
     const key = token.startsWith('"') ? parseString(token) : token;
     if (key === null) return null;
     keys.push(key);
     remaining = remaining.slice(match[0].length);
+    if (remaining === "") break;
+    if (!remaining.startsWith(", ")) return null;
+    remaining = remaining.slice(2);
+    if (remaining === "") return null;
   }
   return keys;
 }
@@ -142,7 +146,7 @@ function parsePath(input: string): PathExpression | null {
 function parseString(input: string): string | null {
   try {
     const value: unknown = JSON.parse(input);
-    return typeof value === "string" ? value : null;
+    return typeof value === "string" && !hasLoneSurrogate(value) ? value : null;
   } catch {
     return null;
   }

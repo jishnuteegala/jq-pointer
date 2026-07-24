@@ -117,5 +117,8 @@ describe("jq expression parser and evaluator", () => {
     expect(parseExpression(".items | map(.name)")).toBeNull();
     expect(parseExpression(".items[0:1]")).toBeNull();
     expect(parseExpression(".items | {name: .name}")).toBeNull();
+    expect(parseExpression(". | {name id}")).toBeNull();
+    expect(parseExpression(". | {name, }")).toBeNull();
+    expect(parseExpression('."\\ud800"')).toBeNull();
   });
 });

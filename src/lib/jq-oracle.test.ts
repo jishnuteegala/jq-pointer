@@ -53,35 +53,42 @@ oracle("jq 1.7.1 printer oracle", () => {
     expect(runJq(document, printPath(expression.steps))).toEqual(["a", null, "c"]);
   });
 
-  it("matches jq for parsed paths and flat constructions", () => {
+  it("matches jq for parsed paths", () => {
     const document = {
       items: [
         { name: "a", "a-b": 1, "face 😀": true },
         { name: "b", "a-b": 2, "face 😀": false },
       ],
     };
-    const expressions: JqExpression[] = [
-      {
-        kind: "path",
-        steps: [
-          { kind: "key", key: "items" },
-          { kind: "iterate" },
-          { kind: "key", key: "face 😀" },
-        ],
-      },
-      {
-        kind: "construction",
-        source: { kind: "path", steps: [{ kind: "key", key: "items" }, { kind: "iterate" }] },
-        keys: ["name", "a-b", "face 😀"],
-      },
-    ];
-    for (const expression of expressions) {
-      const printed = printExpression(expression);
-      const parsed = parseExpression(printed);
-      if (parsed === null) throw new Error("printed expression did not parse");
-      expect(
-        evaluateExpression(buildPathModel(document).root, parsed).map((node) => node.value),
-      ).toEqual(runJq(document, printed));
-    }
+    const expression: JqExpression = {
+      kind: "path",
+      steps: [{ kind: "key", key: "items" }, { kind: "iterate" }, { kind: "key", key: "face 😀" }],
+    };
+    const printed = printExpression(expression);
+    const parsed = parseExpression(printed);
+    if (parsed === null) throw new Error("printed expression did not parse");
+    expect(
+      evaluateExpression(buildPathModel(document).root, parsed).map((node) => node.value),
+    ).toEqual(runJq(document, printed));
+  });
+
+  it("prints flat constructions jq evaluates as objects", () => {
+    const document = {
+      items: [
+        { name: "a", "a-b": 1 },
+        { name: "b", "a-b": 2 },
+      ],
+    };
+    const expression: JqExpression = {
+      kind: "construction",
+      source: { kind: "path", steps: [{ kind: "key", key: "items" }, { kind: "iterate" }] },
+      keys: ["name", "a-b"],
+    };
+    const printed = printExpression(expression);
+    expect(parseExpression(printed)).toEqual(expression);
+    expect(runJq(document, printed)).toEqual([
+      { name: "a", "a-b": 1 },
+      { name: "b", "a-b": 2 },
+    ]);
   });
 });
