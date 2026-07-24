@@ -4,7 +4,7 @@ import {
   pathTo,
   type ModelNode,
   type PathStep,
-} from '../src/lib/path-model';
+} from "../src/lib/path-model";
 
 export interface ClickPairResult {
   ancestor: ModelNode;
@@ -25,16 +25,16 @@ export function runClickPair(a: ModelNode, b: ModelNode): ClickPairResult | null
   for (let i = 0; i < relativeA.length; i++) {
     const segA = relativeA[i];
     const segB = relativeB[i];
-    if (segA.kind === 'index' && segB.kind === 'index') {
+    if (segA.kind === "index" && segB.kind === "index") {
       if (i === 0) {
         if (segA.index === segB.index) return null;
-        steps.push({ kind: 'iterate' });
+        steps.push({ kind: "iterate" });
       } else if (segA.index === segB.index) {
         steps.push(segA);
       } else {
         return null;
       }
-    } else if (segA.kind === 'key' && segB.kind === 'key' && segA.key === segB.key) {
+    } else if (segA.kind === "key" && segB.kind === "key" && segA.key === segB.key) {
       steps.push(segA);
     } else {
       return null;

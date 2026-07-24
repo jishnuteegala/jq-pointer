@@ -1,4 +1,4 @@
-import type { JsonValue } from '../src/lib/json-value';
+import type { JsonValue } from "../src/lib/json-value";
 
 function mulberry32(seed: number): () => number {
   let a = seed >>> 0;
@@ -11,16 +11,16 @@ function mulberry32(seed: number): () => number {
 }
 
 const WORDS = [
-  'alpha',
-  'bravo',
-  'charlie',
-  'delta',
-  'echo',
-  'foxtrot',
-  'golf',
-  'hotel',
-  'india',
-  'juliet',
+  "alpha",
+  "bravo",
+  "charlie",
+  "delta",
+  "echo",
+  "foxtrot",
+  "golf",
+  "hotel",
+  "india",
+  "juliet",
 ];
 
 function makeRecord(rand: () => number, index: number): JsonValue {
@@ -30,20 +30,22 @@ function makeRecord(rand: () => number, index: number): JsonValue {
     name: `${word}-${index}`,
     active: rand() > 0.5,
     score: Math.round(rand() * 100000) / 100,
-    'created-at': `2026-0${1 + Math.floor(rand() * 9)}-1${Math.floor(rand() * 9)}T12:00:00Z`,
+    "created-at": `2026-0${1 + Math.floor(rand() * 9)}-1${Math.floor(rand() * 9)}T12:00:00Z`,
     tags: [WORDS[Math.floor(rand() * WORDS.length)], WORDS[Math.floor(rand() * WORDS.length)]],
     meta: {
       owner: {
         login: `${word}${index}`,
-        type: rand() > 0.9 ? 'Organization' : 'User',
+        type: rand() > 0.9 ? "Organization" : "User",
         site_admin: false,
       },
       labels: Array.from({ length: 3 }, (_, i) => ({
         name: `${WORDS[Math.floor(rand() * WORDS.length)]}-${i}`,
-        color: Math.floor(rand() * 0xffffff).toString(16).padStart(6, '0'),
+        color: Math.floor(rand() * 0xffffff)
+          .toString(16)
+          .padStart(6, "0"),
       })),
-      'annotations/deep': {
-        'kubernetes.io/name': word,
+      "annotations/deep": {
+        "kubernetes.io/name": word,
         nested: { level1: { level2: { level3: rand() > 0.5 ? word : null } } },
       },
     },
@@ -70,6 +72,6 @@ export function generateFixture(targetBytes: number): { json: string; itemCount:
     size += serialized.length + 1;
     index++;
   }
-  const json = `{"kind":"RecordList","apiVersion":"v1","items":[${parts.join(',')}]}`;
+  const json = `{"kind":"RecordList","apiVersion":"v1","items":[${parts.join(",")}]}`;
   return { json, itemCount: index };
 }

@@ -11,15 +11,17 @@ pnpm install
 pnpm dev
 ```
 
-| Command          | What it does                          |
-| ---------------- | ------------------------------------- |
-| `pnpm dev`       | Start the dev server                  |
-| `pnpm build`     | Type-check and build the static bundle |
-| `pnpm lint`      | Run ESLint                            |
-| `pnpm typecheck` | Run the TypeScript compiler           |
-| `pnpm test`      | Run the test suite (includes the perf spike) |
-| `pnpm bench`     | Run only the performance spike        |
-| `pnpm check`     | lint + typecheck + test               |
+| Command             | What it does                                 |
+| ------------------- | -------------------------------------------- |
+| `pnpm dev`          | Start the dev server                         |
+| `pnpm build`        | Type-check and build the static bundle       |
+| `pnpm lint`         | Run oxlint                                   |
+| `pnpm format`       | Check formatting with oxfmt                  |
+| `pnpm format:write` | Format the tree with oxfmt                   |
+| `pnpm typecheck`    | Run the TypeScript compiler                  |
+| `pnpm test`         | Run the test suite (includes the perf spike) |
+| `pnpm bench`        | Run only the performance spike               |
+| `pnpm check`        | lint + format + typecheck + test             |
 
 ## Performance spike (D7)
 

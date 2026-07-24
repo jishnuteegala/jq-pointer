@@ -1,10 +1,8 @@
-import type { JsonValue } from './json-value';
+import type { JsonValue } from "./json-value";
 
-export type PathSegment =
-  | { kind: 'key'; key: string }
-  | { kind: 'index'; index: number };
+export type PathSegment = { kind: "key"; key: string } | { kind: "index"; index: number };
 
-export type PathStep = PathSegment | { kind: 'iterate' };
+export type PathStep = PathSegment | { kind: "iterate" };
 
 export interface ModelNode {
   value: JsonValue;
@@ -27,30 +25,29 @@ export function buildPathModel(value: JsonValue): PathModel {
     nodeCount++;
     const v = node.value;
     if (Array.isArray(v)) {
-      const children: ModelNode[] = new Array(v.length);
+      const children: ModelNode[] = [];
       for (let i = 0; i < v.length; i++) {
         const child: ModelNode = {
           value: v[i],
           parent: node,
-          segment: { kind: 'index', index: i },
+          segment: { kind: "index", index: i },
           children: null,
         };
-        children[i] = child;
+        children.push(child);
         stack.push(child);
       }
       node.children = children;
-    } else if (v !== null && typeof v === 'object') {
+    } else if (v !== null && typeof v === "object") {
       const keys = Object.keys(v);
-      const children: ModelNode[] = new Array(keys.length);
-      for (let i = 0; i < keys.length; i++) {
-        const key = keys[i];
+      const children: ModelNode[] = [];
+      for (const key of keys) {
         const child: ModelNode = {
           value: v[key],
           parent: node,
-          segment: { kind: 'key', key },
+          segment: { kind: "key", key },
           children: null,
         };
-        children[i] = child;
+        children.push(child);
         stack.push(child);
       }
       node.children = children;
@@ -75,11 +72,11 @@ export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {
   for (const step of steps) {
     const next: ModelNode[] = [];
     for (const node of current) {
-      if (step.kind === 'iterate') {
+      if (step.kind === "iterate") {
         if (node.children !== null) {
           for (const child of node.children) next.push(child);
         }
-      } else if (step.kind === 'index') {
+      } else if (step.kind === "index") {
         if (Array.isArray(node.value) && node.children !== null) {
           const child = node.children[step.index];
           if (child !== undefined) next.push(child);
@@ -87,12 +84,12 @@ export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {
       } else {
         if (
           node.value !== null &&
-          typeof node.value === 'object' &&
+          typeof node.value === "object" &&
           !Array.isArray(node.value) &&
           node.children !== null
         ) {
           for (const child of node.children) {
-            if (child.segment?.kind === 'key' && child.segment.key === step.key) {
+            if (child.segment?.kind === "key" && child.segment.key === step.key) {
               next.push(child);
               break;
             }

@@ -35,12 +35,12 @@ Two measurements:
 
 Local run (Node 20, Windows, 2026-07-24):
 
-| Measurement | Result | Budget | Verdict |
-| --- | --- | --- | --- |
-| `JSON.parse` of 10.00MB | ~122ms | part of 2s | pass |
-| Path model build (684,724 nodes) | ~123ms | part of 2s | pass |
-| Total to interactive model | ~245ms | < 2000ms | pass (~8x headroom) |
-| Click-pair pipeline (`.items[].meta.owner.login`, 22,235 matches) | ~13ms cold, ~9ms median, ~26ms p95 | < 100ms each | pass |
+| Measurement                                                       | Result                             | Budget       | Verdict             |
+| ----------------------------------------------------------------- | ---------------------------------- | ------------ | ------------------- |
+| `JSON.parse` of 10.00MB                                           | ~122ms                             | part of 2s   | pass                |
+| Path model build (684,724 nodes)                                  | ~123ms                             | part of 2s   | pass                |
+| Total to interactive model                                        | ~245ms                             | < 2000ms     | pass (~8x headroom) |
+| Click-pair pipeline (`.items[].meta.owner.login`, 22,235 matches) | ~13ms cold, ~9ms median, ~26ms p95 | < 100ms each | pass                |
 
 ## Scope of the measurement
 
