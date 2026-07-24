@@ -9,9 +9,10 @@ const INTERACTIVE_BUDGET_MS = 2000;
 const CLICK_BUDGET_MS = 100;
 const CLICK_SAMPLES = 50;
 
-function median(values: number[]): number {
+function percentile(values: number[], p: number): number {
   const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.floor(sorted.length / 2)];
+  const index = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
+  return sorted[Math.max(0, index)];
 }
 
 function descend(node: ModelNode, keys: string[]): ModelNode {
@@ -51,7 +52,7 @@ describe('D7 performance spike: 10MB parse + path model + click evaluation', () 
     expect(totalMs).toBeLessThan(INTERACTIVE_BUDGET_MS);
   });
 
-  it(`runs the full click-pair pipeline under ${CLICK_BUDGET_MS}ms cold and per run`, () => {
+  it(`runs the full click-pair pipeline under ${CLICK_BUDGET_MS}ms cold, median, and p95`, () => {
     const parsed = JSON.parse(json) as JsonValue;
     const model = buildPathModel(parsed);
     const items = descend(model.root, ['items']);
@@ -76,14 +77,16 @@ describe('D7 performance spike: 10MB parse + path model + click evaluation', () 
     }
 
     const coldMs = timings[0];
-    const medianMs = median(timings);
+    const medianMs = percentile(timings, 50);
+    const p95Ms = percentile(timings, 95);
     const maxMs = Math.max(...timings);
     console.log(
-      `[perf-spike] click-pipeline matches=${matchCount}/${itemCount} cold=${coldMs.toFixed(2)}ms median=${medianMs.toFixed(2)}ms max=${maxMs.toFixed(2)}ms budget=${CLICK_BUDGET_MS}ms`,
+      `[perf-spike] click-pipeline matches=${matchCount}/${itemCount} cold=${coldMs.toFixed(2)}ms median=${medianMs.toFixed(2)}ms p95=${p95Ms.toFixed(2)}ms max=${maxMs.toFixed(2)}ms budget=${CLICK_BUDGET_MS}ms`,
     );
 
     expect(matchCount).toBe(itemCount);
     expect(coldMs).toBeLessThan(CLICK_BUDGET_MS);
     expect(medianMs).toBeLessThan(CLICK_BUDGET_MS);
+    expect(p95Ms).toBeLessThan(CLICK_BUDGET_MS);
   });
 });
