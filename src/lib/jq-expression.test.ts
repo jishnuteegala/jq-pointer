@@ -13,6 +13,7 @@ describe("jq expression printer", () => {
   it("prints canonical jq keys", () => {
     expect(printKey("name")).toBe(".name");
     expect(printKey("if")).toBe('."if"');
+    expect(printKey("and")).toBe('."and"');
     expect(printKey("two words")).toBe('."two words"');
     expect(printKey('x"\\\n')).toBe('."x\\\"\\\\\\n"');
   });
@@ -120,5 +121,13 @@ describe("jq expression parser and evaluator", () => {
     expect(parseExpression(". | {name id}")).toBeNull();
     expect(parseExpression(". | {name, }")).toBeNull();
     expect(parseExpression('."\\ud800"')).toBeNull();
+    expect(parseExpression('.foo"bar"')).toBeNull();
+    expect(parseExpression('."a""b"')).toBeNull();
+    expect(parseExpression("..foo")).toBeNull();
+  });
+
+  it("prints root array paths with their required dot prefix", () => {
+    expect(printPath([{ kind: "index", index: 0 }])).toBe(".[0]");
+    expect(printPath([{ kind: "iterate" }])).toBe(".[]");
   });
 });

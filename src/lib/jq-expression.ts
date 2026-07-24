@@ -3,6 +3,7 @@ import { evaluateSteps, type ModelNode, type PathStep } from "./path-model";
 const identifier = /^[a-zA-Z_][a-zA-Z_0-9]*$/;
 const keywords = new Set([
   "as",
+  "and",
   "break",
   "catch",
   "def",
@@ -15,6 +16,8 @@ const keywords = new Set([
   "include",
   "label",
   "module",
+  "not",
+  "or",
   "reduce",
   "then",
   "try",
@@ -59,14 +62,16 @@ export function printKey(key: string): string {
 }
 
 export function printPath(steps: PathStep[]): string {
-  let result = "";
-  for (const step of steps) {
-    if (step.kind === "key") result += printKey(step.key);
+  let result = ".";
+  for (let index = 0; index < steps.length; index++) {
+    const step = steps[index];
+    if (step.kind === "key")
+      result += index === 0 ? printKey(step.key).slice(1) : printKey(step.key);
     else if (step.kind === "index") result += `[${step.index}]`;
     else result += "[]";
     if (step.optional) result += "?";
   }
-  return result === "" ? "." : result;
+  return result;
 }
 
 export function printExpression(expression: JqExpression): string {
@@ -122,9 +127,12 @@ function parsePath(input: string): PathExpression | null {
   if (!input.startsWith(".")) return null;
   const steps: PathStep[] = [];
   let remaining = input.slice(1);
+  let isFirst = true;
   while (remaining !== "") {
     const match = remaining.match(
-      /^(\[\]|\[-?\d+\]|\.?[a-zA-Z_][a-zA-Z_0-9]*|\.?"(?:[^"\\]|\\.)*")(\?)?/,
+      isFirst
+        ? /^(\[\]|\[-?\d+\]|[a-zA-Z_][a-zA-Z_0-9]*|"(?:[^"\\]|\\.)*")(\?)?/
+        : /^(\[\]|\[-?\d+\]|\.[a-zA-Z_][a-zA-Z_0-9]*|\."(?:[^"\\]|\\.)*")(\?)?/,
     );
     if (match === null) return null;
     const token = match[1];
@@ -139,6 +147,7 @@ function parsePath(input: string): PathExpression | null {
       steps.push({ kind: "key", key, ...optional });
     }
     remaining = remaining.slice(match[0].length);
+    isFirst = false;
   }
   return { kind: "path", steps };
 }

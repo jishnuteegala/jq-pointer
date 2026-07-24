@@ -43,8 +43,6 @@ export function buildPathModel(value: JsonValue): PathModel {
       const keys = Object.keys(v);
       const children: ModelNode[] = [];
       for (const key of keys) {
-        if (hasLoneSurrogate(key))
-          throw new RangeError("jq cannot represent keys with lone surrogates");
         const child: ModelNode = {
           value: v[key],
           parent: node,
@@ -107,18 +105,6 @@ export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {
     current = next;
   }
   return current;
-}
-
-function hasLoneSurrogate(value: string): boolean {
-  for (let index = 0; index < value.length; index++) {
-    const code = value.charCodeAt(index);
-    if (code >= 0xd800 && code <= 0xdbff) {
-      if (value.charCodeAt(index + 1) >= 0xdc00 && value.charCodeAt(index + 1) <= 0xdfff) {
-        index++;
-      } else return true;
-    } else if (code >= 0xdc00 && code <= 0xdfff) return true;
-  }
-  return false;
 }
 
 export function commonArrayAncestor(a: ModelNode, b: ModelNode): ModelNode | null {
