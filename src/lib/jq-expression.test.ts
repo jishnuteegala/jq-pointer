@@ -22,6 +22,10 @@ describe("jq expression printer", () => {
     expect(printKey("face 😀")).not.toContain("\\ud83d");
   });
 
+  it("does not emit lone surrogate escapes", () => {
+    expect(printKey("bad \ud800 key")).toBe('."bad � key"');
+  });
+
   it("prints optional paths and construction shorthand", () => {
     expect(
       printPath([

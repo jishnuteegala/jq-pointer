@@ -36,7 +36,22 @@ export interface ConstructionExpression {
 export type JqExpression = PathExpression | ConstructionExpression;
 
 export function quoteKey(key: string): string {
-  return JSON.stringify(key).replaceAll("\\ud", "\\uD");
+  let result = '"';
+  for (const character of key) {
+    const code = character.codePointAt(0);
+    if (character === '"') result += '\\"';
+    else if (character === "\\") result += "\\\\";
+    else if (character === "\b") result += "\\b";
+    else if (character === "\t") result += "\\t";
+    else if (character === "\n") result += "\\n";
+    else if (character === "\f") result += "\\f";
+    else if (character === "\r") result += "\\r";
+    else if (code !== undefined && code <= 0x1f)
+      result += `\\u${code.toString(16).padStart(4, "0")}`;
+    else if (code !== undefined && code >= 0xd800 && code <= 0xdfff) result += "�";
+    else result += character;
+  }
+  return `${result}"`;
 }
 
 export function printKey(key: string): string {
