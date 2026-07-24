@@ -51,6 +51,20 @@ describe("parseDocument", () => {
     expect(caretExcerpt("{", "is not valid JSON")).toBeNull();
   });
 
+  it("names likely NDJSON input", () => {
+    const outcome = parseDocument('{"a": 1}\n{"a": 2}');
+    expect(outcome.kind === "error" && outcome.message).toContain("NDJSON");
+  });
+
+  it("names likely JavaScript-literal input", () => {
+    const outcome = parseDocument("{'item': 1}");
+    expect(outcome.kind === "error" && outcome.message).toContain("JavaScript literal");
+    const unquoted = parseDocument("{item: 1}");
+    expect(unquoted.kind === "error" && unquoted.message).toContain("JavaScript literal");
+    const trailing = parseDocument('{"item": 1,}');
+    expect(trailing.kind === "error" && trailing.message).toContain("JavaScript literal");
+  });
+
   it("still reports an error when position metadata is unavailable", () => {
     const outcome = parseDocument("");
     expect(outcome.kind).toBe("error");

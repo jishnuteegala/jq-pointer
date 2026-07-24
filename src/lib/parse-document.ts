@@ -16,9 +16,21 @@ export function parseDocument(text: string): ParseOutcome {
     const value = JSON.parse(text) as JsonValue;
     return { kind: "ok", value };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "invalid JSON";
-    return { kind: "error", message, excerpt: caretExcerpt(text, message) };
+    const detail = error instanceof Error ? error.message : "invalid JSON";
+    const message = `${inputHint(text)}${detail}`;
+    return { kind: "error", message, excerpt: caretExcerpt(text, detail) };
   }
+}
+
+function inputHint(text: string): string {
+  const trimmed = text.trim();
+  if (trimmed.split("\n").filter(Boolean).length > 1 && !trimmed.startsWith("[")) {
+    return "This looks like NDJSON. Paste one JSON value instead. ";
+  }
+  if (/[{,]\s*'|[{,]\s*[a-zA-Z_$][\w$]*\s*:|,\s*[}\]]/.test(trimmed)) {
+    return "This looks like a JavaScript literal, not strict JSON. ";
+  }
+  return "";
 }
 
 export function caretExcerpt(text: string, message: string): string | null {
