@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { platform } from "node:os";
-import fc from "fast-check";
+import { assert, constantFrom, property, string } from "fast-check";
 import { describe, expect, it } from "vitest";
 import { printPath, type JqExpression } from "./jq-expression";
 
@@ -24,8 +24,8 @@ function runJq(document: unknown, expression: string): unknown[] {
 
 oracle("jq 1.7.1 printer oracle", () => {
   it("accepts and evaluates emitted key paths", () => {
-    fc.assert(
-      fc.property(fc.string({ unit: fc.constantFrom("a", "-", " ", '"', "\\", "😀") }), (key) => {
+    assert(
+      property(string({ unit: constantFrom("a", "-", " ", '"', "\\", "😀") }), (key) => {
         const document = { [key]: key };
         expect(runJq(document, printPath([{ kind: "key", key }]))).toEqual([key]);
       }),
