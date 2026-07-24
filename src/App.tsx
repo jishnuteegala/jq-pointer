@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { ChangeEvent, DragEvent } from "react";
+import type { ChangeEvent, ClipboardEvent, DragEvent } from "react";
 import { TreeView } from "./components/TreeView";
 import { printPath } from "./lib/jq-expression";
 import { parseDocument, type ParseOutcome } from "./lib/parse-document";
@@ -15,8 +15,17 @@ function describeOutcome(outcome: ParseOutcome): string {
   return "";
 }
 
+const DISPLAY_LIMIT = 256 * 1024;
+
+function displayText(value: string): string {
+  if (value.length <= DISPLAY_LIMIT) return value;
+  const megabytes = (value.length / 1024 / 1024).toFixed(1);
+  return `[${megabytes}MB document loaded - too large to display]`;
+}
+
 function App() {
   const [text, setText] = useState("");
+  const [version, setVersion] = useState(0);
   const [outcome, setOutcome] = useState<ParseOutcome | null>(null);
   const [selected, setSelected] = useState<ModelNode | null>(null);
   const [copied, setCopied] = useState(false);
@@ -35,7 +44,8 @@ function App() {
   const highlighted = useMemo(() => new Set(selected === null ? [] : [selected]), [selected]);
 
   const loadText = (value: string) => {
-    setText(value);
+    setText(displayText(value));
+    setVersion((previous) => previous + 1);
     setSelected(null);
     setCopied(false);
     setOutcome(value.trim() === "" ? null : parseDocument(value));
@@ -43,6 +53,14 @@ function App() {
 
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     loadText(event.target.value);
+  };
+
+  const handlePaste = (event: ClipboardEvent<HTMLTextAreaElement>) => {
+    const pasted = event.clipboardData.getData("text/plain");
+    if (pasted.length > DISPLAY_LIMIT) {
+      event.preventDefault();
+      loadText(pasted);
+    }
   };
 
   const handleDrop = async (event: DragEvent<HTMLElement>) => {
@@ -79,6 +97,7 @@ function App() {
         className="json-input"
         value={text}
         onChange={handleChange}
+        onPaste={handlePaste}
         onDrop={handleDrop}
         onDragOver={(event: DragEvent<HTMLTextAreaElement>) => event.preventDefault()}
         placeholder="Paste JSON here or drop a file onto this box"
@@ -105,7 +124,12 @@ function App() {
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
-          <TreeView root={model.root} highlighted={highlighted} onSelect={handleSelect} />
+          <TreeView
+            key={version}
+            root={model.root}
+            highlighted={highlighted}
+            onSelect={handleSelect}
+          />
         </>
       )}
     </main>
