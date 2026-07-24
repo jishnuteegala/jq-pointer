@@ -126,11 +126,8 @@ describe("jq expression parser and evaluator", () => {
 
   it("round-trips paths generated from every addressable model node", () => {
     const model = buildPathModel(document);
-    const nodes = [
-      model.root,
-      ...(model.root.children ?? []),
-      ...(model.root.children?.[0].children ?? []).flatMap((item) => item.children ?? []),
-    ];
+    const nodes = [model.root];
+    for (let index = 0; index < nodes.length; index++) nodes.push(...(nodes[index].children ?? []));
     for (const modelNode of nodes.filter((candidate) => candidate.jqAddressable)) {
       const result = pathTo(modelNode);
       if (result.kind === "unsupported") throw new Error("addressable node did not have a path");

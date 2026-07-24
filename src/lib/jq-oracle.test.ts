@@ -172,18 +172,14 @@ oracle("jq 1.7.1 printer oracle", () => {
     );
   });
 
-  it("matches jq for paths generated from selected model nodes", () => {
+  it("matches jq for paths generated from every addressable model node", () => {
     const document = { items: [{ name: "a" }, { name: "b" }], meta: { "a-b": true } };
     const model = buildPathModel(document);
-    const selected = [
-      model.root.children?.[0].children?.[0].children?.[0],
-      model.root.children?.[0].children?.[1].children?.[0],
-      model.root.children?.[1].children?.[0],
-    ];
-    for (const node of selected) {
-      if (node === undefined) throw new Error("selected node missing from model");
+    const nodes = [model.root];
+    for (let index = 0; index < nodes.length; index++) nodes.push(...(nodes[index].children ?? []));
+    for (const node of nodes.filter((candidate) => candidate.jqAddressable)) {
       const result = pathTo(node);
-      if (result.kind === "unsupported") throw new Error("selected node is not jq-addressable");
+      if (result.kind === "unsupported") throw new Error("addressable node did not have a path");
       const expression = printPath(result.segments);
       const parsed = parseExpression(expression);
       if (parsed === null) throw new Error("generated expression did not parse");
