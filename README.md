@@ -28,6 +28,12 @@ pnpm dev
 The spike result and the main-thread vs worker decision are documented in
 [docs/perf-spike.md](docs/perf-spike.md).
 
+## jq oracle
+
+Grammar property tests use the official [jq 1.7.1](https://github.com/jqlang/jq/releases/tag/jq-1.7.1)
+Linux AMD64 binary as a pinned oracle. CI downloads it as `jq-1.7.1`; the oracle
+tests skip on Windows because that binary cannot execute locally.
+
 ## License
 
 MIT - see [LICENSE](LICENSE)
