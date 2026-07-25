@@ -275,7 +275,7 @@ function constructionSource(
   const steps: PathStep[] = bare.map((step, index) =>
     trace.optional[index] ? { ...step, optional: true } : step,
   );
-  const elements = trace.matches.filter((node) => node.exists);
+  const elements = trace.matches;
   return {
     expression: { kind: "path", steps },
     elements,

@@ -117,6 +117,26 @@ describe("App end-to-end", () => {
     ).toContain("path-line");
   });
 
+  it("highlights construction source keys across every matching element", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [{"name": "a", "id": 1}, {"name": "b", "id": 2}]}');
+
+    await user.click(within(row("items")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[1]")).getByRole("button", { name: /^Expand / }));
+    const names = screen.getAllByText("name");
+    await user.click(names[0]);
+    await user.click(screen.getAllByText("id")[0]);
+
+    const highlightedRows = [...screen.getAllByText("name"), ...screen.getAllByText("id")].map(
+      (label) => label.closest('[role="treeitem"]') as HTMLElement,
+    );
+    expect(highlightedRows).toHaveLength(4);
+    for (const item of highlightedRows) expect(item.getAttribute("aria-selected")).toBe("true");
+  });
+
   it("quotes non-identifier construction keys via shorthand", async () => {
     const user = userEvent.setup();
     render(<App />);
@@ -221,6 +241,46 @@ describe("App end-to-end", () => {
       "path-line",
     );
     expect((filter as HTMLInputElement).value).toBe("");
+  });
+
+  it("expands the highlighted set when widening to an outer array with more elements", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste(
+      '{"data": [{"items": [{"name": "a"}, {"name": "b"}]}, {"items": [{"name": "c"}]}]}',
+    );
+
+    await user.click(within(row("data")).getByRole("button", { name: /^Expand / }));
+    let toggles = screen.getAllByRole("button", { name: /^Expand / });
+    while (toggles.length > 0) {
+      await user.click(toggles[0]);
+      toggles = screen.queryAllByRole("button", { name: /^Expand / });
+    }
+
+    const names = screen.getAllByText("name");
+    expect(names).toHaveLength(3);
+    await user.click(names[0]);
+    await user.click(names[1]);
+    expect(screen.getAllByText(".data[0].items[].name").map((e) => e.className)).toContain(
+      "path-line",
+    );
+    const selectedBefore = names.filter(
+      (label) =>
+        (label.closest('[role="treeitem"]') as HTMLElement).getAttribute("aria-selected") ===
+        "true",
+    );
+    expect(selectedBefore).toHaveLength(2);
+
+    await user.click(screen.getByRole("button", { name: ".data" }));
+    expect(screen.getAllByText(".data[].items[].name").map((e) => e.className)).toContain(
+      "path-line",
+    );
+    for (const label of screen.getAllByText("name")) {
+      expect(
+        (label.closest('[role="treeitem"]') as HTMLElement).getAttribute("aria-selected"),
+      ).toBe("true");
+    }
   });
 
   it("keeps three clicks across different arrays as separate outputs", async () => {

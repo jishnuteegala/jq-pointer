@@ -199,6 +199,17 @@ describe("resolveSelection widening across unsafe intermediates", () => {
     expect(selection.outputs[0].expression.kind).toBe("construction");
     expect(printExpression(selection.outputs[0].expression)).toBe(".data[].items?[]? | {a, b}?");
   });
+
+  it("counts synthetic nulls from missing and scalar intermediates in construction N-of-M", () => {
+    const r = root({ data: [{ item: { a: 1, b: 2 } }, {}, { item: 5 }] });
+    const inner = child(at(child(r, "data"), 0), "item");
+    const selection = resolveSelectionAt([child(inner, "a"), child(inner, "b")], 1);
+    const output = selection.outputs[0];
+    expect(printExpression(output.expression)).toBe(".data[].item? | {a, b}?");
+    expect(output.matchCount).toBe(2);
+    expect(output.elementCount).toBe(3);
+    expect(output.matches.map((node) => node.value)).toEqual([1, 2]);
+  });
 });
 
 describe("resolveSelection no common pattern", () => {
