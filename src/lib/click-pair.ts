@@ -1,7 +1,7 @@
 import type { PathExpression } from "./jq-expression";
 import {
   commonArrayAncestor,
-  evaluateSteps,
+  nullNode,
   pathTo,
   type ModelNode,
   type PathSegment,
@@ -50,33 +50,63 @@ function stepThrows(node: ModelNode, step: PathStep): boolean {
   return typeof node.value !== "object" || Array.isArray(node.value);
 }
 
+function applyStep(node: ModelNode, step: PathStep, out: ModelNode[]): void {
+  if (step.kind === "iterate") {
+    if (node.children !== null) for (const child of node.children) out.push(child);
+  } else if (step.kind === "index") {
+    if (Array.isArray(node.value) && node.children !== null) {
+      const index = step.index < 0 ? node.children.length + step.index : step.index;
+      out.push(node.children[index] ?? nullNode(node));
+    } else if (node.value === null) {
+      out.push(nullNode(node));
+    }
+  } else if (node.value !== null && typeof node.value === "object" && node.children !== null) {
+    for (const child of node.children) {
+      if (child.segment?.kind === "key" && child.segment.key === step.key) {
+        out.push(child);
+        return;
+      }
+    }
+    out.push(nullNode(node));
+  } else if (node.value === null) {
+    out.push(nullNode(node));
+  }
+}
+
 function placeOptionals(
   ancestor: ModelNode,
   steps: PathStep[],
 ): { steps: PathStep[]; matches: ModelNode[]; matchCount: number } {
   const placed: PathStep[] = [{ ...steps[0] }];
-  let carried: { node: ModelNode; origin: number }[] = (ancestor.children ?? []).map(
-    (node, origin) => ({ node, origin }),
-  );
+  const roots = ancestor.children ?? [];
+  let nodes = roots.slice();
+  let origins: number[] = roots.map((_, origin) => origin);
   for (let index = 1; index < steps.length; index++) {
     const step = steps[index];
-    const optional = carried.some((entry) => stepThrows(entry.node, step));
+    let optional = false;
+    for (const node of nodes)
+      if (stepThrows(node, step)) {
+        optional = true;
+        break;
+      }
     const resolved: PathStep = optional ? { ...step, optional: true } : { ...step };
     placed.push(resolved);
-    const next: { node: ModelNode; origin: number }[] = [];
-    for (const entry of carried) {
-      for (const node of evaluateSteps(entry.node, [resolved])) {
-        next.push({ node, origin: entry.origin });
-      }
+    const nextNodes: ModelNode[] = [];
+    const nextOrigins: number[] = [];
+    for (let i = 0; i < nodes.length; i++) {
+      const before = nextNodes.length;
+      applyStep(nodes[i], resolved, nextNodes);
+      for (let j = before; j < nextNodes.length; j++) nextOrigins.push(origins[i]);
     }
-    carried = next;
+    nodes = nextNodes;
+    origins = nextOrigins;
   }
   const presentOrigins = new Set<number>();
   const matches: ModelNode[] = [];
-  for (const entry of carried) {
-    if (!entry.node.exists) continue;
-    matches.push(entry.node);
-    presentOrigins.add(entry.origin);
+  for (let i = 0; i < nodes.length; i++) {
+    if (!nodes[i].exists) continue;
+    matches.push(nodes[i]);
+    presentOrigins.add(origins[i]);
   }
   return { steps: placed, matches, matchCount: presentOrigins.size };
 }

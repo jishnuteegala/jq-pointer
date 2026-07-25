@@ -152,7 +152,7 @@ export function matchingNodes(root: ModelNode, steps: PathStep[]): ModelNode[] {
   return evaluateSteps(root, steps).filter((node) => node.exists);
 }
 
-function nullNode(parent: ModelNode): ModelNode {
+export function nullNode(parent: ModelNode): ModelNode {
   return {
     value: null,
     parent,
