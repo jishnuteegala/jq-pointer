@@ -6,9 +6,10 @@ interface ChipBarProps {
   labelOf: (node: ModelNode) => string;
   onRemove: (index: number) => void;
   onClear: () => void;
+  onEmptied?: () => void;
 }
 
-export function ChipBar({ clicks, labelOf, onRemove, onClear }: ChipBarProps) {
+export function ChipBar({ clicks, labelOf, onRemove, onClear, onEmptied }: ChipBarProps) {
   const listRef = useRef<HTMLUListElement>(null);
   const clearRef = useRef<HTMLButtonElement>(null);
   const pendingFocus = useRef<number | null>(null);
@@ -28,6 +29,11 @@ export function ChipBar({ clicks, labelOf, onRemove, onClear }: ChipBarProps) {
   if (clicks.length === 0) return null;
 
   const removeAndRefocus = (index: number) => {
+    if (clicks.length === 1) {
+      onRemove(index);
+      onEmptied?.();
+      return;
+    }
     pendingFocus.current = index;
     onRemove(index);
   };
@@ -49,7 +55,15 @@ export function ChipBar({ clicks, labelOf, onRemove, onClear }: ChipBarProps) {
           </li>
         ))}
       </ul>
-      <button type="button" className="chip-clear" ref={clearRef} onClick={onClear}>
+      <button
+        type="button"
+        className="chip-clear"
+        ref={clearRef}
+        onClick={() => {
+          onClear();
+          onEmptied?.();
+        }}
+      >
         Clear
       </button>
     </fieldset>

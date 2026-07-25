@@ -168,6 +168,21 @@ describe("App end-to-end", () => {
     expect(screen.queryByRole("group", { name: "Selected nodes" })).toBeNull();
   });
 
+  it("moves focus to the tree when the final chip is removed", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [{"name": "a"}, {"name": "b"}]}');
+
+    await user.click(within(row("items")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
+    await user.click(screen.getAllByText("name")[0]);
+    await user.click(screen.getByRole("button", { name: /Remove / }));
+
+    expect(screen.queryByRole("group", { name: "Selected nodes" })).toBeNull();
+    expect(document.activeElement).toBe(screen.getByRole("tree"));
+  });
+
   it("widens the iterated array through the breadcrumb", async () => {
     const user = userEvent.setup();
     render(<App />);

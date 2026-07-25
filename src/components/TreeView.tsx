@@ -233,6 +233,7 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
   return (
     <div
       ref={containerRef}
+      id="tree-view"
       className="tree-view"
       role="tree"
       aria-label="JSON document tree"

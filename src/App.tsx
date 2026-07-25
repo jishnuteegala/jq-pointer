@@ -246,6 +246,7 @@ function App() {
               labelOf={labelOf}
               onRemove={handleRemoveChip}
               onClear={handleClearChips}
+              onEmptied={() => document.getElementById("tree-view")?.focus()}
             />
             <div className="path-bar">
               <output
