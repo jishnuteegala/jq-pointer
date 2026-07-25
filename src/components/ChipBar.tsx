@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import type { ModelNode } from "../lib/path-model";
 
 interface ChipBarProps {
@@ -8,10 +9,32 @@ interface ChipBarProps {
 }
 
 export function ChipBar({ clicks, labelOf, onRemove, onClear }: ChipBarProps) {
+  const listRef = useRef<HTMLUListElement>(null);
+  const clearRef = useRef<HTMLButtonElement>(null);
+  const pendingFocus = useRef<number | null>(null);
+
+  useLayoutEffect(() => {
+    if (pendingFocus.current === null) return;
+    const buttons = listRef.current?.querySelectorAll<HTMLButtonElement>(".chip-remove");
+    const index = pendingFocus.current;
+    pendingFocus.current = null;
+    if (buttons === undefined || buttons.length === 0) {
+      clearRef.current?.focus();
+      return;
+    }
+    (buttons[Math.min(index, buttons.length - 1)] ?? clearRef.current)?.focus();
+  }, [clicks]);
+
   if (clicks.length === 0) return null;
+
+  const removeAndRefocus = (index: number) => {
+    pendingFocus.current = index;
+    onRemove(index);
+  };
+
   return (
     <fieldset className="chip-bar" aria-label="Selected nodes">
-      <ul className="chip-list">
+      <ul ref={listRef} className="chip-list">
         {clicks.map((node, index) => (
           <li key={index} className="chip">
             <span className="chip-label">{labelOf(node)}</span>
@@ -19,14 +42,14 @@ export function ChipBar({ clicks, labelOf, onRemove, onClear }: ChipBarProps) {
               type="button"
               className="chip-remove"
               aria-label={`Remove ${labelOf(node)}`}
-              onClick={() => onRemove(index)}
+              onClick={() => removeAndRefocus(index)}
             >
               {"\u00d7"}
             </button>
           </li>
         ))}
       </ul>
-      <button type="button" className="chip-clear" onClick={onClear}>
+      <button type="button" className="chip-clear" ref={clearRef} onClick={onClear}>
         Clear
       </button>
     </fieldset>

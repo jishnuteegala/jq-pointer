@@ -1,6 +1,7 @@
 import type { JqExpression, PathExpression } from "./jq-expression";
 import {
   evaluateTrace,
+  matchingNodes,
   pathTo,
   type ModelNode,
   type PathSegment,
@@ -112,11 +113,6 @@ function isConstruction(nodes: ModelNode[]): boolean {
   return new Set(names).size === names.length;
 }
 
-function resolveOverAncestor(ancestor: ModelNode, nodes: ModelNode[]): OutputEntry | null {
-  if (isConstruction(nodes)) return constructionOverAncestor(ancestor, nodes);
-  return generaliseOverAncestor(ancestor, nodes, true);
-}
-
 export function resolveSelection(clicks: ModelNode[], ancestorIndex = 0): Selection {
   const empty: Selection = { outputs: [], breadcrumb: null, noCommonPattern: false };
   if (clicks.length === 0) return empty;
@@ -130,12 +126,25 @@ export function resolveSelection(clicks: ModelNode[], ancestorIndex = 0): Select
 }
 
 export function resolveSelectionAt(clicks: ModelNode[], ancestorIndex: number): Selection {
-  const construction = isConstruction(clicks);
-  const anchors = construction ? [clicks[0].parent as ModelNode] : clicks;
-  const shared = sharedArrayAncestors(anchors);
+  if (isConstruction(clicks)) return resolveConstruction(clicks, ancestorIndex);
+  const shared = sharedArrayAncestors(clicks);
   if (shared.length === 0) return separateOutputs(clicks);
   const activeIndex = Math.max(0, Math.min(shared.length - 1, ancestorIndex));
-  const output = resolveOverAncestor(shared[activeIndex], clicks);
+  const output = generaliseOverAncestor(shared[activeIndex], clicks, true);
+  if (output === null) return separateOutputs(clicks);
+  return {
+    outputs: [output],
+    breadcrumb: shared.length > 1 ? { ancestors: shared, activeIndex } : null,
+    noCommonPattern: false,
+  };
+}
+
+function resolveConstruction(clicks: ModelNode[], ancestorIndex: number): Selection {
+  const element = clicks[0].parent as ModelNode;
+  const shared = arrayAncestors(element);
+  const activeIndex =
+    shared.length === 0 ? 0 : Math.max(0, Math.min(shared.length - 1, ancestorIndex));
+  const output = constructionOverAncestor(shared[activeIndex] ?? null, clicks);
   if (output === null) return separateOutputs(clicks);
   return {
     outputs: [output],
@@ -166,38 +175,97 @@ function singlePathOutput(node: ModelNode): OutputEntry | null {
   };
 }
 
-function constructionOverAncestor(ancestor: ModelNode, nodes: ModelNode[]): OutputEntry | null {
+function allObjects(nodes: ModelNode[]): boolean {
+  return nodes.every(
+    (node) => node.value !== null && typeof node.value === "object" && !Array.isArray(node.value),
+  );
+}
+
+function constructionOverAncestor(
+  ancestor: ModelNode | null,
+  nodes: ModelNode[],
+): OutputEntry | null {
+  const element = nodes[0].parent as ModelNode;
   const keys: string[] = [];
   for (const node of nodes) {
-    if (node.segment?.kind !== "key") return null;
+    if (node.segment?.kind !== "key" || !node.jqAddressable) return null;
     keys.push(node.segment.key);
   }
   if (new Set(keys).size !== keys.length) return null;
-  const source = generaliseOverAncestor(
-    ancestor,
-    nodes.map((node) => node.parent as ModelNode),
-    true,
-  );
-  if (source === null || source.expression.kind !== "path") return null;
-  const construction: JqExpression = {
-    kind: "construction",
-    source: source.expression,
-    keys,
-  };
-  const matches = source.matches.flatMap((element) =>
+  const elementPath = pathTo(element);
+  if (elementPath.kind !== "path") return null;
+  const source = constructionSource(ancestor, elementPath.segments);
+  if (source === null) return null;
+  const elements = matchingNodes(rootOf(element), source.expression.steps);
+  const matches = elements.flatMap((match) =>
     keys.flatMap((key) => {
-      const child = element.children?.find(
+      const child = match.children?.find(
         (candidate) => candidate.segment?.kind === "key" && candidate.segment.key === key,
       );
       return child !== undefined && child.exists ? [child] : [];
     }),
   );
   return {
-    expression: construction,
+    expression: { kind: "construction", source: source.expression, keys },
     matches,
     matchCount: source.matchCount,
     elementCount: source.elementCount,
     heterogeneous: source.heterogeneous,
+  };
+}
+
+function rootOf(node: ModelNode): ModelNode {
+  let current = node;
+  while (current.parent !== null) current = current.parent;
+  return current;
+}
+
+interface ConstructionSource {
+  expression: PathExpression;
+  matchCount: number;
+  elementCount: number;
+  heterogeneous: boolean;
+}
+
+function constructionSource(
+  ancestor: ModelNode | null,
+  elementSegments: PathSegment[],
+): ConstructionSource | null {
+  if (ancestor === null) {
+    return {
+      expression: { kind: "path", steps: elementSegments.map((segment) => ({ ...segment })) },
+      matchCount: 1,
+      elementCount: 1,
+      heterogeneous: false,
+    };
+  }
+  const ancestorPath = pathTo(ancestor);
+  if (ancestorPath.kind !== "path" || ancestor.children === null) return null;
+  const depth = ancestorPath.segments.length;
+  const steps: PathStep[] = elementSegments.slice(0, depth).map((segment) => ({ ...segment }));
+  steps.push({ kind: "iterate" });
+  for (let index = depth + 1; index < elementSegments.length; index++) {
+    const segment = elementSegments[index];
+    steps.push(segment.kind === "index" ? { kind: "iterate" } : { ...segment });
+  }
+  const elements = matchingNodes(rootOf(ancestor), steps);
+  const elementCount = elements.length;
+  const objects = elements.filter(
+    (node) => node.value !== null && typeof node.value === "object" && !Array.isArray(node.value),
+  );
+  if (!allObjects(elements)) {
+    return {
+      expression: { kind: "path", steps: elementSegments.map((segment) => ({ ...segment })) },
+      matchCount: 1,
+      elementCount,
+      heterogeneous: elementCount > 1,
+    };
+  }
+  return {
+    expression: { kind: "path", steps },
+    matchCount: objects.length,
+    elementCount,
+    heterogeneous: false,
   };
 }
 

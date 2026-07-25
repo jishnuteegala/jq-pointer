@@ -21,19 +21,6 @@ function describeOutcome(outcome: ParseOutcome): string {
 
 const DISPLAY_LIMIT = 256 * 1024;
 
-function isAncestorOrSelf(candidate: ModelNode, node: ModelNode): boolean {
-  let current: ModelNode | null = node;
-  while (current !== null) {
-    if (current === candidate) return true;
-    current = current.parent;
-  }
-  return false;
-}
-
-function isNested(a: ModelNode, b: ModelNode): boolean {
-  return isAncestorOrSelf(a, b) || isAncestorOrSelf(b, a);
-}
-
 function pathOf(node: ModelNode): string | null {
   const result = pathTo(node);
   return result.kind === "path" ? printPath(result.segments) : null;
@@ -175,7 +162,7 @@ function App() {
     copyGeneration.current += 1;
     setClicks((previous) => {
       if (previous.includes(node)) return previous.filter((click) => click !== node);
-      return [...previous.filter((click) => !isNested(click, node)), node];
+      return [...previous, node];
     });
     setAncestorIndex(0);
     setFilter("");

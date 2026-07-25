@@ -32,7 +32,7 @@ function fieldNode(element: ModelNode, key: string): ModelNode | undefined {
 }
 
 oracle("construction oracle", () => {
-  it("emits a construction whose value stream matches real jq exactly", () => {
+  it("emits a construction whose reconstructed objects match real jq exactly", () => {
     assert(
       property(
         array(
@@ -54,11 +54,20 @@ oracle("construction oracle", () => {
           const selection = resolveSelection(clicks);
           const output = selection.outputs[0];
           if (selection.noCommonPattern || output.expression.kind !== "construction") return;
+          const constructionKeys = output.expression.keys;
           const printed = printExpression(output.expression);
-          const evaluated = evaluateJqExpression(model.root, output.expression).map(
+          const flat = evaluateJqExpression(model.root, output.expression).map(
             (node) => node.value,
           );
-          expect(evaluated).toEqual(runJq({ items }, printed));
+          const reconstructed: JsonValue[] = [];
+          for (let index = 0; index < flat.length; index += constructionKeys.length) {
+            reconstructed.push(
+              Object.fromEntries(
+                constructionKeys.map((key, offset) => [key, flat[index + offset]]),
+              ),
+            );
+          }
+          expect(reconstructed).toEqual(runJq({ items }, printed));
         },
       ),
       { numRuns: 200, seed: 61 },

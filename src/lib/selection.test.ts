@@ -69,6 +69,47 @@ describe("resolveSelection construction", () => {
     const selection = resolveSelection([child(element, "name"), child(element, "id")]);
     expect(selection.outputs[0].matches.map((node) => node.value)).toEqual(["a", 1, "b", 2]);
   });
+
+  it("constructs from a non-array object with the plain source", () => {
+    const r = root({ name: "a", id: 1, extra: 2 });
+    const selection = resolveSelection([child(r, "name"), child(r, "id")]);
+    expect(printExpression(selection.outputs[0].expression)).toBe(". | {name, id}");
+  });
+
+  it("constructs from a nested object with its key path", () => {
+    const r = root({ record: { name: "a", id: 1 } });
+    const record = child(r, "record");
+    const selection = resolveSelection([child(record, "name"), child(record, "id")]);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".record | {name, id}");
+  });
+
+  it("binds to a concrete element when the array is heterogeneous", () => {
+    const r = root({ items: [{ name: "a", id: 1 }, 5] });
+    const element = at(child(r, "items"), 0);
+    const selection = resolveSelection([child(element, "name"), child(element, "id")]);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".items[0] | {name, id}");
+    expect(selection.outputs[0].heterogeneous).toBe(true);
+  });
+
+  it("iterates only over homogeneous object arrays", () => {
+    const r = root({
+      items: [
+        { name: "a", id: 1 },
+        { name: "b", id: 2 },
+      ],
+    });
+    const element = at(child(r, "items"), 0);
+    const selection = resolveSelection([child(element, "name"), child(element, "id")]);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}");
+    expect(selection.outputs[0].heterogeneous).toBe(false);
+  });
+
+  it("refuses to construct with a lone-surrogate key", () => {
+    const r = root({ items: [{ "\ud800": 1, id: 2 }] });
+    const element = at(child(r, "items"), 0);
+    const selection = resolveSelection([child(element, "\ud800"), child(element, "id")]);
+    expect(selection.noCommonPattern).toBe(true);
+  });
 });
 
 describe("resolveSelection no common pattern", () => {
