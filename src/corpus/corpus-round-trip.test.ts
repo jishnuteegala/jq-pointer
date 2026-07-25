@@ -3,11 +3,11 @@ import { evaluateExpression, printExpression } from "../lib/jq-expression";
 import { buildPathModel } from "../lib/path-model";
 import { reverseHighlight } from "../lib/reverse-highlight";
 import { generaliseOverAncestor, resolveSelection } from "../lib/selection";
-import { firstClickPairScenarios, nodeAtSegments } from "./corpus";
+import { extraKeyRoundTripScenarios, firstClickPairScenarios, nodeAtSegments } from "./corpus";
 
 describe("corpus reverse-highlight round-trip", () => {
   it("round-trips 100% of tool-generated expressions with semantic equality", () => {
-    for (const scenario of firstClickPairScenarios) {
+    for (const scenario of [...firstClickPairScenarios, ...extraKeyRoundTripScenarios]) {
       const model = buildPathModel(scenario.document);
       const clicks = scenario.clicks.map((segments) => nodeAtSegments(model.root, segments));
       const selection = resolveSelection(clicks);
@@ -15,6 +15,7 @@ describe("corpus reverse-highlight round-trip", () => {
       expect(selection.outputs.length, scenario.id).toBe(1);
       const output = selection.outputs[0];
       const printed = printExpression(output.expression);
+      expect(printed, scenario.id).toBe(scenario.expected);
       const highlight = reverseHighlight(model.root, printed);
       expect(highlight.kind, `${scenario.id}: ${printed}`).toBe("match");
       if (highlight.kind !== "match") continue;

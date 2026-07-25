@@ -46,6 +46,13 @@ function runScenario(scenario: (typeof firstClickPairScenarios)[number]): Scenar
   }
   const output = selection.outputs[0];
   const printed = printExpression(output.expression);
+  if (printed !== scenario.expected) {
+    return {
+      id: scenario.id,
+      pass: false,
+      reason: `default ancestor emitted ${printed} != expected ${scenario.expected}`,
+    };
+  }
   const matches = evaluateExpression(model.root, output.expression);
   const preview = matches.map((node) => node.value);
   const jqStream = flattenStream(

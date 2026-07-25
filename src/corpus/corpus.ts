@@ -15,6 +15,7 @@ export interface CorpusScenario {
   id: string;
   document: JsonValue;
   clicks: PathSegment[][];
+  expected: string;
 }
 
 function key(name: string): PathSegment {
@@ -48,6 +49,7 @@ export const firstClickPairScenarios: CorpusScenario[] = [
       [index(0), key("name")],
       [index(1), key("name")],
     ],
+    expected: ".[].name",
   },
   {
     id: "02-github-issues-list",
@@ -56,6 +58,7 @@ export const firstClickPairScenarios: CorpusScenario[] = [
       [index(0), key("id")],
       [index(1), key("id")],
     ],
+    expected: ".[].id",
   },
   {
     id: "03-stripe-charges-list",
@@ -64,11 +67,13 @@ export const firstClickPairScenarios: CorpusScenario[] = [
       [key("data"), index(0), key("amount")],
       [key("data"), index(0), key("currency")],
     ],
+    expected: ".data[] | {amount, currency}",
   },
   {
     id: "04-stripe-customer",
     document: documents["04-stripe-customer"],
     clicks: [[key("id")], [key("email")]],
+    expected: ". | {id, email}",
   },
   {
     id: "05-k8s-pod",
@@ -77,6 +82,7 @@ export const firstClickPairScenarios: CorpusScenario[] = [
       [key("metadata"), key("name")],
       [key("metadata"), key("namespace")],
     ],
+    expected: ".metadata | {name, namespace}",
   },
   {
     id: "06-k8s-pod-list",
@@ -85,6 +91,7 @@ export const firstClickPairScenarios: CorpusScenario[] = [
       [key("items"), index(0), key("metadata"), key("name")],
       [key("items"), index(1), key("metadata"), key("name")],
     ],
+    expected: ".items[].metadata.name",
   },
   {
     id: "07-k8s-deployment",
@@ -93,6 +100,7 @@ export const firstClickPairScenarios: CorpusScenario[] = [
       [key("metadata"), key("name")],
       [key("metadata"), key("namespace")],
     ],
+    expected: ".metadata | {name, namespace}",
   },
   {
     id: "08-heterogeneous-array",
@@ -101,19 +109,13 @@ export const firstClickPairScenarios: CorpusScenario[] = [
       [key("events"), index(0), key("type")],
       [key("events"), index(2), key("type")],
     ],
+    expected: ".events[].type?",
   },
   {
     id: "09-quoted-unicode-keys",
     document: documents["09-quoted-unicode-keys"],
-    clicks: [
-      [key("with/slash")],
-      [key("with~tilde")],
-      [key('"quoted"')],
-      [key("café")],
-      [key("日本語")],
-      [key("emoji 😀")],
-      [key("")],
-    ],
+    clicks: [[key("with/slash")], [key("")]],
+    expected: '. | {"with/slash", ""}',
   },
   {
     id: "10-scalars-deep-nesting",
@@ -146,6 +148,24 @@ export const firstClickPairScenarios: CorpusScenario[] = [
         index(1),
       ],
     ],
+    expected: ".deep.l1.l2.l3.l4.l5.l6.l7[1].k[]",
+  },
+];
+
+export const extraKeyRoundTripScenarios: CorpusScenario[] = [
+  {
+    id: "09-quoted-unicode-keys-full",
+    document: documents["09-quoted-unicode-keys"],
+    clicks: [
+      [key("with/slash")],
+      [key("with~tilde")],
+      [key('"quoted"')],
+      [key("café")],
+      [key("日本語")],
+      [key("emoji 😀")],
+      [key("")],
+    ],
+    expected: '. | {"with/slash", "with~tilde", "\\"quoted\\"", "café", "日本語", "emoji 😀", ""}',
   },
 ];
 
