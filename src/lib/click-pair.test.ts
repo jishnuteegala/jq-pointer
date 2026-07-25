@@ -92,7 +92,7 @@ describe("heterogeneity handling", () => {
       (root) => child(at(child(root, "items"), 0), "name"),
       (root) => child(at(child(root, "items"), 2), "name"),
     );
-    expect(printPath(result.expression.steps)).toBe(".items[].name");
+    expect(printPath(result.expression.steps)).toBe(".items[].name?");
     expect(result.matchCount).toBe(2);
     expect(result.elementCount).toBe(3);
     expect(result.heterogeneous).toBe(true);

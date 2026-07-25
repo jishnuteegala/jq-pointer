@@ -1,7 +1,7 @@
 import type { PathExpression } from "./jq-expression";
 import {
   commonArrayAncestor,
-  nullNode,
+  evaluateSteps,
   pathTo,
   type ModelNode,
   type PathSegment,
@@ -43,57 +43,34 @@ function generaliseSteps(a: PathSegment[], b: PathSegment[]): PathStep[] | null 
   return steps;
 }
 
-function stepThrows(node: ModelNode, step: PathStep): boolean {
+function nodeUnsafe(node: ModelNode, step: PathStep): boolean {
+  const value = node.value;
   if (step.kind === "iterate") return node.children === null;
-  if (node.value === null) return false;
-  if (step.kind === "index") return !Array.isArray(node.value);
-  return typeof node.value !== "object" || Array.isArray(node.value);
+  if (value === null) return false;
+  if (step.kind === "index") return !Array.isArray(value);
+  if (typeof value !== "object" || Array.isArray(value)) return true;
+  return (
+    node.children?.some((c) => c.segment?.kind === "key" && c.segment.key === step.key) !== true
+  );
 }
 
-function placeOptionals(
-  ancestor: ModelNode,
-  steps: PathStep[],
-): { steps: PathStep[]; matches: ModelNode[]; matchCount: number } {
-  const roots = ancestor.children ?? [];
-  const optionalAt: boolean[] = steps.map(() => false);
-  const matches: ModelNode[] = [];
-  const visit = (node: ModelNode, index: number): boolean => {
-    if (index === steps.length) {
-      if (!node.exists) return false;
-      matches.push(node);
-      return true;
-    }
-    const step = steps[index];
-    if (stepThrows(node, step)) optionalAt[index] = true;
-    if (step.kind === "iterate") {
-      if (node.children === null) return false;
-      let matched = false;
-      for (const child of node.children) if (visit(child, index + 1)) matched = true;
-      return matched;
-    }
-    if (step.kind === "index") {
-      if (Array.isArray(node.value) && node.children !== null) {
-        const childIndex = step.index < 0 ? node.children.length + step.index : step.index;
-        return visit(node.children[childIndex] ?? nullNode(node), index + 1);
+function placeOptionals(ancestor: ModelNode, bare: PathStep[]): PathStep[] {
+  const placed: PathStep[] = [];
+  let frontier: ModelNode[] = ancestor.children ?? [];
+  for (let index = 1; index < bare.length; index++) {
+    const step = bare[index];
+    let optional = false;
+    for (const node of frontier) {
+      if (nodeUnsafe(node, step)) {
+        optional = true;
+        break;
       }
-      return node.value === null ? visit(nullNode(node), index + 1) : false;
     }
-    if (node.value !== null && typeof node.value === "object" && node.children !== null) {
-      for (const child of node.children) {
-        if (child.segment?.kind === "key" && child.segment.key === step.key) {
-          return visit(child, index + 1);
-        }
-      }
-      return visit(nullNode(node), index + 1);
-    }
-    return node.value === null ? visit(nullNode(node), index + 1) : false;
-  };
-  let matchCount = 0;
-  for (const root of roots) if (visit(root, 1)) matchCount++;
-  const placed = steps.map((step, index) =>
-    optionalAt[index] ? { ...step, optional: true } : { ...step },
-  );
-  return { steps: placed, matches, matchCount };
+    const resolved: PathStep = optional ? { ...step, optional: true } : { ...step };
+    placed.push(resolved);
+    frontier = evaluateSteps({ ...ancestor, children: frontier }, [{ kind: "iterate" }, resolved]);
+  }
+  return [{ kind: "iterate" }, ...placed];
 }
 
 export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult | null {
@@ -107,17 +84,31 @@ export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult
   if (relativeA === null || relativeB === null) return null;
   const bare = generaliseSteps(relativeA, relativeB);
   if (bare === null) return null;
-  const { steps, matches, matchCount } = placeOptionals(ancestor, bare);
+  const steps = placeOptionals(ancestor, bare);
+  const elementCount = ancestor.children.length;
   const expression: PathExpression = {
     kind: "path",
     steps: [...ancestorPath.segments, ...steps],
   };
+  const relative = steps.slice(1);
+  const matches: ModelNode[] = [];
+  let matchCount = 0;
+  for (const element of ancestor.children) {
+    let present = false;
+    for (const node of evaluateSteps(element, relative)) {
+      if (node.exists) {
+        matches.push(node);
+        present = true;
+      }
+    }
+    if (present) matchCount++;
+  }
   return {
     ancestor,
     expression,
     matches,
     matchCount,
-    elementCount: ancestor.children.length,
-    heterogeneous: matchCount < ancestor.children.length,
+    elementCount,
+    heterogeneous: matchCount < elementCount,
   };
 }
