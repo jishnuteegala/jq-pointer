@@ -176,6 +176,20 @@ describe("parseDocument", () => {
     expect(corruptedCaret.indexOf("^")).toBe(corruptedLine.indexOf("X"));
   });
 
+  it("points at the missing digit of an incomplete number", () => {
+    const cases: Array<[string, number]> = [
+      ["[-]", 2],
+      ["[1e]", 3],
+      ["[1e+]", 4],
+      ["[1.]", 3],
+    ];
+    for (const [text, expected] of cases) {
+      const excerpt = caretExcerpt(text, "is not valid JSON");
+      const [, caret] = excerpt.split("\n");
+      expect(caret.indexOf("^"), text).toBe(expected);
+    }
+  });
+
   it("resolves line and column metadata over CR-only line endings", () => {
     const text = '{"a": 1,\r  "b": oops}';
     const excerpt = caretExcerpt(text, "Unexpected token at line 2 column 8");

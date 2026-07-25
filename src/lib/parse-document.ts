@@ -162,9 +162,27 @@ function scanString(text: string, index: number): ScanResult {
 }
 
 function scanNumber(text: string, index: number): ScanResult {
-  const match = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(text.slice(index));
-  if (match === null) return { error: index };
-  return { end: index + match[0].length };
+  let at = index;
+  if (text[at] === "-") at++;
+  if (text[at] === "0") at++;
+  else if (isDigit(text[at])) while (isDigit(text[at])) at++;
+  else return { error: Math.min(at, text.length) };
+  if (text[at] === ".") {
+    at++;
+    if (!isDigit(text[at])) return { error: Math.min(at, text.length) };
+    while (isDigit(text[at])) at++;
+  }
+  if (text[at] === "e" || text[at] === "E") {
+    at++;
+    if (text[at] === "+" || text[at] === "-") at++;
+    if (!isDigit(text[at])) return { error: Math.min(at, text.length) };
+    while (isDigit(text[at])) at++;
+  }
+  return { end: at };
+}
+
+function isDigit(char: string | undefined): boolean {
+  return char !== undefined && char >= "0" && char <= "9";
 }
 
 function browserOffset(text: string, message: string): number | null {
