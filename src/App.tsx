@@ -29,6 +29,7 @@ function App() {
   const [outcome, setOutcome] = useState<ParseOutcome | null>(null);
   const [selected, setSelected] = useState<ModelNode | null>(null);
   const [copied, setCopied] = useState(false);
+  const [copyFailed, setCopyFailed] = useState(false);
   const loadGeneration = useRef(0);
 
   const model: PathModel | null = useMemo(() => {
@@ -50,6 +51,7 @@ function App() {
     setVersion((previous) => previous + 1);
     setSelected(null);
     setCopied(false);
+    setCopyFailed(false);
     setOutcome(value.trim() === "" ? null : parseDocument(value));
   };
 
@@ -90,13 +92,20 @@ function App() {
 
   const handleCopy = async () => {
     if (path === null) return;
-    await navigator.clipboard.writeText(path);
-    setCopied(true);
+    try {
+      await navigator.clipboard.writeText(path);
+      setCopied(true);
+      setCopyFailed(false);
+    } catch {
+      setCopied(false);
+      setCopyFailed(true);
+    }
   };
 
   const handleSelect = (node: ModelNode) => {
     setSelected(node);
     setCopied(false);
+    setCopyFailed(false);
   };
 
   return (
@@ -142,6 +151,11 @@ function App() {
                 {copied ? "Copied" : "Copy"}
               </button>
             </div>
+            {copyFailed && (
+              <p className="copy-error" role="alert">
+                Couldn&apos;t copy to the clipboard. Select the path above and copy it manually.
+              </p>
+            )}
             <TreeView
               key={version}
               root={model.root}
