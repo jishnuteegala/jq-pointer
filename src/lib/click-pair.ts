@@ -58,7 +58,10 @@ function nodeUnsafe(node: ModelNode, step: PathStep): boolean {
   );
 }
 
-function placeOptionals(ancestor: ModelNode, bare: PathStep[]): PathStep[] {
+function placeOptionals(
+  ancestor: ModelNode,
+  bare: PathStep[],
+): { steps: PathStep[]; matches: ModelNode[] } {
   const placed: PathStep[] = [];
   let frontier: ModelNode[] = ancestor.children ?? [];
   for (let index = 1; index < bare.length; index++) {
@@ -72,14 +75,15 @@ function placeOptionals(ancestor: ModelNode, bare: PathStep[]): PathStep[] {
     }
     const resolved: PathStep = optional ? { ...step, optional: true } : { ...step };
     placed.push(resolved);
-    if (index < bare.length - 1) {
-      frontier = evaluateSteps({ ...ancestor, children: frontier }, [
-        { kind: "iterate" },
-        resolved,
-      ]);
-    }
+    frontier = evaluateSteps({ ...ancestor, segment: null, children: frontier }, [
+      { kind: "iterate" },
+      resolved,
+    ]);
   }
-  return [{ kind: "iterate" }, ...placed];
+  return {
+    steps: [{ kind: "iterate" }, ...placed],
+    matches: frontier.filter((node) => node.exists),
+  };
 }
 
 export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult | null {
@@ -93,31 +97,25 @@ export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult
   if (relativeA === null || relativeB === null) return null;
   const bare = generaliseSteps(relativeA, relativeB);
   if (bare === null) return null;
-  const steps = placeOptionals(ancestor, bare);
+  const { steps, matches } = placeOptionals(ancestor, bare);
   const elementCount = ancestor.children.length;
   const expression: PathExpression = {
     kind: "path",
     steps: [...ancestorPath.segments, ...steps],
   };
-  const relative = steps.slice(1);
-  const matches: ModelNode[] = [];
-  let matchCount = 0;
-  for (const element of ancestor.children) {
-    let present = false;
-    for (const node of evaluateSteps(element, relative)) {
-      if (node.exists) {
-        matches.push(node);
-        present = true;
-      }
-    }
-    if (present) matchCount++;
+  const relativeDepth = steps.length - 1;
+  const presentElements = new Set<ModelNode>();
+  for (const node of matches) {
+    let element: ModelNode | null = node;
+    for (let hop = 0; hop < relativeDepth && element !== null; hop++) element = element.parent;
+    if (element !== null) presentElements.add(element);
   }
   return {
     ancestor,
     expression,
     matches,
-    matchCount,
+    matchCount: presentElements.size,
     elementCount,
-    heterogeneous: matchCount < elementCount,
+    heterogeneous: presentElements.size < elementCount,
   };
 }
