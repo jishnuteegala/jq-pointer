@@ -69,10 +69,7 @@ function App() {
     return buildPathModel(outcome.value);
   }, [outcome]);
 
-  const selection = useMemo(
-    () => resolveSelection(clicks, ancestorIndex),
-    [clicks, ancestorIndex],
-  );
+  const selection = useMemo(() => resolveSelection(clicks, ancestorIndex), [clicks, ancestorIndex]);
 
   const preview: ReverseHighlight = useMemo(() => {
     if (model === null) return { kind: "empty" };

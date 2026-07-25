@@ -10,7 +10,7 @@ interface ChipBarProps {
 export function ChipBar({ clicks, labelOf, onRemove, onClear }: ChipBarProps) {
   if (clicks.length === 0) return null;
   return (
-    <div className="chip-bar" role="group" aria-label="Selected nodes">
+    <fieldset className="chip-bar" aria-label="Selected nodes">
       <ul className="chip-list">
         {clicks.map((node, index) => (
           <li key={index} className="chip">
@@ -29,6 +29,6 @@ export function ChipBar({ clicks, labelOf, onRemove, onClear }: ChipBarProps) {
       <button type="button" className="chip-clear" onClick={onClear}>
         Clear
       </button>
-    </div>
+    </fieldset>
   );
 }

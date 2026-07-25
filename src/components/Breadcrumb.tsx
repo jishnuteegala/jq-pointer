@@ -9,7 +9,7 @@ interface BreadcrumbProps {
 
 export function Breadcrumb({ ancestors, activeIndex, labelOf, onWiden }: BreadcrumbProps) {
   return (
-    <div className="breadcrumb" role="group" aria-label="Widen the iterated array">
+    <fieldset className="breadcrumb" aria-label="Widen the iterated array">
       <span className="breadcrumb-label">Iterate over:</span>
       {ancestors.map((node, index) => (
         <button
@@ -22,6 +22,6 @@ export function Breadcrumb({ ancestors, activeIndex, labelOf, onWiden }: Breadcr
           {labelOf(node)}
         </button>
       ))}
-    </div>
+    </fieldset>
   );
 }

@@ -52,13 +52,16 @@ function relativeSegments(node: ModelNode, ancestorDepth: number): PathSegment[]
   return result.segments.slice(ancestorDepth);
 }
 
-function mergeSegment(index: number, a: PathSegment, b: PathSegment): PathSegment | "iterate" | null {
+function mergeSegment(
+  index: number,
+  a: PathSegment,
+  b: PathSegment,
+): PathSegment | "iterate" | null {
   if (index === 0) {
     if (a.kind !== "index" || b.kind !== "index") return null;
     return "iterate";
   }
-  if (a.kind === "index" && b.kind === "index")
-    return a.index === b.index ? a : "iterate";
+  if (a.kind === "index" && b.kind === "index") return a.index === b.index ? a : "iterate";
   if (a.kind === "key" && b.kind === "key" && a.key === b.key) return a;
   return null;
 }
@@ -119,7 +122,9 @@ export function resolveSelection(clicks: ModelNode[], ancestorIndex = 0): Select
   if (clicks.length === 0) return empty;
   if (clicks.length === 1) {
     const output = singlePathOutput(clicks[0]);
-    return output === null ? empty : { outputs: [output], breadcrumb: null, noCommonPattern: false };
+    return output === null
+      ? empty
+      : { outputs: [output], breadcrumb: null, noCommonPattern: false };
   }
   return resolveSelectionAt(clicks, ancestorIndex);
 }
@@ -161,10 +166,7 @@ function singlePathOutput(node: ModelNode): OutputEntry | null {
   };
 }
 
-function constructionOverAncestor(
-  ancestor: ModelNode,
-  nodes: ModelNode[],
-): OutputEntry | null {
+function constructionOverAncestor(ancestor: ModelNode, nodes: ModelNode[]): OutputEntry | null {
   const keys: string[] = [];
   for (const node of nodes) {
     if (node.segment?.kind !== "key") return null;
@@ -232,4 +234,3 @@ export function finaliseGeneralisation(
     heterogeneous: presentElements.size < elementCount,
   };
 }
-

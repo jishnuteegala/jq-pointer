@@ -47,9 +47,9 @@ oracle("construction oracle", () => {
           const model = buildPathModel({ items });
           const element = model.root.children?.[0]?.children?.[0];
           if (element === undefined) return;
-          const clicks = keys.map((key) => fieldNode(element, key)).filter(
-            (node): node is ModelNode => node !== undefined,
-          );
+          const clicks = keys
+            .map((key) => fieldNode(element, key))
+            .filter((node): node is ModelNode => node !== undefined);
           if (clicks.length < 2) return;
           const selection = resolveSelection(clicks);
           const output = selection.outputs[0];

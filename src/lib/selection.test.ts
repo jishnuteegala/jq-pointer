@@ -40,7 +40,12 @@ describe("resolveSelection single and iterator", () => {
 
 describe("resolveSelection construction", () => {
   it("builds flat shorthand construction from different keys in one element", () => {
-    const r = root({ items: [{ name: "a", id: 1 }, { name: "b", id: 2 }] });
+    const r = root({
+      items: [
+        { name: "a", id: 1 },
+        { name: "b", id: 2 },
+      ],
+    });
     const element = at(child(r, "items"), 0);
     const selection = resolveSelection([child(element, "name"), child(element, "id")]);
     expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}");
@@ -54,7 +59,12 @@ describe("resolveSelection construction", () => {
   });
 
   it("highlights the constructed field nodes", () => {
-    const r = root({ items: [{ name: "a", id: 1 }, { name: "b", id: 2 }] });
+    const r = root({
+      items: [
+        { name: "a", id: 1 },
+        { name: "b", id: 2 },
+      ],
+    });
     const element = at(child(r, "items"), 0);
     const selection = resolveSelection([child(element, "name"), child(element, "id")]);
     expect(selection.outputs[0].matches.map((node) => node.value)).toEqual(["a", 1, "b", 2]);
@@ -81,10 +91,7 @@ describe("resolveSelection no common pattern", () => {
 
 describe("resolveSelection breadcrumb widening", () => {
   const doc: JsonValue = {
-    data: [
-      { items: [{ name: "a" }, { name: "b" }] },
-      { items: [{ name: "c" }] },
-    ],
+    data: [{ items: [{ name: "a" }, { name: "b" }] }, { items: [{ name: "c" }] }],
   };
 
   it("defaults to the innermost array", () => {

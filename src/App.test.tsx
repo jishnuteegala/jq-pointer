@@ -101,6 +101,128 @@ describe("App end-to-end", () => {
     expect(writeText).toHaveBeenCalledWith(".a[0], .b[0]");
   });
 
+  it("builds flat shorthand construction from two keys in one element", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [{"name": "a", "id": 1}, {"name": "b", "id": 2}]}');
+
+    await user.click(within(row("items")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("name")).getByText("name"));
+    await user.click(within(row("id")).getByText("id"));
+
+    expect(
+      screen.getAllByText(".items[] | {name, id}").map((element) => element.className),
+    ).toContain("path-line");
+  });
+
+  it("quotes non-identifier construction keys via shorthand", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [{"a-b": 1, "2fa": 2}]}');
+
+    await user.click(within(row("items")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("a-b")).getByText("a-b"));
+    await user.click(within(row("2fa")).getByText("2fa"));
+
+    expect(
+      screen.getAllByText('.items[] | {"a-b", "2fa"}').map((element) => element.className),
+    ).toContain("path-line");
+  });
+
+  it("removes a chip and re-resolves the output", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [{"name": "a", "id": 1}, {"name": "b", "id": 2}]}');
+
+    await user.click(within(row("items")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("name")).getByText("name"));
+    await user.click(within(row("id")).getByText("id"));
+    expect(
+      screen.getAllByText(".items[] | {name, id}").map((element) => element.className),
+    ).toContain("path-line");
+
+    await user.click(screen.getByRole("button", { name: /Remove .items\[0\].id/ }));
+    expect(screen.getAllByText(".items[0].name").map((element) => element.className)).toContain(
+      "path-line",
+    );
+  });
+
+  it("clears every chip with the Clear button", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [{"name": "a"}, {"name": "b"}]}');
+
+    await user.click(within(row("items")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
+    await user.click(screen.getAllByText("name")[0]);
+    expect(screen.getByRole("group", { name: "Selected nodes" })).toBeDefined();
+
+    await user.click(screen.getByRole("button", { name: "Clear" }));
+    expect(screen.queryByRole("group", { name: "Selected nodes" })).toBeNull();
+  });
+
+  it("widens the iterated array through the breadcrumb", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"data": [{"items": [{"name": "a"}, {"name": "b"}]}]}');
+
+    await user.click(within(row("data")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("items")).getByRole("button", { name: /^Expand / }));
+    const inner = screen.getAllByText("[0]");
+    await user.click(
+      within(inner[inner.length - 1].closest('[role="treeitem"]') as HTMLElement).getByRole(
+        "button",
+        { name: /^Expand / },
+      ),
+    );
+    const oneRows = screen.getAllByText("[1]");
+    await user.click(
+      within(oneRows[oneRows.length - 1].closest('[role="treeitem"]') as HTMLElement).getByRole(
+        "button",
+        { name: /^Expand / },
+      ),
+    );
+    const names = screen.getAllByText("name");
+    await user.click(names[0]);
+    await user.click(names[names.length - 1]);
+
+    expect(screen.getAllByText(".data[0].items[].name").map((e) => e.className)).toContain(
+      "path-line",
+    );
+    await user.click(screen.getByRole("button", { name: ".data" }));
+    expect(screen.getAllByText(".data[].items[].name").map((e) => e.className)).toContain(
+      "path-line",
+    );
+  });
+
+  it("keeps three clicks across different arrays as separate outputs", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a": [1], "b": [2], "c": [3]}');
+
+    await user.click(within(row("a")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("b")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("c")).getByRole("button", { name: /^Expand / }));
+    const zeros = screen.getAllByText("[0]");
+    await user.click(zeros[0]);
+    await user.click(zeros[1]);
+    await user.click(zeros[2]);
+
+    expect(screen.getByText(/No common pattern/)).toBeDefined();
+    for (const expression of [".a[0]", ".b[0]", ".c[0]"])
+      expect(screen.getAllByText(expression).map((e) => e.className)).toContain("path-line");
+  });
+
   it("surfaces a clipboard failure without crashing", async () => {
     const writeText = vi.fn().mockRejectedValue(new Error("denied"));
     const user = userEvent.setup();
