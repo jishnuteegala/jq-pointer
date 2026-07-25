@@ -10,8 +10,9 @@
   <body>
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <main id="main-content" class="page">
+      <span class="eyebrow">Design system</span>
       <h1>jq-pointer design system</h1>
-      <p>The named tokens and reusable primitives behind the tool.</p>
+      <p class="intro">The named tokens and reusable primitives behind the tool.</p>
 
       <h2>Colour tokens</h2>
       <p class="intro">
@@ -21,11 +22,19 @@
       </p>
       <ul class="ds-swatches">
         <li><span class="ds-swatch ds-text"></span><code>--color-text</code></li>
+        <li><span class="ds-swatch ds-heading"></span><code>--color-heading</code></li>
         <li><span class="ds-swatch ds-bg"></span><code>--color-bg</code></li>
+        <li><span class="ds-swatch ds-bg-accent"></span><code>--color-bg-accent</code></li>
         <li><span class="ds-swatch ds-surface"></span><code>--color-surface</code></li>
+        <li>
+          <span class="ds-swatch ds-surface-sunken"></span><code>--color-surface-sunken</code>
+        </li>
         <li><span class="ds-swatch ds-border"></span><code>--color-border</code></li>
         <li><span class="ds-swatch ds-border-strong"></span><code>--color-border-strong</code></li>
         <li><span class="ds-swatch ds-accent"></span><code>--color-accent</code></li>
+        <li><span class="ds-swatch ds-accent-strong"></span><code>--color-accent-strong</code></li>
+        <li><span class="ds-swatch ds-accent-soft"></span><code>--color-accent-soft</code></li>
+        <li><span class="ds-swatch ds-mono"></span><code>--color-mono</code></li>
         <li><span class="ds-swatch ds-danger"></span><code>--color-danger</code></li>
         <li>
           <span class="ds-swatch ds-danger-surface"></span><code>--color-danger-surface</code>
@@ -36,13 +45,21 @@
 
       <h2>Type tokens</h2>
       <ul class="ds-list">
-        <li><code>--font-body</code>: <span class="ds-font-body">system-ui, sans-serif</span></li>
-        <li><code>--font-mono</code>: <span class="ds-font-mono">ui-monospace, monospace</span></li>
         <li>
-          <code>--font-size-h1</code> 1.75rem, <code>--font-size-body</code> 1rem,
-          <code>--font-size-sm</code> 0.875rem, <code>--font-size-xs</code> 0.8125rem
+          <code>--font-body</code>: <span class="ds-font-body">Inter, system-ui, sans-serif</span>
         </li>
-        <li><code>--leading-tight</code> 1.25, <code>--leading-body</code> 1.55</li>
+        <li>
+          <code>--font-mono</code>: <span class="ds-font-mono">SF Mono, JetBrains Mono, ...</span>
+        </li>
+        <li>
+          <code>--font-size-h1</code> 2.25rem, <code>--font-size-h2</code> 1.0625rem,
+          <code>--font-size-body</code> 1rem, <code>--font-size-sm</code> 0.875rem,
+          <code>--font-size-xs</code> 0.8125rem, <code>--font-size-eyebrow</code> 0.75rem
+        </li>
+        <li>
+          <code>--leading-tight</code> 1.15, <code>--leading-body</code> 1.6,
+          <code>--tracking-tight</code> -0.02em, <code>--tracking-eyebrow</code> 0.08em
+        </li>
       </ul>
 
       <h2>Spacing tokens</h2>
@@ -53,14 +70,22 @@
         <li><code>--space-4</code> 1rem <span class="ds-bar ds-w-4"></span></li>
         <li><code>--space-5</code> 1.5rem <span class="ds-bar ds-w-5"></span></li>
         <li><code>--space-6</code> 2rem <span class="ds-bar ds-w-6"></span></li>
+        <li><code>--space-7</code> 3rem <span class="ds-bar ds-w-7"></span></li>
       </ul>
 
       <h2>Radius tokens</h2>
       <ul class="ds-list">
         <li>
-          <code>--radius-sm</code> 4px, <code>--radius-md</code> 8px,
-          <code>--radius-full</code> 999px
+          <code>--radius-sm</code> 6px, <code>--radius-md</code> 10px,
+          <code>--radius-lg</code> 14px, <code>--radius-full</code> 999px
         </li>
+      </ul>
+
+      <h2>Elevation tokens</h2>
+      <ul class="ds-list">
+        <li><span class="ds-shadow ds-shadow-sm"></span><code>--shadow-sm</code></li>
+        <li><span class="ds-shadow ds-shadow-md"></span><code>--shadow-md</code></li>
+        <li><span class="ds-shadow ds-shadow-lg"></span><code>--shadow-lg</code></li>
       </ul>
 
       <h2>Primitives</h2>

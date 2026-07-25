@@ -229,6 +229,7 @@ function App() {
         Skip to main content
       </a>
       <main id="main-content" className="page">
+        <span className="eyebrow">JSON &rarr; jq</span>
         <h1>jq-pointer</h1>
         <p className="intro">
           Paste or drop JSON, click the value you want, get the jq expression that extracts it.
