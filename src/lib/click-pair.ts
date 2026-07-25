@@ -2,7 +2,6 @@ import type { PathExpression } from "./jq-expression";
 import {
   commonArrayAncestor,
   evaluateSteps,
-  matchingNodes,
   pathTo,
   type ModelNode,
   type PathSegment,
@@ -54,26 +53,32 @@ function stepThrows(node: ModelNode, step: PathStep): boolean {
 function placeOptionals(
   ancestor: ModelNode,
   steps: PathStep[],
-): { steps: PathStep[]; matches: ModelNode[] } {
-  const placed: PathStep[] = [];
-  let stream: ModelNode[] = [ancestor];
-  for (const step of steps) {
-    const optional = stream.some((node) => stepThrows(node, step));
+): { steps: PathStep[]; matches: ModelNode[]; matchCount: number } {
+  const placed: PathStep[] = [{ ...steps[0] }];
+  let carried: { node: ModelNode; origin: number }[] = (ancestor.children ?? []).map(
+    (node, origin) => ({ node, origin }),
+  );
+  for (let index = 1; index < steps.length; index++) {
+    const step = steps[index];
+    const optional = carried.some((entry) => stepThrows(entry.node, step));
     const resolved: PathStep = optional ? { ...step, optional: true } : { ...step };
     placed.push(resolved);
-    stream = stream.flatMap((node) => evaluateSteps(node, [resolved]));
+    const next: { node: ModelNode; origin: number }[] = [];
+    for (const entry of carried) {
+      for (const node of evaluateSteps(entry.node, [resolved])) {
+        next.push({ node, origin: entry.origin });
+      }
+    }
+    carried = next;
   }
-  return { steps: placed, matches: stream.filter((node) => node.exists) };
-}
-
-function countPresent(elements: ModelNode[], leaf: PathStep[]): number {
-  if (leaf.length === 0) return elements.length;
-  const optionalLeaf = leaf.map((step) => ({ ...step, optional: true }));
-  let count = 0;
-  for (const element of elements) {
-    if (matchingNodes(element, optionalLeaf).length > 0) count++;
+  const presentOrigins = new Set<number>();
+  const matches: ModelNode[] = [];
+  for (const entry of carried) {
+    if (!entry.node.exists) continue;
+    matches.push(entry.node);
+    presentOrigins.add(entry.origin);
   }
-  return count;
+  return { steps: placed, matches, matchCount: presentOrigins.size };
 }
 
 export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult | null {
@@ -87,9 +92,7 @@ export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult
   if (relativeA === null || relativeB === null) return null;
   const bare = generaliseSteps(relativeA, relativeB);
   if (bare === null) return null;
-  const { steps, matches } = placeOptionals(ancestor, bare);
-  const elementCount = ancestor.children.length;
-  const matchCount = countPresent(ancestor.children, steps.slice(1));
+  const { steps, matches, matchCount } = placeOptionals(ancestor, bare);
   const expression: PathExpression = {
     kind: "path",
     steps: [...ancestorPath.segments, ...steps],
@@ -99,7 +102,7 @@ export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult
     expression,
     matches,
     matchCount,
-    elementCount,
-    heterogeneous: matchCount < elementCount,
+    elementCount: ancestor.children.length,
+    heterogeneous: matchCount < ancestor.children.length,
   };
 }
