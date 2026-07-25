@@ -54,7 +54,10 @@ function applyStep(node: ModelNode, step: PathStep): ModelNode[] {
   return matchingNodes(node, [step]);
 }
 
-function placeOptionals(ancestor: ModelNode, steps: PathStep[]): PathStep[] {
+function placeOptionals(
+  ancestor: ModelNode,
+  steps: PathStep[],
+): { steps: PathStep[]; matches: ModelNode[] } {
   const placed: PathStep[] = [];
   let stream: ModelNode[] = [ancestor];
   for (const step of steps) {
@@ -63,13 +66,17 @@ function placeOptionals(ancestor: ModelNode, steps: PathStep[]): PathStep[] {
     placed.push(resolved);
     stream = stream.flatMap((node) => applyStep(node, resolved));
   }
-  return placed;
+  return { steps: placed, matches: stream };
 }
 
-function leafPresent(element: ModelNode, leaf: PathStep[]): boolean {
-  if (leaf.length === 0) return true;
+function countPresent(elements: ModelNode[], leaf: PathStep[]): number {
+  if (leaf.length === 0) return elements.length;
   const optionalLeaf = leaf.map((step) => ({ ...step, optional: true }));
-  return matchingNodes(element, optionalLeaf).length > 0;
+  let count = 0;
+  for (const element of elements) {
+    if (matchingNodes(element, optionalLeaf).length > 0) count++;
+  }
+  return count;
 }
 
 export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult | null {
@@ -83,18 +90,13 @@ export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult
   if (relativeA === null || relativeB === null) return null;
   const bare = generaliseSteps(relativeA, relativeB);
   if (bare === null) return null;
-  const steps = placeOptionals(ancestor, bare);
-  const leaf = steps.slice(1);
+  const { steps, matches } = placeOptionals(ancestor, bare);
   const elementCount = ancestor.children.length;
-  let matchCount = 0;
-  for (const element of ancestor.children) {
-    if (leafPresent(element, leaf)) matchCount++;
-  }
+  const matchCount = countPresent(ancestor.children, steps.slice(1));
   const expression: PathExpression = {
     kind: "path",
     steps: [...ancestorPath.segments, ...steps],
   };
-  const matches = matchingNodes(ancestor, steps);
   return {
     ancestor,
     expression,

@@ -19,6 +19,19 @@ function describeOutcome(outcome: ParseOutcome): string {
 
 const DISPLAY_LIMIT = 256 * 1024;
 
+function isAncestorOf(candidate: ModelNode, node: ModelNode): boolean {
+  let current: ModelNode | null = node;
+  while (current !== null) {
+    if (current === candidate) return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+function areSiblingsInDocument(a: ModelNode, b: ModelNode): boolean {
+  return !isAncestorOf(a, b) && !isAncestorOf(b, a);
+}
+
 function displayText(value: string): string {
   if (value.length <= DISPLAY_LIMIT) return value;
   const megabytes = (value.length / 1024 / 1024).toFixed(1);
@@ -65,10 +78,15 @@ function App() {
     return reverseHighlight(model.root, filter);
   }, [model, filter]);
 
+  const noCommonPattern =
+    pair === null && clicks.length === 2 && areSiblingsInDocument(clicks[0], clicks[1]);
+
   const note = useMemo(() => {
+    if (noCommonPattern)
+      return "No common pattern between these two clicks; showing the latest path.";
     if (pair === null || !pair.heterogeneous) return null;
     return `matches ${pair.matchCount} of ${pair.elementCount} elements`;
-  }, [pair]);
+  }, [pair, noCommonPattern]);
 
   const highlighted = useMemo(() => {
     if (preview.kind === "match") return new Set(preview.nodes);
@@ -143,11 +161,7 @@ function App() {
     setClicks((previous) => {
       const last = previous[previous.length - 1];
       if (last === node) return previous;
-      const previousNode = previous[previous.length - 1];
-      if (previousNode !== undefined && generaliseClickPair(previousNode, node) !== null) {
-        return [previousNode, node];
-      }
-      return [node];
+      return last === undefined ? [node] : [last, node];
     });
     setFilter("");
     setCopied(false);

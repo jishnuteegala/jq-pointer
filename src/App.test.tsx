@@ -57,6 +57,22 @@ describe("App end-to-end", () => {
     expect(screen.getByText("matches 2 of 3 elements")).toBeDefined();
   });
 
+  it("shows a no-common-pattern note when two clicks cannot generalise", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a": [1], "b": [2]}');
+
+    await user.click(within(row("a")).getByText("a"));
+    await user.click(within(row("b")).getByText("b"));
+    const zeros = screen.getAllByText("[0]");
+    await user.click(zeros[0]);
+    await user.click(zeros[zeros.length - 1]);
+
+    expect(screen.getByText(/No common pattern/)).toBeDefined();
+    expect(screen.getByText(".b[0]")).toBeDefined();
+  });
+
   it("surfaces a clipboard failure without crashing", async () => {
     const writeText = vi.fn().mockRejectedValue(new Error("denied"));
     const user = userEvent.setup();
