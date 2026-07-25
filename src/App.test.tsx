@@ -378,6 +378,19 @@ describe("App end-to-end", () => {
     );
   });
 
+  it("shows both notices when unrelated selections include a lone-surrogate key", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"\\ud800": 1, "a": [1], "b": [2]}');
+    await user.click(within(row("\ud800")).getByText("\ud800"));
+    await user.click(within(row("a")).getByText("a"));
+    await user.click(within(row("b")).getByText("b"));
+    expect(screen.getByText(/No common pattern.*lone surrogate/)).toBeDefined();
+    expect(screen.getAllByText(".a").map((el) => el.className)).toContain("path-line");
+    expect(screen.getAllByText(".b").map((el) => el.className)).toContain("path-line");
+  });
+
   it("shows a positioned parse error with a caret excerpt", async () => {
     const user = userEvent.setup();
     render(<App />);

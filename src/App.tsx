@@ -89,11 +89,11 @@ function App() {
             selection.unsupportedCount === 1 ? "node has" : "nodes have"
           } a key jq can't express (lone surrogate); showing the rest.`
         : null;
-    if (selection.noCommonPattern)
-      return (
-        unsupportedNote ?? "No common pattern between these clicks; showing each path separately."
-      );
-    if (unsupportedNote !== null) return unsupportedNote;
+    const noCommonNote = selection.noCommonPattern
+      ? "No common pattern between these clicks; showing each path separately."
+      : null;
+    if (noCommonNote !== null || unsupportedNote !== null)
+      return [noCommonNote, unsupportedNote].filter((part) => part !== null).join(" ");
     const output = selection.outputs[0];
     if (output === undefined || !output.heterogeneous) return null;
     return `matches ${output.matchCount} of ${output.elementCount} elements`;

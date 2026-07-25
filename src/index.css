@@ -319,6 +319,9 @@ button.tree-toggle:focus-visible {
   padding: 0.125rem 0.25rem 0.125rem 0.5rem;
   font-family: ui-monospace, monospace;
   font-size: 0.8125rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   background: color-mix(in srgb, #2563eb 12%, transparent);
   border: 1px solid color-mix(in srgb, #2563eb 40%, transparent);
   border-radius: 999px;
@@ -375,6 +378,9 @@ button.tree-toggle:focus-visible {
   font-family: ui-monospace, monospace;
   font-size: 0.8125rem;
   padding: 0.125rem 0.5rem;
+  max-width: 100%;
+  min-width: 0;
+  overflow-wrap: anywhere;
   cursor: pointer;
   color: inherit;
   background: transparent;
