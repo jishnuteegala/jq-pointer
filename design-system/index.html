@@ -14,14 +14,24 @@
       <p>The named tokens and reusable primitives behind the tool.</p>
 
       <h2>Colour tokens</h2>
+      <p class="intro">
+        Every colour is a token that flips automatically under
+        <code>prefers-color-scheme: dark</code>. Swatches below render the live value for your
+        current theme.
+      </p>
       <ul class="ds-swatches">
-        <li><span class="ds-swatch ds-text"></span><code>--color-text</code> #172033</li>
-        <li><span class="ds-swatch ds-bg"></span><code>--color-bg</code> #f5f7fb</li>
-        <li><span class="ds-swatch ds-surface"></span><code>--color-surface</code> #ffffff</li>
-        <li><span class="ds-swatch ds-border"></span><code>--color-border</code> #8490a5</li>
-        <li><span class="ds-swatch ds-accent"></span><code>--color-accent</code> #2563eb</li>
-        <li><span class="ds-swatch ds-danger"></span><code>--color-danger</code> #b42318</li>
-        <li><span class="ds-swatch ds-muted"></span><code>--color-muted</code> #4a5871</li>
+        <li><span class="ds-swatch ds-text"></span><code>--color-text</code></li>
+        <li><span class="ds-swatch ds-bg"></span><code>--color-bg</code></li>
+        <li><span class="ds-swatch ds-surface"></span><code>--color-surface</code></li>
+        <li><span class="ds-swatch ds-border"></span><code>--color-border</code></li>
+        <li><span class="ds-swatch ds-border-strong"></span><code>--color-border-strong</code></li>
+        <li><span class="ds-swatch ds-accent"></span><code>--color-accent</code></li>
+        <li><span class="ds-swatch ds-danger"></span><code>--color-danger</code></li>
+        <li>
+          <span class="ds-swatch ds-danger-surface"></span><code>--color-danger-surface</code>
+        </li>
+        <li><span class="ds-swatch ds-success"></span><code>--color-success</code></li>
+        <li><span class="ds-swatch ds-muted"></span><code>--color-muted</code></li>
       </ul>
 
       <h2>Type tokens</h2>
@@ -29,9 +39,10 @@
         <li><code>--font-body</code>: <span class="ds-font-body">system-ui, sans-serif</span></li>
         <li><code>--font-mono</code>: <span class="ds-font-mono">ui-monospace, monospace</span></li>
         <li>
-          <code>--font-size-body</code> 1rem, <code>--font-size-sm</code> 0.875rem,
-          <code>--font-size-xs</code> 0.8125rem
+          <code>--font-size-h1</code> 1.75rem, <code>--font-size-body</code> 1rem,
+          <code>--font-size-sm</code> 0.875rem, <code>--font-size-xs</code> 0.8125rem
         </li>
+        <li><code>--leading-tight</code> 1.25, <code>--leading-body</code> 1.55</li>
       </ul>
 
       <h2>Spacing tokens</h2>
@@ -44,10 +55,19 @@
         <li><code>--space-6</code> 2rem <span class="ds-bar ds-w-6"></span></li>
       </ul>
 
+      <h2>Radius tokens</h2>
+      <ul class="ds-list">
+        <li>
+          <code>--radius-sm</code> 4px, <code>--radius-md</code> 8px,
+          <code>--radius-full</code> 999px
+        </li>
+      </ul>
+
       <h2>Primitives</h2>
       <h3>Button</h3>
-      <p>
+      <p class="ds-row">
         <button type="button" class="button">Copy</button>
+        <button type="button" class="button button-copied">Copied</button>
         <button type="button" class="button" disabled>Copy</button>
       </p>
       <h3>Inputs</h3>

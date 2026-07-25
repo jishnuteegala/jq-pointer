@@ -48,11 +48,26 @@
 .ds-accent {
   background: var(--color-accent);
 }
+.ds-border-strong {
+  background: var(--color-border-strong);
+}
 .ds-danger {
   background: var(--color-danger);
 }
+.ds-danger-surface {
+  background: var(--color-danger-surface);
+}
+.ds-success {
+  background: var(--color-success);
+}
 .ds-muted {
   background: var(--color-muted);
+}
+.ds-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  align-items: center;
 }
 .ds-font-body {
   font-family: var(--font-body);
