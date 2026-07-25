@@ -182,11 +182,10 @@ function constructionOverAncestor(
     source: source.expression,
     keys,
   };
-  const matches = keys.flatMap((_, index) =>
-    source.matches.flatMap((element) => {
+  const matches = source.matches.flatMap((element) =>
+    keys.flatMap((key) => {
       const child = element.children?.find(
-        (candidate) =>
-          candidate.segment?.kind === "key" && candidate.segment.key === keys[index],
+        (candidate) => candidate.segment?.kind === "key" && candidate.segment.key === key,
       );
       return child !== undefined && child.exists ? [child] : [];
     }),
