@@ -111,6 +111,18 @@ describe("App end-to-end", () => {
     expect(within(alert).getByText(/\^/)).toBeDefined();
   });
 
+  it("marks the textarea invalid and associates it with the parse error", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const input = screen.getByLabelText("JSON document");
+    expect(input.getAttribute("aria-invalid")).toBe("false");
+    await user.click(input);
+    await user.paste("{oops}");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(input.getAttribute("aria-describedby")).toBe("parse-error");
+    expect(screen.getByRole("alert").id).toBe("parse-error");
+  });
+
   it("shows a positioned error after clearing to whitespace, but none initially", async () => {
     const user = userEvent.setup();
     render(<App />);
