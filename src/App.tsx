@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { ChangeEvent, ClipboardEvent, DragEvent } from "react";
 import { TreeView } from "./components/TreeView";
 import { printPath } from "./lib/jq-expression";
-import { parseDocument, type ParseOutcome } from "./lib/parse-document";
+import { MAX_DOCUMENT_BYTES, parseDocument, type ParseOutcome } from "./lib/parse-document";
 import { buildPathModel, pathTo, type ModelNode, type PathModel } from "./lib/path-model";
 
 function describeOutcome(outcome: ParseOutcome): string {
@@ -67,6 +67,14 @@ function App() {
     event.preventDefault();
     const file = event.dataTransfer.files[0];
     if (file !== undefined) {
+      if (file.size > MAX_DOCUMENT_BYTES) {
+        setText("");
+        setVersion((previous) => previous + 1);
+        setSelected(null);
+        setCopied(false);
+        setOutcome({ kind: "too-large", bytes: file.size, limit: MAX_DOCUMENT_BYTES });
+        return;
+      }
       loadText(await file.text());
       return;
     }
