@@ -33,12 +33,12 @@ function errorOffset(text: string, message: string): number {
     let lineStart = 0;
     let found = true;
     for (let seen = 1; seen < line; seen++) {
-      const next = text.indexOf("\n", lineStart);
-      if (next === -1) {
+      const end = lineEndAt(text, lineStart);
+      if (end === text.length) {
         found = false;
         break;
       }
-      lineStart = next + 1;
+      lineStart = end + (text[end] === "\r" && text[end + 1] === "\n" ? 2 : 1);
     }
     if (found) return Math.min(text.length, lineStart + column - 1);
   }
@@ -91,10 +91,20 @@ function scanValue(text: string, index: number): ScanResult {
   if (char === "[") return scanArray(text, index);
   if (char === '"') return scanString(text, index);
   if (char === "-" || (char >= "0" && char <= "9")) return scanNumber(text, index);
-  for (const word of ["true", "false", "null"]) {
-    if (text.startsWith(word, index)) return { end: index + word.length };
-  }
+  const literal = scanLiteral(text, index);
+  if (literal !== null) return literal;
   return { error: Math.min(index, text.length) };
+}
+
+function scanLiteral(text: string, index: number): ScanResult | null {
+  for (const word of ["true", "false", "null"]) {
+    if (text[index] !== word[0]) continue;
+    let matched = 0;
+    while (matched < word.length && text[index + matched] === word[matched]) matched++;
+    if (matched === word.length) return { end: index + word.length };
+    return { error: Math.min(index + matched, text.length) };
+  }
+  return null;
 }
 
 function scanObject(text: string, index: number): ScanResult {
@@ -274,7 +284,7 @@ function maskStrings(text: string): string {
 }
 
 function looksLikeNdjson(trimmed: string): boolean {
-  const lines = trimmed.split("\n").filter((line) => line.trim() !== "");
+  const lines = trimmed.split(/\r\n|\r|\n/).filter((line) => line.trim() !== "");
   if (lines.length < 2) return false;
   return lines.every((line) => {
     try {

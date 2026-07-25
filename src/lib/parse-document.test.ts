@@ -126,7 +126,7 @@ describe("parseDocument", () => {
     const text = '{"a": "q\\"uote", "b": [1, {"c": null}], "d": tru}';
     const excerpt = caretExcerpt(text, "JSON Parse error: Unexpected character");
     const [line, caret] = excerpt.split("\n");
-    expect(caret.indexOf("^")).toBe(line.indexOf("tru}"));
+    expect(caret.indexOf("^")).toBe(line.indexOf("tru}") + 3);
   });
 
   it("points at trailing garbage after a complete value", () => {
@@ -165,6 +165,28 @@ describe("parseDocument", () => {
       expect(outcome.message).toMatch(/line 2, column 1/);
       expect(outcome.excerpt.split("\n")[0]).toBe('{"b": 2}');
     }
+  });
+
+  it("points at the first mismatching character of a malformed literal", () => {
+    const truncated = caretExcerpt("[tru]", "Unexpected token ']'");
+    const [truncatedLine, truncatedCaret] = truncated.split("\n");
+    expect(truncatedCaret.indexOf("^")).toBe(truncatedLine.indexOf("]"));
+    const corrupted = caretExcerpt('{"a":trXe}', "Unexpected token 'X'");
+    const [corruptedLine, corruptedCaret] = corrupted.split("\n");
+    expect(corruptedCaret.indexOf("^")).toBe(corruptedLine.indexOf("X"));
+  });
+
+  it("resolves line and column metadata over CR-only line endings", () => {
+    const text = '{"a": 1,\r  "b": oops}';
+    const excerpt = caretExcerpt(text, "Unexpected token at line 2 column 8");
+    const [line, caret] = excerpt.split("\n");
+    expect(line).toBe('  "b": oops}');
+    expect(caret.indexOf("^")).toBe(line.indexOf("oops"));
+  });
+
+  it("detects NDJSON with CR-only line endings", () => {
+    const outcome = parseDocument('{"a": 1}\r{"a": 2}');
+    expect(outcome.kind === "error" && outcome.message).toContain("NDJSON");
   });
 
   it("falls back to end of input when position metadata is missing", () => {
