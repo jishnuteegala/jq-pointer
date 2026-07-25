@@ -197,6 +197,7 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
       className="tree-view"
       role="tree"
       aria-label="JSON document tree"
+      aria-multiselectable="true"
       aria-activedescendant={`${treeId}-row-${focusedIndex}`}
       tabIndex={0}
       onScroll={handleScroll}

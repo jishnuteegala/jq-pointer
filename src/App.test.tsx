@@ -186,6 +186,29 @@ describe("App end-to-end", () => {
     expect(row("n").getAttribute("aria-selected")).toBe("false");
   });
 
+  it("drops the selected-node highlight while the filter is unsupported or erroring", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a": 1}');
+    await user.click(within(row("a")).getByText("a"));
+    expect(row("a").getAttribute("aria-selected")).toBe("true");
+
+    const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
+    await user.click(filter);
+    await user.paste("select(.a)");
+    expect(screen.getByText("Can't preview this filter.")).toBeDefined();
+    expect(row("a").getAttribute("aria-selected")).toBe("false");
+
+    await user.clear(filter);
+    await user.paste(".a[]");
+    expect(screen.getByText(/errors on this document/)).toBeDefined();
+    expect(row("a").getAttribute("aria-selected")).toBe("false");
+
+    await user.clear(filter);
+    expect(row("a").getAttribute("aria-selected")).toBe("true");
+  });
+
   it("clears the filter highlight when a tree node is clicked", async () => {
     const user = userEvent.setup();
     render(<App />);

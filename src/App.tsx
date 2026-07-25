@@ -58,7 +58,8 @@ function App() {
 
   const highlighted = useMemo(() => {
     if (preview.kind === "match") return new Set(preview.nodes);
-    return new Set(selected === null ? [] : [selected]);
+    if (preview.kind === "empty") return new Set(selected === null ? [] : [selected]);
+    return new Set<ModelNode>();
   }, [preview, selected]);
 
   const loadText = (value: string) => {
