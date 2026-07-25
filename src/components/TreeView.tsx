@@ -115,8 +115,17 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
     }
   };
 
+  const expand = (node: ModelNode) => {
+    setExpanded((previous) => {
+      if (previous.has(node)) return previous;
+      const next = new Set(previous);
+      next.add(node);
+      return next;
+    });
+  };
+
   const activateRow = (row: TreeRow) => {
-    if (row.expandable) toggle(row.node);
+    if (row.expandable) expand(row.node);
     onSelect(row.node);
   };
 
@@ -196,9 +205,24 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
           handleKeyDown(event);
         }}
       >
-        <span className="tree-toggle" aria-hidden="true">
-          {row.expandable ? (row.expanded ? "\u25be" : "\u25b8") : ""}
-        </span>
+        {row.expandable ? (
+          <button
+            type="button"
+            className="tree-toggle"
+            aria-label={row.expanded ? "Collapse" : "Expand"}
+            aria-expanded={row.expanded}
+            tabIndex={-1}
+            onClick={(event) => {
+              event.stopPropagation();
+              focusRow(index);
+              toggle(row.node);
+            }}
+          >
+            {row.expanded ? "\u25be" : "\u25b8"}
+          </button>
+        ) : (
+          <span className="tree-toggle" aria-hidden="true" />
+        )}
         <span className="tree-label">{rowLabel(row.node)}</span>
         <span className="tree-value">{valuePreview(row.node)}</span>
       </div>

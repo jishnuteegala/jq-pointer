@@ -57,6 +57,22 @@ describe("App end-to-end", () => {
     expect(screen.getByText("matches 2 of 3 elements")).toBeDefined();
   });
 
+  it("generalises after expanding the second element without evicting the first click", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [{"name": "a"}, {"name": "b"}]}');
+
+    await user.click(within(row("items")).getByRole("button", { name: "Expand" }));
+    await user.click(within(row("[0]")).getByRole("button", { name: "Expand" }));
+    await user.click(screen.getAllByText("name")[0]);
+    await user.click(within(row("[1]")).getByRole("button", { name: "Expand" }));
+    const names = screen.getAllByText("name");
+    await user.click(names[names.length - 1]);
+
+    expect(screen.getByText(".items[].name")).toBeDefined();
+  });
+
   it("shows a no-common-pattern note when two clicks cannot generalise", async () => {
     const user = userEvent.setup();
     render(<App />);
