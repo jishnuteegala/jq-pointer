@@ -54,6 +54,14 @@ describe("parseDocument", () => {
     expect(caret.indexOf("^")).toBe(line.indexOf("oops"));
   });
 
+  it("skips the token inside a matching key when locating the Chromium caret", () => {
+    const text = '{"oops": oops}';
+    const excerpt = caretExcerpt(text, `Unexpected token 'o', "${text}" is not valid JSON`);
+    const [line, caret] = excerpt.split("\n");
+    expect(line).toBe('{"oops": oops}');
+    expect(caret.indexOf("^")).toBe(line.indexOf(": oops") + 2);
+  });
+
   it("builds a caret excerpt from a truncated Chromium snippet", () => {
     const text = '{"a": 1,\n  "b": oops}';
     const excerpt = caretExcerpt(
@@ -93,6 +101,17 @@ describe("parseDocument", () => {
     expect(unquoted.kind === "error" && unquoted.message).toContain("JavaScript literal");
     const trailing = parseDocument('{"item": 1,}');
     expect(trailing.kind === "error" && trailing.message).toContain("JavaScript literal");
+  });
+
+  it("prefers the JavaScript-literal hint for multiline literals", () => {
+    const outcome = parseDocument('{\n  "a": 1,\n  "b": 2,\n}');
+    expect(outcome.kind === "error" && outcome.message).toContain("JavaScript literal");
+    expect(outcome.kind === "error" && outcome.message).not.toContain("NDJSON");
+  });
+
+  it("does not misclassify a multiline object as NDJSON", () => {
+    const outcome = parseDocument('{\n  "a": 1\n  "b": 2\n}');
+    expect(outcome.kind === "error" && outcome.message).not.toContain("NDJSON");
   });
 
   it("still reports an error with an excerpt for empty input", () => {

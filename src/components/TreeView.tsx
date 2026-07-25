@@ -91,7 +91,10 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
       (event.key.startsWith("Arrow") || event.key === "Enter" || event.key === " ")
     ) {
       event.preventDefault();
-      focusRow(Math.min(tree.total - 1, start + OVERSCAN));
+      const above = focusedIndex < start;
+      if (event.key === "ArrowUp") focusRow(above ? focusedIndex : end - 1);
+      else if (event.key === "ArrowDown") focusRow(above ? start : focusedIndex);
+      else focusRow(above ? start : end - 1);
       return;
     }
     const row = tree.rowAt(focusedIndex);

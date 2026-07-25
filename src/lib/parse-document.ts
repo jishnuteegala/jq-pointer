@@ -59,11 +59,31 @@ function browserOffset(text: string, message: string): number | null {
   if (truncatedStart) {
     const base = text.indexOf(source);
     if (base === -1) return null;
-    const local = source.indexOf(marker);
+    const local = tokenOffset(source, marker);
     return local === -1 ? base : base + local;
   }
-  const at = source.indexOf(marker);
+  const at = tokenOffset(source, marker);
   return at === -1 ? null : Math.min(text.length, at);
+}
+
+function tokenOffset(source: string, marker: string): number {
+  let inString = false;
+  let firstInString = -1;
+  for (let index = 0; index < source.length; index++) {
+    const char = source[index];
+    if (inString) {
+      if (char === "\\") {
+        index++;
+        continue;
+      }
+      if (char === '"') inString = false;
+      else if (char === marker && firstInString === -1) firstInString = index;
+      continue;
+    }
+    if (char === '"') inString = true;
+    else if (char === marker) return index;
+  }
+  return firstInString;
 }
 
 function excerptAt(text: string, offset: number): string {
@@ -78,13 +98,26 @@ function excerptAt(text: string, offset: number): string {
 
 function inputHint(text: string): string {
   const trimmed = text.trim();
-  if (trimmed.split("\n").filter(Boolean).length > 1 && !trimmed.startsWith("[")) {
-    return "This looks like NDJSON. Paste one JSON value instead. ";
-  }
   if (/[{,]\s*'|[{,]\s*[a-zA-Z_$][\w$]*\s*:|,\s*[}\]]/.test(trimmed)) {
     return "This looks like a JavaScript literal, not strict JSON. ";
   }
+  if (looksLikeNdjson(trimmed)) {
+    return "This looks like NDJSON. Paste one JSON value instead. ";
+  }
   return "";
+}
+
+function looksLikeNdjson(trimmed: string): boolean {
+  const lines = trimmed.split("\n").filter((line) => line.trim() !== "");
+  if (lines.length < 2) return false;
+  return lines.every((line) => {
+    try {
+      JSON.parse(line);
+      return true;
+    } catch {
+      return false;
+    }
+  });
 }
 
 export function caretExcerpt(text: string, message: string): string {
