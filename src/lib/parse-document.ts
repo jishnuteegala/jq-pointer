@@ -26,7 +26,8 @@ export function parseDocument(text: string): ParseOutcome {
 }
 
 function errorOffset(text: string, message: string): number {
-  const lineColumn = message.match(/line (\d+) column (\d+)/);
+  const metadata = message.replace(/(\.\.\.)?"[\s\S]*"(\.\.\.)?\s+is not valid JSON/, "");
+  const lineColumn = metadata.match(/line (\d+) column (\d+)/);
   if (lineColumn !== null) {
     const line = Number(lineColumn[1]);
     const column = Number(lineColumn[2]);
@@ -42,7 +43,7 @@ function errorOffset(text: string, message: string): number {
     }
     if (found) return Math.min(text.length, lineStart + column - 1);
   }
-  const position = message.match(/position (\d+)/);
+  const position = metadata.match(/position (\d+)/);
   if (position !== null) return Math.min(text.length, Number(position[1]));
   const scanned = safeScanOffset(text);
   if (scanned !== null) return scanned;

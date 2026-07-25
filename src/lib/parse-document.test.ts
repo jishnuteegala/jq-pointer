@@ -189,6 +189,23 @@ describe("parseDocument", () => {
     expect(outcome.kind === "error" && outcome.message).toContain("NDJSON");
   });
 
+  it("ignores metadata-like text inside Chromium's quoted snippet", () => {
+    const positionKey = '{"position 1":oops}';
+    const positionExcerpt = caretExcerpt(
+      positionKey,
+      `Unexpected token 'o', "${positionKey}" is not valid JSON`,
+    );
+    const [positionLine, positionCaret] = positionExcerpt.split("\n");
+    expect(positionCaret.indexOf("^")).toBe(positionLine.indexOf("oops"));
+    const lineColumnKey = '{"line 1 column 2":oops}';
+    const lineColumnExcerpt = caretExcerpt(
+      lineColumnKey,
+      `Unexpected token 'o', "${lineColumnKey}" is not valid JSON`,
+    );
+    const [lineColumnLine, lineColumnCaret] = lineColumnExcerpt.split("\n");
+    expect(lineColumnCaret.indexOf("^")).toBe(lineColumnLine.indexOf("oops"));
+  });
+
   it("falls back to end of input when position metadata is missing", () => {
     const excerpt = caretExcerpt('{"a": 1', "is not valid JSON");
     const [line, caret] = excerpt.split("\n");
