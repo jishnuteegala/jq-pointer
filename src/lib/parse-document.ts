@@ -18,8 +18,8 @@ export function parseDocument(text: string): ParseOutcome {
   } catch (error) {
     const detail = error instanceof Error ? error.message : "invalid JSON";
     const offset = errorOffset(text, detail);
-    const line = text.slice(0, offset).split("\n").length;
-    const column = offset - (text.lastIndexOf("\n", Math.max(0, offset - 1)) + 1) + 1;
+    const line = text.slice(0, offset).split(/\r\n|\r|\n/).length;
+    const column = offset - lineStartAt(text, offset) + 1;
     const message = `${inputHint(text)}${detail} (line ${line}, column ${column})`;
     return { kind: "error", message, excerpt: excerptAt(text, offset) };
   }
@@ -44,13 +44,21 @@ function errorOffset(text: string, message: string): number {
   }
   const position = message.match(/position (\d+)/);
   if (position !== null) return Math.min(text.length, Number(position[1]));
+  const scanned = safeScanOffset(text);
+  if (scanned !== null) return scanned;
   const browser = browserOffset(text, message);
   if (browser !== null) return browser;
   const webkit = webkitOffset(text, message);
   if (webkit !== null) return webkit;
-  const scanned = scanOffset(text);
-  if (scanned !== null) return scanned;
   return text.length;
+}
+
+function safeScanOffset(text: string): number | null {
+  try {
+    return scanOffset(text);
+  } catch {
+    return null;
+  }
 }
 
 function webkitOffset(text: string, message: string): number | null {
@@ -125,11 +133,19 @@ function scanString(text: string, index: number): ScanResult {
   for (let at = index + 1; at < text.length; at++) {
     const char = text[at];
     if (char === "\\") {
-      at++;
-      continue;
+      const next = text[at + 1];
+      if (next !== undefined && '"\\/bfnrt'.includes(next)) {
+        at++;
+        continue;
+      }
+      if (next === "u" && /^[0-9a-fA-F]{4}$/.test(text.slice(at + 2, at + 6))) {
+        at += 5;
+        continue;
+      }
+      return { error: at };
     }
     if (char === '"') return { end: at + 1 };
-    if (char === "\n" || char === "\r") return { error: at };
+    if (char < " ") return { error: at };
   }
   return { error: text.length };
 }
@@ -191,10 +207,22 @@ function tokenOffset(source: string, marker: string, startInString: boolean): nu
   return firstInString;
 }
 
+function lineStartAt(text: string, offset: number): number {
+  const newline = text.lastIndexOf("\n", Math.max(0, offset - 1));
+  const carriage = text.lastIndexOf("\r", Math.max(0, offset - 1));
+  return Math.max(newline, carriage) + 1;
+}
+
+function lineEndAt(text: string, offset: number): number {
+  for (let at = offset; at < text.length; at++) {
+    if (text[at] === "\n" || text[at] === "\r") return at;
+  }
+  return text.length;
+}
+
 function excerptAt(text: string, offset: number): string {
-  const lineStart = text.lastIndexOf("\n", Math.max(0, offset - 1)) + 1;
-  const lineEnd = text.indexOf("\n", offset);
-  const line = text.slice(lineStart, lineEnd === -1 ? text.length : lineEnd);
+  const lineStart = lineStartAt(text, offset);
+  const line = text.slice(lineStart, lineEndAt(text, offset));
   const column = offset - lineStart;
   const from = Math.max(0, column - 40);
   const shown = line.slice(from, from + 80);

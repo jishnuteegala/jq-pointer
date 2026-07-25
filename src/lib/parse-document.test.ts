@@ -136,6 +136,37 @@ describe("parseDocument", () => {
     expect(caret.indexOf("^")).toBe(line.indexOf("garbage"));
   });
 
+  it("points at the second occurrence of a repeated token, not the first", () => {
+    const text = "[1 1]";
+    const excerpt = caretExcerpt(text, 'JSON Parse error: Unexpected number "1"');
+    const [line, caret] = excerpt.split("\n");
+    expect(line).toBe("[1 1]");
+    expect(caret.indexOf("^")).toBe(3);
+  });
+
+  it("points at an invalid escape sequence inside a string", () => {
+    const text = '{"a": "bad\\q"}';
+    const excerpt = caretExcerpt(text, "JSON Parse error: Invalid escape character q");
+    const [line, caret] = excerpt.split("\n");
+    expect(caret.indexOf("^")).toBe(line.indexOf("\\q"));
+  });
+
+  it("points at an unescaped control character inside a string", () => {
+    const text = '{"a": "x\ty"}';
+    const excerpt = caretExcerpt(text, "JSON Parse error: Unterminated string");
+    const [line, caret] = excerpt.split("\n");
+    expect(caret.indexOf("^")).toBe(line.indexOf("\t"));
+  });
+
+  it("reports line numbers across lone carriage-return separators", () => {
+    const outcome = parseDocument('{"a": 1}\r{"b": 2}');
+    expect(outcome.kind).toBe("error");
+    if (outcome.kind === "error") {
+      expect(outcome.message).toMatch(/line 2, column 1/);
+      expect(outcome.excerpt.split("\n")[0]).toBe('{"b": 2}');
+    }
+  });
+
   it("falls back to end of input when position metadata is missing", () => {
     const excerpt = caretExcerpt('{"a": 1', "is not valid JSON");
     const [line, caret] = excerpt.split("\n");
