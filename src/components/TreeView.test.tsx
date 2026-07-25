@@ -49,4 +49,14 @@ describe("TreeView active descendant", () => {
     expect(active?.textContent).toContain("b");
     expect(container.textContent).toContain("x");
   });
+
+  it("declares multiselectable so multi-node click-pair previews announce correctly", () => {
+    const { root } = buildPathModel({ items: [{ name: "a" }, { name: "b" }] });
+    const highlighted = new Set(root.children ?? []);
+    const { container } = render(
+      <TreeView root={root} highlighted={highlighted} onSelect={() => {}} />,
+    );
+    const tree = container.querySelector('[role="tree"]');
+    expect(tree?.getAttribute("aria-multiselectable")).toBe("true");
+  });
 });
