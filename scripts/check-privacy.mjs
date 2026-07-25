@@ -37,6 +37,14 @@ for (const path of walk(dist)) {
   }
 }
 
+const headers = readFileSync(join(dist, "_headers"), "utf8");
+if (!/Content-Security-Policy:.*connect-src 'self'/.test(headers)) {
+  failures.push("dist/_headers: CSP must restrict connect-src to 'self'");
+}
+if (!/Content-Security-Policy:.*default-src 'self'/.test(headers)) {
+  failures.push("dist/_headers: CSP must restrict default-src to 'self'");
+}
+
 if (failures.length > 0) {
   console.error("Privacy check failed - off-origin references found:");
   for (const failure of failures) console.error(`  ${failure}`);
