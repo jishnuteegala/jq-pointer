@@ -32,6 +32,11 @@ function areSiblingsInDocument(a: ModelNode, b: ModelNode): boolean {
   return !isAncestorOf(a, b) && !isAncestorOf(b, a);
 }
 
+function pathOf(node: ModelNode): string | null {
+  const result = pathTo(node);
+  return result.kind === "path" ? printPath(result.segments) : null;
+}
+
 function displayText(value: string): string {
   if (value.length <= DISPLAY_LIMIT) return value;
   const megabytes = (value.length / 1024 / 1024).toFixed(1);
@@ -61,18 +66,6 @@ function App() {
     return generaliseClickPair(clicks[clicks.length - 2], clicks[clicks.length - 1]);
   }, [clicks]);
 
-  const path = useMemo(() => {
-    if (pair !== null) return printPath(pair.expression.steps);
-    if (selected === null) return null;
-    const result = pathTo(selected);
-    return result.kind === "path" ? printPath(result.segments) : null;
-  }, [pair, selected]);
-
-  const unsupported = useMemo(() => {
-    if (pair !== null || selected === null) return false;
-    return pathTo(selected).kind === "unsupported";
-  }, [pair, selected]);
-
   const preview: ReverseHighlight = useMemo(() => {
     if (model === null) return { kind: "empty" };
     return reverseHighlight(model.root, filter);
@@ -81,9 +74,24 @@ function App() {
   const noCommonPattern =
     pair === null && clicks.length === 2 && areSiblingsInDocument(clicks[0], clicks[1]);
 
+  const path = useMemo(() => {
+    if (pair !== null) return printPath(pair.expression.steps);
+    if (noCommonPattern) {
+      const both = [pathOf(clicks[0]), pathOf(clicks[1])];
+      if (both.every((value) => value !== null)) return both.join("\n");
+    }
+    if (selected === null) return null;
+    return pathOf(selected);
+  }, [pair, selected, noCommonPattern, clicks]);
+
+  const unsupported = useMemo(() => {
+    if (pair !== null || noCommonPattern || selected === null) return false;
+    return pathTo(selected).kind === "unsupported";
+  }, [pair, noCommonPattern, selected]);
+
   const note = useMemo(() => {
     if (noCommonPattern)
-      return "No common pattern between these two clicks; showing the latest path.";
+      return "No common pattern between these two clicks; showing both paths separately.";
     if (pair === null || !pair.heterogeneous) return null;
     return `matches ${pair.matchCount} of ${pair.elementCount} elements`;
   }, [pair, noCommonPattern]);
@@ -217,10 +225,19 @@ function App() {
                 className={`path-output${unsupported ? " path-output-unsupported" : ""}`}
                 aria-live="polite"
               >
-                {unsupported
-                  ? "This key can't be expressed as a jq path (lone surrogate in the key)."
-                  : (path ??
-                    "Click a value in the tree to get its jq path, then a sibling to generalise")}
+                {unsupported ? (
+                  "This key can't be expressed as a jq path (lone surrogate in the key)."
+                ) : path === null ? (
+                  "Click a value in the tree to get its jq path, then a sibling to generalise"
+                ) : (
+                  <>
+                    {path.split("\n").map((line, index) => (
+                      <span key={index} className="path-line">
+                        {line}
+                      </span>
+                    ))}
+                  </>
+                )}
               </output>
               <button
                 type="button"

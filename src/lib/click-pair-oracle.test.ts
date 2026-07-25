@@ -82,6 +82,25 @@ oracle("click-pair heterogeneity oracle", () => {
     );
   });
 
+  it("highlights exactly the present-leaf node stream that real jq selects", () => {
+    assert(
+      property(array(element, { minLength: 2, maxLength: 8 }), (items) => {
+        const model = buildPathModel({ items });
+        const pair = firstTwoWithName(model.root.children?.[0] as ModelNode);
+        if (pair === null) return;
+        const result = generaliseClickPair(pair[0], pair[1]);
+        if (result === null) throw new Error("expected generalisation");
+        const preview = result.matches.map((node) => node.value);
+        const reference = runJq(
+          { items },
+          '[.items[] | select(type == "object" and has("name")) | .name]',
+        );
+        expect(preview).toEqual(reference[0]);
+      }),
+      { numRuns: 200, seed: 53 },
+    );
+  });
+
   it("places ? on nested iterators to match real jq when arrays are null or missing", () => {
     const nestedElement = oneof(
       array(constantFrom<JsonValue>({ value: "v" }, { value: null }, 3), {

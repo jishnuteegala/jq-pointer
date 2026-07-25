@@ -68,7 +68,12 @@ function placeOptionals(ancestor: ModelNode, bare: PathStep[]): PathStep[] {
     }
     const resolved: PathStep = optional ? { ...step, optional: true } : { ...step };
     placed.push(resolved);
-    frontier = evaluateSteps({ ...ancestor, children: frontier }, [{ kind: "iterate" }, resolved]);
+    if (index < bare.length - 1) {
+      frontier = evaluateSteps({ ...ancestor, children: frontier }, [
+        { kind: "iterate" },
+        resolved,
+      ]);
+    }
   }
   return [{ kind: "iterate" }, ...placed];
 }

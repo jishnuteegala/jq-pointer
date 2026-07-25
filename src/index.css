@@ -151,6 +151,10 @@ textarea:focus-visible,
   white-space: nowrap;
 }
 
+.path-line {
+  display: block;
+}
+
 .match-note {
   margin: -0.25rem 0 0.75rem;
   font-size: 0.8125rem;

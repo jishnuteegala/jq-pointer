@@ -70,6 +70,7 @@ describe("App end-to-end", () => {
     await user.click(zeros[zeros.length - 1]);
 
     expect(screen.getByText(/No common pattern/)).toBeDefined();
+    expect(screen.getByText(".a[0]")).toBeDefined();
     expect(screen.getByText(".b[0]")).toBeDefined();
   });
 
