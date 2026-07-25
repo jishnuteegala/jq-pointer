@@ -1,6 +1,7 @@
 import type { PathExpression } from "./jq-expression";
 import {
   commonArrayAncestor,
+  evaluateSteps,
   matchingNodes,
   pathTo,
   type ModelNode,
@@ -44,14 +45,10 @@ function generaliseSteps(a: PathSegment[], b: PathSegment[]): PathStep[] | null 
 }
 
 function stepThrows(node: ModelNode, step: PathStep): boolean {
-  if (node.value === null) return false;
   if (step.kind === "iterate") return node.children === null;
+  if (node.value === null) return false;
   if (step.kind === "index") return !Array.isArray(node.value);
   return typeof node.value !== "object" || Array.isArray(node.value);
-}
-
-function applyStep(node: ModelNode, step: PathStep): ModelNode[] {
-  return matchingNodes(node, [step]);
 }
 
 function placeOptionals(
@@ -64,9 +61,9 @@ function placeOptionals(
     const optional = stream.some((node) => stepThrows(node, step));
     const resolved: PathStep = optional ? { ...step, optional: true } : { ...step };
     placed.push(resolved);
-    stream = stream.flatMap((node) => applyStep(node, resolved));
+    stream = stream.flatMap((node) => evaluateSteps(node, [resolved]));
   }
-  return { steps: placed, matches: stream };
+  return { steps: placed, matches: stream.filter((node) => node.exists) };
 }
 
 function countPresent(elements: ModelNode[], leaf: PathStep[]): number {

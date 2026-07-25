@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { platform } from "node:os";
-import { array, assert, boolean, constantFrom, oneof, property, tuple } from "fast-check";
+import { array, assert, boolean, constantFrom, integer, oneof, property, tuple } from "fast-check";
 import { describe, expect, it } from "vitest";
 import { generaliseClickPair } from "./click-pair";
 import { evaluateJqExpression, printPath } from "./jq-expression";
@@ -79,6 +79,50 @@ oracle("click-pair heterogeneity oracle", () => {
         expect(evaluated).toEqual(runJq({ items }, printed));
       }),
       { numRuns: 200, seed: 43 },
+    );
+  });
+
+  it("places ? on nested iterators to match real jq when arrays are null or missing", () => {
+    const nestedElement = oneof(
+      array(constantFrom<JsonValue>({ value: "v" }, { value: null }, 3), {
+        maxLength: 3,
+      }).map((children): JsonValue => ({ children })),
+      constantFrom<JsonValue>({ children: null }, {}, 7, null),
+    );
+    assert(
+      property(
+        array(nestedElement, { minLength: 2, maxLength: 6 }),
+        integer({ min: 0, max: 2 }),
+        integer({ min: 0, max: 2 }),
+        (items, iA, iB) => {
+          const model = buildPathModel({ items });
+          const itemsNode = model.root.children?.[0] as ModelNode;
+          const reachable: ModelNode[] = [];
+          for (const el of itemsNode.children ?? []) {
+            const children = el.children?.find(
+              (c) => c.segment?.kind === "key" && c.segment.key === "children",
+            );
+            const target = children?.children;
+            if (target === undefined || target === null) continue;
+            const idx = reachable.length === 0 ? iA : iB;
+            const cell = target[Math.min(idx, target.length - 1)];
+            const value = cell?.children?.find(
+              (c) => c.segment?.kind === "key" && c.segment.key === "value",
+            );
+            if (value !== undefined) reachable.push(value);
+            if (reachable.length === 2) break;
+          }
+          if (reachable.length < 2) return;
+          const result = generaliseClickPair(reachable[0], reachable[1]);
+          if (result === null) return;
+          const printed = printPath(result.expression.steps);
+          const evaluated = evaluateJqExpression(model.root, result.expression).map(
+            (node) => node.value,
+          );
+          expect(evaluated).toEqual(runJq({ items }, printed));
+        },
+      ),
+      { numRuns: 200, seed: 47 },
     );
   });
 });
