@@ -1,7 +1,6 @@
-import type { JqExpression, PathExpression } from "./jq-expression";
+import type { ConstructionExpression, JqExpression, PathExpression } from "./jq-expression";
 import {
   evaluateTrace,
-  matchingNodes,
   pathTo,
   type ModelNode,
   type PathSegment,
@@ -25,6 +24,7 @@ export interface Selection {
   outputs: OutputEntry[];
   breadcrumb: Breadcrumb | null;
   noCommonPattern: boolean;
+  unsupportedCount: number;
 }
 
 function arrayAncestors(node: ModelNode): ModelNode[] {
@@ -114,13 +114,18 @@ function isConstruction(nodes: ModelNode[]): boolean {
 }
 
 export function resolveSelection(clicks: ModelNode[], ancestorIndex = 0): Selection {
-  const empty: Selection = { outputs: [], breadcrumb: null, noCommonPattern: false };
+  const empty: Selection = {
+    outputs: [],
+    breadcrumb: null,
+    noCommonPattern: false,
+    unsupportedCount: 0,
+  };
   if (clicks.length === 0) return empty;
   if (clicks.length === 1) {
     const output = singlePathOutput(clicks[0]);
     return output === null
-      ? empty
-      : { outputs: [output], breadcrumb: null, noCommonPattern: false };
+      ? { ...empty, unsupportedCount: 1 }
+      : { outputs: [output], breadcrumb: null, noCommonPattern: false, unsupportedCount: 0 };
   }
   return resolveSelectionAt(clicks, ancestorIndex);
 }
@@ -136,6 +141,7 @@ export function resolveSelectionAt(clicks: ModelNode[], ancestorIndex: number): 
     outputs: [output],
     breadcrumb: shared.length > 1 ? { ancestors: shared, activeIndex } : null,
     noCommonPattern: false,
+    unsupportedCount: 0,
   };
 }
 
@@ -150,17 +156,19 @@ function resolveConstruction(clicks: ModelNode[], ancestorIndex: number): Select
     outputs: [output],
     breadcrumb: shared.length > 1 ? { ancestors: shared, activeIndex } : null,
     noCommonPattern: false,
+    unsupportedCount: 0,
   };
 }
 
 function separateOutputs(clicks: ModelNode[]): Selection {
   const outputs: OutputEntry[] = [];
+  let unsupportedCount = 0;
   for (const click of clicks) {
     const output = singlePathOutput(click);
-    if (output === null) return { outputs: [], breadcrumb: null, noCommonPattern: true };
-    outputs.push(output);
+    if (output === null) unsupportedCount += 1;
+    else outputs.push(output);
   }
-  return { outputs, breadcrumb: null, noCommonPattern: true };
+  return { outputs, breadcrumb: null, noCommonPattern: true, unsupportedCount };
 }
 
 function singlePathOutput(node: ModelNode): OutputEntry | null {
@@ -173,12 +181,6 @@ function singlePathOutput(node: ModelNode): OutputEntry | null {
     elementCount: 1,
     heterogeneous: false,
   };
-}
-
-function allObjects(nodes: ModelNode[]): boolean {
-  return nodes.every(
-    (node) => node.value !== null && typeof node.value === "object" && !Array.isArray(node.value),
-  );
 }
 
 function constructionOverAncestor(
@@ -194,10 +196,16 @@ function constructionOverAncestor(
   if (new Set(keys).size !== keys.length) return null;
   const elementPath = pathTo(element);
   if (elementPath.kind !== "path") return null;
-  const source = constructionSource(ancestor, elementPath.segments);
+  const source = constructionSource(ancestor, element, elementPath.segments);
   if (source === null) return null;
-  const elements = matchingNodes(rootOf(element), source.expression.steps);
-  const matches = elements.flatMap((match) =>
+  const elementCount = source.elements.length;
+  const objects = source.elements.filter(
+    (node) => node.value !== null && typeof node.value === "object" && !Array.isArray(node.value),
+  );
+  const matchCount = source.iterating ? objects.length : source.matchCount;
+  const heterogeneous = source.iterating && objects.length < elementCount;
+  const optional = source.optional || heterogeneous;
+  const matches = objects.flatMap((match) =>
     keys.flatMap((key) => {
       const child = match.children?.find(
         (candidate) => candidate.segment?.kind === "key" && candidate.segment.key === key,
@@ -205,12 +213,15 @@ function constructionOverAncestor(
       return child !== undefined && child.exists ? [child] : [];
     }),
   );
+  const expression: ConstructionExpression = optional
+    ? { kind: "construction", source: source.expression, keys, optional: true }
+    : { kind: "construction", source: source.expression, keys };
   return {
-    expression: { kind: "construction", source: source.expression, keys },
+    expression,
     matches,
-    matchCount: source.matchCount,
-    elementCount: source.elementCount,
-    heterogeneous: source.heterogeneous,
+    matchCount,
+    elementCount,
+    heterogeneous,
   };
 }
 
@@ -222,50 +233,53 @@ function rootOf(node: ModelNode): ModelNode {
 
 interface ConstructionSource {
   expression: PathExpression;
+  elements: ModelNode[];
   matchCount: number;
   elementCount: number;
   heterogeneous: boolean;
+  iterating: boolean;
+  optional: boolean;
 }
 
 function constructionSource(
   ancestor: ModelNode | null,
+  element: ModelNode,
   elementSegments: PathSegment[],
 ): ConstructionSource | null {
   if (ancestor === null) {
     return {
       expression: { kind: "path", steps: elementSegments.map((segment) => ({ ...segment })) },
+      elements: [element],
       matchCount: 1,
       elementCount: 1,
       heterogeneous: false,
+      iterating: false,
+      optional: false,
     };
   }
   const ancestorPath = pathTo(ancestor);
   if (ancestorPath.kind !== "path" || ancestor.children === null) return null;
   const depth = ancestorPath.segments.length;
-  const steps: PathStep[] = elementSegments.slice(0, depth).map((segment) => ({ ...segment }));
-  steps.push({ kind: "iterate" });
+  const bare: PathStep[] = elementSegments.slice(0, depth).map((segment) => ({ ...segment }));
+  bare.push({ kind: "iterate" });
   for (let index = depth + 1; index < elementSegments.length; index++) {
     const segment = elementSegments[index];
-    steps.push(segment.kind === "index" ? { kind: "iterate" } : { ...segment });
+    bare.push(segment.kind === "index" ? { kind: "iterate" } : { ...segment });
   }
-  const elements = matchingNodes(rootOf(ancestor), steps);
-  const elementCount = elements.length;
-  const objects = elements.filter(
-    (node) => node.value !== null && typeof node.value === "object" && !Array.isArray(node.value),
+  const root = rootOf(ancestor);
+  const trace = evaluateTrace([root], bare);
+  const steps: PathStep[] = bare.map((step, index) =>
+    trace.optional[index] ? { ...step, optional: true } : step,
   );
-  if (!allObjects(elements)) {
-    return {
-      expression: { kind: "path", steps: elementSegments.map((segment) => ({ ...segment })) },
-      matchCount: 1,
-      elementCount,
-      heterogeneous: elementCount > 1,
-    };
-  }
+  const elements = trace.matches.filter((node) => node.exists);
   return {
     expression: { kind: "path", steps },
-    matchCount: objects.length,
-    elementCount,
+    elements,
+    matchCount: elements.length,
+    elementCount: elements.length,
     heterogeneous: false,
+    iterating: true,
+    optional: trace.optional.some((flag) => flag),
   };
 }
 

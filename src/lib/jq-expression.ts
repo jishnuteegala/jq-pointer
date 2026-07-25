@@ -37,6 +37,7 @@ export interface ConstructionExpression {
   kind: "construction";
   source: PathExpression;
   keys: string[];
+  optional?: boolean;
 }
 
 export type JqExpression = PathExpression | ConstructionExpression;
@@ -85,7 +86,12 @@ export function printExpression(expression: JqExpression): string {
   const fields = [...new Set(expression.keys)]
     .map((key) => (identifier.test(key) && !keywords.has(key) ? key : quoteKey(key)))
     .join(", ");
-  return `${printPath(expression.source.steps)} | {${fields}}`;
+  const suffix = expression.optional ? "?" : "";
+  return `${printPath(expression.source.steps)} | {${fields}}${suffix}`;
+}
+
+function isConstructibleObject(node: ModelNode): boolean {
+  return node.value !== null && typeof node.value === "object" && !Array.isArray(node.value);
 }
 
 /** Evaluates jq's value stream, including synthetic nulls for absent fields. */
@@ -96,7 +102,8 @@ export function evaluateJqExpression(root: ModelNode, expression: JqExpression):
   );
   if (expression.kind === "path") return source;
   const keys = [...new Set(expression.keys)];
-  return source.flatMap((node) =>
+  const constructed = expression.optional ? source.filter(isConstructibleObject) : source;
+  return constructed.flatMap((node) =>
     keys.flatMap((key) => evaluateSteps(node, [{ kind: "key", key }])),
   );
 }
@@ -109,19 +116,23 @@ export function evaluateExpression(root: ModelNode, expression: JqExpression): M
   );
   if (expression.kind === "path") return source;
   const keys = [...new Set(expression.keys)];
-  return source.flatMap((node) =>
+  const constructed = expression.optional ? source.filter(isConstructibleObject) : source;
+  return constructed.flatMap((node) =>
     keys.flatMap((key) => matchingNodes(node, [{ kind: "key", key }])),
   );
 }
 
 export function parseExpression(input: string): JqExpression | null {
   const delimiter = constructionDelimiter(input);
-  if (delimiter !== null && input.endsWith("}")) {
+  const optional = input.endsWith("}?");
+  if (delimiter !== null && (input.endsWith("}") || optional)) {
     const source = parsePath(input.slice(0, delimiter));
-    const keys = parseFields(input.slice(delimiter + 4, -1));
+    const keys = parseFields(input.slice(delimiter + 4, optional ? -2 : -1));
     return source === null || keys === null || new Set(keys).size !== keys.length
       ? null
-      : { kind: "construction", source, keys };
+      : optional
+        ? { kind: "construction", source, keys, optional: true }
+        : { kind: "construction", source, keys };
   }
   return parsePath(input);
 }

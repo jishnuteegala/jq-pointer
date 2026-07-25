@@ -77,14 +77,23 @@ function App() {
     [expressions],
   );
 
-  const unsupported = useMemo(() => {
-    if (clicks.length !== 1) return false;
-    return pathTo(clicks[0]).kind === "unsupported";
-  }, [clicks]);
+  const unsupported = useMemo(
+    () => selection.outputs.length === 0 && selection.unsupportedCount > 0,
+    [selection],
+  );
 
   const note = useMemo(() => {
+    const unsupportedNote =
+      selection.unsupportedCount > 0 && selection.outputs.length > 0
+        ? `${selection.unsupportedCount} selected ${
+            selection.unsupportedCount === 1 ? "node has" : "nodes have"
+          } a key jq can't express (lone surrogate); showing the rest.`
+        : null;
     if (selection.noCommonPattern)
-      return "No common pattern between these clicks; showing each path separately.";
+      return (
+        unsupportedNote ?? "No common pattern between these clicks; showing each path separately."
+      );
+    if (unsupportedNote !== null) return unsupportedNote;
     const output = selection.outputs[0];
     if (output === undefined || !output.heterogeneous) return null;
     return `matches ${output.matchCount} of ${output.elementCount} elements`;

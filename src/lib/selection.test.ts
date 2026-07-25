@@ -83,12 +83,36 @@ describe("resolveSelection construction", () => {
     expect(printExpression(selection.outputs[0].expression)).toBe(".record | {name, id}");
   });
 
-  it("binds to a concrete element when the array is heterogeneous", () => {
+  it("emits the optional construction form when the array is heterogeneous", () => {
     const r = root({ items: [{ name: "a", id: 1 }, 5] });
     const element = at(child(r, "items"), 0);
     const selection = resolveSelection([child(element, "name"), child(element, "id")]);
-    expect(printExpression(selection.outputs[0].expression)).toBe(".items[0] | {name, id}");
+    expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}?");
     expect(selection.outputs[0].heterogeneous).toBe(true);
+    expect(selection.outputs[0].matchCount).toBe(1);
+    expect(selection.outputs[0].elementCount).toBe(2);
+  });
+
+  it("keeps the plain form when otherwise-object elements are missing selected keys", () => {
+    const r = root({ items: [{ name: "a", id: 1 }, { name: "b" }] });
+    const element = at(child(r, "items"), 0);
+    const selection = resolveSelection([child(element, "name"), child(element, "id")]);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}");
+    expect(selection.outputs[0].heterogeneous).toBe(false);
+    expect(selection.outputs[0].matchCount).toBe(2);
+  });
+
+  it("treats a present-null selected key as a matching object", () => {
+    const r = root({
+      items: [
+        { name: "a", id: 1 },
+        { name: null, id: null },
+      ],
+    });
+    const element = at(child(r, "items"), 0);
+    const selection = resolveSelection([child(element, "name"), child(element, "id")]);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}");
+    expect(selection.outputs[0].heterogeneous).toBe(false);
   });
 
   it("iterates only over homogeneous object arrays", () => {
@@ -104,11 +128,56 @@ describe("resolveSelection construction", () => {
     expect(selection.outputs[0].heterogeneous).toBe(false);
   });
 
-  it("refuses to construct with a lone-surrogate key", () => {
+  it("preserves representable outputs and flags a lone-surrogate key", () => {
     const r = root({ items: [{ "\ud800": 1, id: 2 }] });
     const element = at(child(r, "items"), 0);
     const selection = resolveSelection([child(element, "\ud800"), child(element, "id")]);
     expect(selection.noCommonPattern).toBe(true);
+    expect(selection.unsupportedCount).toBe(1);
+    expect(selection.outputs.map((o) => printExpression(o.expression))).toEqual([".items[0].id"]);
+  });
+
+  it("reports every click as unsupported when none can be expressed", () => {
+    const r = root({ items: [{ "\ud800": 1, "\udc00": 2 }] });
+    const element = at(child(r, "items"), 0);
+    const selection = resolveSelection([child(element, "\ud800"), child(element, "\udc00")]);
+    expect(selection.outputs).toHaveLength(0);
+    expect(selection.unsupportedCount).toBe(2);
+  });
+});
+
+describe("resolveSelection widening across unsafe intermediates", () => {
+  it("applies ? at the inner iterator when a widened intermediate is null", () => {
+    const r = root({ data: [{ items: [{ v: 1 }, { v: 2 }] }, { items: null }] });
+    const clicks = [
+      child(at(child(at(child(r, "data"), 0), "items"), 0), "v"),
+      child(at(child(at(child(r, "data"), 0), "items"), 1), "v"),
+    ];
+    const selection = resolveSelectionAt(clicks, 1);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".data[].items[]?.v");
+  });
+
+  it("does not crash widening construction across a null intermediate", () => {
+    const r = root({ data: [{ items: [{ a: 1, b: 2 }] }, { items: null }] });
+    const inner = at(child(at(child(r, "data"), 0), "items"), 0);
+    const selection = resolveSelectionAt([child(inner, "a"), child(inner, "b")], 1);
+    expect(selection.outputs[0].expression.kind).toBe("construction");
+    expect(printExpression(selection.outputs[0].expression)).toBe(".data[].items[]? | {a, b}?");
+  });
+
+  it("does not crash widening construction across a scalar intermediate", () => {
+    const r = root({ data: [{ items: [{ a: 1, b: 2 }] }, { items: 5 }] });
+    const inner = at(child(at(child(r, "data"), 0), "items"), 0);
+    const selection = resolveSelectionAt([child(inner, "a"), child(inner, "b")], 1);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".data[].items[]? | {a, b}?");
+  });
+
+  it("does not crash widening construction across a missing intermediate", () => {
+    const r = root({ data: [{ items: [{ a: 1, b: 2 }] }, { other: 3 }] });
+    const inner = at(child(at(child(r, "data"), 0), "items"), 0);
+    const selection = resolveSelectionAt([child(inner, "a"), child(inner, "b")], 1);
+    expect(selection.outputs[0].expression.kind).toBe("construction");
+    expect(printExpression(selection.outputs[0].expression)).toBe(".data[].items?[]? | {a, b}?");
   });
 });
 

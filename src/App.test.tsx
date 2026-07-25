@@ -284,6 +284,21 @@ describe("App end-to-end", () => {
     expect((screen.getByRole("button", { name: "Copy" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("keeps representable outputs when one selected key is a lone surrogate", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"\\ud800": 1, "id": 2}');
+    await user.click(within(row("\ud800")).getByText("\ud800"));
+    await user.click(within(row("id")).getByText("id"));
+    const lines = screen.getAllByText(".id").filter((el) => el.className === "path-line");
+    expect(lines).toHaveLength(1);
+    expect(screen.getByText(/lone surrogate/)).toBeDefined();
+    expect((screen.getByRole("button", { name: "Copy" }) as HTMLButtonElement).disabled).toBe(
+      false,
+    );
+  });
+
   it("shows a positioned parse error with a caret excerpt", async () => {
     const user = userEvent.setup();
     render(<App />);

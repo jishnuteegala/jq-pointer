@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { platform } from "node:os";
-import { array, assert, constantFrom, property, subarray } from "fast-check";
+import { array, assert, constantFrom, oneof, property, subarray } from "fast-check";
 import { describe, expect, it } from "vitest";
 import { evaluateJqExpression, printExpression } from "./jq-expression";
 import type { JsonValue } from "./json-value";
@@ -31,21 +31,29 @@ function fieldNode(element: ModelNode, key: string): ModelNode | undefined {
   return element.children?.find((c) => c.segment?.kind === "key" && c.segment.key === key);
 }
 
+const objectElement = array(constantFrom<JsonValue>("v", 1, null, true), {
+  minLength: 1,
+  maxLength: 4,
+}).map(
+  (values): JsonValue =>
+    Object.fromEntries(allKeys.slice(0, values.length).map((k, i) => [k, values[i]])),
+);
+
+const mixedElement = oneof(objectElement, constantFrom<JsonValue>(5, "text", null, true, [1, 2]));
+
 oracle("construction oracle", () => {
-  it("emits a construction whose reconstructed objects match real jq exactly", () => {
+  it("emits a construction whose value stream matches real jq exactly", () => {
     assert(
       property(
-        array(
-          array(constantFrom<JsonValue>("v", 1, null, true), { minLength: 1, maxLength: 4 }).map(
-            (values): JsonValue =>
-              Object.fromEntries(allKeys.slice(0, values.length).map((k, i) => [k, values[i]])),
-          ),
-          { minLength: 1, maxLength: 4 },
-        ),
+        array(mixedElement, { minLength: 1, maxLength: 5 }),
         subarray(allKeys, { minLength: 2, maxLength: 4 }),
         (items, keys) => {
           const model = buildPathModel({ items });
-          const element = model.root.children?.[0]?.children?.[0];
+          const firstObject = (items as JsonValue[]).findIndex(
+            (value) => value !== null && typeof value === "object" && !Array.isArray(value),
+          );
+          if (firstObject === -1) return;
+          const element = model.root.children?.[0]?.children?.[firstObject];
           if (element === undefined) return;
           const clicks = keys
             .map((key) => fieldNode(element, key))
@@ -70,7 +78,39 @@ oracle("construction oracle", () => {
           expect(reconstructed).toEqual(runJq({ items }, printed));
         },
       ),
-      { numRuns: 200, seed: 61 },
+      { numRuns: 300, seed: 61 },
+    );
+  });
+
+  it("counts object elements as N-of-M to match real jq", () => {
+    assert(
+      property(
+        array(mixedElement, { minLength: 2, maxLength: 6 }),
+        subarray(allKeys, { minLength: 2, maxLength: 4 }),
+        (items, keys) => {
+          const model = buildPathModel({ items });
+          const firstObject = (items as JsonValue[]).findIndex(
+            (value) => value !== null && typeof value === "object" && !Array.isArray(value),
+          );
+          if (firstObject === -1) return;
+          const element = model.root.children?.[0]?.children?.[firstObject];
+          if (element === undefined) return;
+          const clicks = keys
+            .map((key) => fieldNode(element, key))
+            .filter((node): node is ModelNode => node !== undefined);
+          if (clicks.length < 2) return;
+          const selection = resolveSelection(clicks);
+          const output = selection.outputs[0];
+          if (selection.noCommonPattern || output.expression.kind !== "construction") return;
+          const reference = runJq(
+            { items },
+            '[.items[] | type == "object"] | map(select(.)) | length',
+          );
+          expect(output.matchCount).toEqual(reference[0]);
+          expect(output.elementCount).toBe(items.length);
+        },
+      ),
+      { numRuns: 300, seed: 67 },
     );
   });
 });
