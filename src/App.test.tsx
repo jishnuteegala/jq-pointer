@@ -28,11 +28,13 @@ describe("App end-to-end", () => {
     await user.click(input);
     await user.paste('{"arr": [10, 20, 30]}');
 
-    await user.click(within(row("arr")).getByText("arr"));
+    await user.click(within(row("arr")).getByRole("button", { name: /^Expand / }));
     const first = within(row("[0]")).getByText("[0]");
     await user.click(first);
 
-    expect(screen.getByText(".arr[0]")).toBeDefined();
+    expect(screen.getAllByText(".arr[0]").map((element) => element.className)).toContain(
+      "path-line",
+    );
     expect(row("[0]").getAttribute("aria-selected")).toBe("true");
 
     await user.click(screen.getByRole("button", { name: "Copy" }));
@@ -46,9 +48,9 @@ describe("App end-to-end", () => {
     await user.click(screen.getByLabelText("JSON document"));
     await user.paste('{"items": [{"name": "a"}, 5, {"name": "c"}]}');
 
-    await user.click(within(row("items")).getByText("items"));
-    await user.click(within(row("[0]")).getByText("[0]"));
-    await user.click(within(row("[2]")).getByText("[2]"));
+    await user.click(within(row("items")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[2]")).getByRole("button", { name: /^Expand / }));
     const nameRows = screen.getAllByText("name");
     await user.click(nameRows[0]);
     await user.click(nameRows[nameRows.length - 1]);
@@ -84,15 +86,16 @@ describe("App end-to-end", () => {
     await user.click(screen.getByLabelText("JSON document"));
     await user.paste('{"a": [1], "b": [2]}');
 
-    await user.click(within(row("a")).getByText("a"));
-    await user.click(within(row("b")).getByText("b"));
+    await user.click(within(row("a")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("b")).getByRole("button", { name: /^Expand / }));
     const zeros = screen.getAllByText("[0]");
     await user.click(zeros[0]);
     await user.click(zeros[zeros.length - 1]);
 
     expect(screen.getByText(/No common pattern/)).toBeDefined();
-    expect(screen.getByText(".a[0]")).toBeDefined();
-    expect(screen.getByText(".b[0]")).toBeDefined();
+    const pathLines = screen.getAllByText(".a[0]").map((element) => element.className);
+    expect(pathLines).toContain("path-line");
+    expect(screen.getAllByText(".b[0]").map((element) => element.className)).toContain("path-line");
 
     await user.click(screen.getByRole("button", { name: "Copy" }));
     expect(writeText).toHaveBeenCalledWith(".a[0], .b[0]");
@@ -109,7 +112,7 @@ describe("App end-to-end", () => {
 
     await user.click(screen.getByLabelText("JSON document"));
     await user.paste('{"arr": [1]}');
-    await user.click(within(row("arr")).getByText("arr"));
+    await user.click(within(row("arr")).getByRole("button", { name: /^Expand / }));
     await user.click(within(row("[0]")).getByText("[0]"));
     await user.click(screen.getByRole("button", { name: "Copy" }));
 
@@ -269,11 +272,13 @@ describe("App end-to-end", () => {
     render(<App />);
     await user.click(screen.getByLabelText("JSON document"));
     await user.paste('{"a-b": [{"if": true}]}');
-    await user.click(within(row("a-b")).getByText("a-b"));
-    await user.click(within(row("[0]")).getByText("[0]"));
+    await user.click(within(row("a-b")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
     await user.click(within(row("if")).getByText("if"));
-    const generated = screen.getByText('."a-b"[0]."if"').textContent;
-    if (generated === null) throw new Error("no generated path");
+    const generated = screen
+      .getAllByText('."a-b"[0]."if"')
+      .find((element) => element.className === "path-line")?.textContent;
+    if (generated === undefined || generated === null) throw new Error("no generated path");
 
     const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
     await user.click(filter);
