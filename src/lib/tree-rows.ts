@@ -51,16 +51,54 @@ export function visibleTree(root: ModelNode, expanded: ReadonlySet<ModelNode>): 
   const counts = new Map<ModelNode, number>();
   const prefixes = new Map<ModelNode, Float64Array>();
 
+  const isOpen = (node: ModelNode): boolean =>
+    node.children !== null && node.children.length > 0 && expanded.has(node);
+
+  const countOf = (node: ModelNode): number => {
+    const cached = counts.get(node);
+    if (cached !== undefined) return cached;
+    if (!isOpen(node)) return 1;
+    fill(node);
+    return counts.get(node) ?? 1;
+  };
+
   const prefixOf = (node: ModelNode): Float64Array => {
     const cached = prefixes.get(node);
     if (cached !== undefined) return cached;
-    const children = node.children ?? [];
-    const prefix = new Float64Array(children.length + 1);
-    for (let index = 0; index < children.length; index++) {
-      prefix[index + 1] = prefix[index] + countOf(children[index]);
+    fill(node);
+    return prefixes.get(node) ?? new Float64Array(1);
+  };
+
+  const childCount = (child: ModelNode): number => {
+    if (!isOpen(child)) return 1;
+    return counts.get(child) ?? -1;
+  };
+
+  const fill = (target: ModelNode): void => {
+    const stack: ModelNode[] = [target];
+    while (stack.length > 0) {
+      const node = stack[stack.length - 1];
+      if (counts.has(node) || !isOpen(node)) {
+        stack.pop();
+        continue;
+      }
+      const children = node.children ?? [];
+      const prefix = new Float64Array(children.length + 1);
+      let ready = true;
+      for (let index = 0; index < children.length; index++) {
+        const count = childCount(children[index]);
+        if (count < 0) {
+          stack.push(children[index]);
+          ready = false;
+          continue;
+        }
+        if (ready) prefix[index + 1] = prefix[index] + count;
+      }
+      if (!ready) continue;
+      prefixes.set(node, prefix);
+      counts.set(node, 1 + prefix[prefix.length - 1]);
+      stack.pop();
     }
-    prefixes.set(node, prefix);
-    return prefix;
   };
 
   const positionOf = (node: ModelNode): number => {
@@ -70,16 +108,6 @@ export function visibleTree(root: ModelNode, expanded: ReadonlySet<ModelNode>): 
       if (siblings[index] === node) return index;
     }
     return 0;
-  };
-
-  const countOf = (node: ModelNode): number => {
-    if (node.children === null || node.children.length === 0 || !expanded.has(node)) return 1;
-    const cached = counts.get(node);
-    if (cached !== undefined) return cached;
-    const prefix = prefixOf(node);
-    const total = 1 + prefix[prefix.length - 1];
-    counts.set(node, total);
-    return total;
   };
 
   const total = countOf(root);
@@ -95,26 +123,68 @@ export function visibleTree(root: ModelNode, expanded: ReadonlySet<ModelNode>): 
     return low;
   };
 
+  interface WindowFrame {
+    node: ModelNode;
+    depth: number;
+    at: number;
+    prefix: Float64Array;
+    next: number;
+  }
+
   const window = (start: number, end: number): TreeRow[] => {
     const rows: TreeRow[] = [];
-    const collect = (node: ModelNode, depth: number, pos: number, size: number, at: number) => {
-      if (at >= end) return;
+    const emit = (
+      node: ModelNode,
+      depth: number,
+      pos: number,
+      size: number,
+      at: number,
+    ): boolean => {
       const expandable = node.children !== null && node.children.length > 0;
       const isExpanded = expandable && expanded.has(node);
       if (at >= start) {
         rows.push({ node, depth, expandable, expanded: isExpanded, posInSet: pos, setSize: size });
       }
-      if (!isExpanded || node.children === null || node.children.length === 0) return;
-      const prefix = prefixOf(node);
-      const count = node.children.length;
-      const offset = Math.max(0, start - (at + 1));
-      for (let index = firstChildAtOrAfter(prefix, offset); index < count; index++) {
-        const childAt = at + 1 + prefix[index];
-        if (childAt >= end) return;
-        collect(node.children[index], depth + 1, index + 1, count, childAt);
-      }
+      return isExpanded;
     };
-    collect(root, 0, 1, 1, 0);
+    if (end <= 0 || !emit(root, 0, 1, 1, 0)) return rows;
+    const rootPrefix = prefixOf(root);
+    const stack: WindowFrame[] = [
+      {
+        node: root,
+        depth: 0,
+        at: 0,
+        prefix: rootPrefix,
+        next: firstChildAtOrAfter(rootPrefix, start - 1),
+      },
+    ];
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1];
+      const count = frame.node.children?.length ?? 0;
+      if (frame.next >= count) {
+        stack.pop();
+        continue;
+      }
+      const index = frame.next++;
+      const childAt = frame.at + 1 + frame.prefix[index];
+      if (childAt >= end) {
+        stack.pop();
+        continue;
+      }
+      const child = frame.node.children![index];
+      const opened = emit(child, frame.depth + 1, index + 1, count, childAt);
+      if (opened) {
+        const prefix = prefixOf(child);
+        const offset = Math.max(0, start - (childAt + 1));
+        stack.push({
+          node: child,
+          depth: frame.depth + 1,
+          at: childAt,
+          prefix,
+          next: firstChildAtOrAfter(prefix, offset),
+        });
+      }
+    }
     return rows;
   };
 

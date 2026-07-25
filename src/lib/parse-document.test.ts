@@ -46,6 +46,25 @@ describe("parseDocument", () => {
     expect(caret.indexOf("^")).toBe(line.indexOf("oops"));
   });
 
+  it("builds a caret excerpt from Chromium-style token metadata", () => {
+    const text = '{"b": oops}';
+    const excerpt = caretExcerpt(text, `Unexpected token 'o', "${text}" is not valid JSON`);
+    const [line, caret] = excerpt.split("\n");
+    expect(line).toBe('{"b": oops}');
+    expect(caret.indexOf("^")).toBe(line.indexOf("oops"));
+  });
+
+  it("builds a caret excerpt from a truncated Chromium snippet", () => {
+    const text = '{"a": 1,\n  "b": oops}';
+    const excerpt = caretExcerpt(
+      text,
+      'Unexpected token \'o\', ..."1,\n  "b": oops}" is not valid JSON',
+    );
+    const [line, caret] = excerpt.split("\n");
+    expect(line).toBe('  "b": oops}');
+    expect(caret.indexOf("^")).toBe(line.indexOf("oops"));
+  });
+
   it("falls back to end of input when position metadata is missing", () => {
     const excerpt = caretExcerpt('{"a": 1', "is not valid JSON");
     const [line, caret] = excerpt.split("\n");

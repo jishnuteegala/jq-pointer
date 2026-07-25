@@ -81,6 +81,24 @@ describe("visibleTree", () => {
     }
   });
 
+  it("windows a deeply nested expanded tree without stack overflow", () => {
+    let value: JsonValue = "leaf";
+    for (let depth = 0; depth < 50000; depth++) value = { child: value };
+    const deep = buildPathModel(value);
+    const expanded = new Set<ModelNode>();
+    let cursor: ModelNode = deep.root;
+    while (cursor.children !== null && cursor.children.length > 0) {
+      expanded.add(cursor);
+      cursor = cursor.children[0];
+    }
+    const tree = visibleTree(deep.root, expanded);
+    expect(tree.total).toBe(50001);
+    const tail = tree.window(49998, 50001);
+    expect(labels(tail)).toEqual(["49998:child", "49999:child", "50000:child"]);
+    expect(valuePreview(cursor)).toBe('"leaf"');
+    expect(tree.indexOf(cursor)).toBe(50000);
+  });
+
   it("windows a large scalar array without materialising all rows", () => {
     const big = buildPathModel(Array.from({ length: 100000 }, (_, index) => index));
     const tree = visibleTree(big.root, new Set([big.root]));

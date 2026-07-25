@@ -44,7 +44,26 @@ function errorOffset(text: string, message: string): number {
   }
   const position = message.match(/position (\d+)/);
   if (position !== null) return Math.min(text.length, Number(position[1]));
+  const browser = browserOffset(text, message);
+  if (browser !== null) return browser;
   return text.length;
+}
+
+function browserOffset(text: string, message: string): number | null {
+  const snippet = message.match(/(\.\.\.)?"([\s\S]*)"\s+is not valid JSON/);
+  if (snippet === null) return null;
+  const truncatedStart = snippet[1] !== undefined;
+  const source = snippet[2].replace(/\.\.\.$/, "");
+  const token = message.match(/Unexpected token '?(.)'?/);
+  const marker = token !== null ? token[1] : source.trimEnd().slice(-1);
+  if (truncatedStart) {
+    const base = text.indexOf(source);
+    if (base === -1) return null;
+    const local = source.indexOf(marker);
+    return local === -1 ? base : base + local;
+  }
+  const at = source.indexOf(marker);
+  return at === -1 ? null : Math.min(text.length, at);
 }
 
 function excerptAt(text: string, offset: number): string {

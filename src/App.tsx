@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ClipboardEvent, DragEvent } from "react";
 import { TreeView } from "./components/TreeView";
 import { printPath } from "./lib/jq-expression";
@@ -29,6 +29,7 @@ function App() {
   const [outcome, setOutcome] = useState<ParseOutcome | null>(null);
   const [selected, setSelected] = useState<ModelNode | null>(null);
   const [copied, setCopied] = useState(false);
+  const loadGeneration = useRef(0);
 
   const model: PathModel | null = useMemo(() => {
     if (outcome === null || outcome.kind !== "ok") return null;
@@ -44,6 +45,7 @@ function App() {
   const highlighted = useMemo(() => new Set(selected === null ? [] : [selected]), [selected]);
 
   const loadText = (value: string) => {
+    loadGeneration.current += 1;
     setText(displayText(value));
     setVersion((previous) => previous + 1);
     setSelected(null);
@@ -68,6 +70,7 @@ function App() {
     const file = event.dataTransfer.files[0];
     if (file !== undefined) {
       if (file.size > MAX_DOCUMENT_BYTES) {
+        loadGeneration.current += 1;
         setText("");
         setVersion((previous) => previous + 1);
         setSelected(null);
@@ -75,7 +78,10 @@ function App() {
         setOutcome({ kind: "too-large", bytes: file.size, limit: MAX_DOCUMENT_BYTES });
         return;
       }
-      loadText(await file.text());
+      const generation = (loadGeneration.current += 1);
+      const contents = await file.text();
+      if (generation !== loadGeneration.current) return;
+      loadText(contents);
       return;
     }
     const dropped = event.dataTransfer.getData("text/plain");

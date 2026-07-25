@@ -1,4 +1,4 @@
-import { useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, UIEvent } from "react";
 import type { ModelNode } from "../lib/path-model";
 import { rowLabel, valuePreview, visibleTree, type TreeRow } from "../lib/tree-rows";
@@ -6,6 +6,7 @@ import { computeWindow, scrollTopForRow } from "../lib/virtual-scroll";
 
 const ROW_HEIGHT = 28;
 const OVERSCAN = 10;
+const INITIAL_VIEWPORT = 480;
 
 interface TreeViewProps {
   root: ModelNode;
@@ -17,11 +18,27 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
   const [expanded, setExpanded] = useState<ReadonlySet<ModelNode>>(() => new Set([root]));
   const [scrollTop, setScrollTop] = useState(0);
   const [focusedIndex, setFocusedIndex] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(INITIAL_VIEWPORT);
   const containerRef = useRef<HTMLDivElement>(null);
   const treeId = useId();
   const tree = useMemo(() => visibleTree(root, expanded), [root, expanded]);
 
-  const viewportHeight = containerRef.current?.clientHeight ?? 480;
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (container === null) return;
+    setViewportHeight(container.clientHeight);
+  }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (container === null || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) setViewportHeight(entry.contentRect.height);
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
   const { spacerHeight, start, end, offsetFor } = computeWindow(
     tree.total,
     ROW_HEIGHT,
