@@ -202,9 +202,13 @@ function constructionOverAncestor(
   const objects = source.elements.filter(
     (node) => node.value !== null && typeof node.value === "object" && !Array.isArray(node.value),
   );
-  const matchCount = source.iterating ? objects.length : source.matchCount;
-  const heterogeneous = source.iterating && objects.length < elementCount;
-  const optional = source.optional || heterogeneous;
+  const constructible = source.elements.filter(
+    (node) => node.value === null || (typeof node.value === "object" && !Array.isArray(node.value)),
+  );
+  const needsOptional = source.iterating && constructible.length < elementCount;
+  const matchCount = source.iterating ? constructible.length : source.matchCount;
+  const heterogeneous = needsOptional;
+  const optional = source.optional || needsOptional;
   const matches = objects.flatMap((match) =>
     keys.flatMap((key) => {
       const child = match.children?.find(

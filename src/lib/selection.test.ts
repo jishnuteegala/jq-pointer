@@ -115,6 +115,26 @@ describe("resolveSelection construction", () => {
     expect(selection.outputs[0].heterogeneous).toBe(false);
   });
 
+  it("keeps the plain form when a sibling element is null (jq constructs over null)", () => {
+    const r = root({ items: [{ name: "a", id: 1 }, null] });
+    const element = at(child(r, "items"), 0);
+    const selection = resolveSelection([child(element, "name"), child(element, "id")]);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}");
+    expect(selection.outputs[0].heterogeneous).toBe(false);
+    expect(selection.outputs[0].matchCount).toBe(2);
+    expect(selection.outputs[0].elementCount).toBe(2);
+  });
+
+  it("emits the ? form and skips a scalar sibling in the N-of-M count", () => {
+    const r = root({ items: [{ name: "a", id: 1 }, 5, null] });
+    const element = at(child(r, "items"), 0);
+    const selection = resolveSelection([child(element, "name"), child(element, "id")]);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}?");
+    expect(selection.outputs[0].heterogeneous).toBe(true);
+    expect(selection.outputs[0].matchCount).toBe(2);
+    expect(selection.outputs[0].elementCount).toBe(3);
+  });
+
   it("iterates only over homogeneous object arrays", () => {
     const r = root({
       items: [

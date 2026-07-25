@@ -213,10 +213,14 @@ describe("App end-to-end", () => {
     expect(screen.getAllByText(".data[0].items[].name").map((e) => e.className)).toContain(
       "path-line",
     );
+
+    const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
+    await user.type(filter, ".data[0].items[0].name");
     await user.click(screen.getByRole("button", { name: ".data" }));
     expect(screen.getAllByText(".data[].items[].name").map((e) => e.className)).toContain(
       "path-line",
     );
+    expect((filter as HTMLInputElement).value).toBe("");
   });
 
   it("keeps three clicks across different arrays as separate outputs", async () => {

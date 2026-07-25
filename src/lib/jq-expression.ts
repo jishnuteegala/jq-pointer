@@ -90,8 +90,9 @@ export function printExpression(expression: JqExpression): string {
   return `${printPath(expression.source.steps)} | {${fields}}${suffix}`;
 }
 
-function isConstructibleObject(node: ModelNode): boolean {
-  return node.value !== null && typeof node.value === "object" && !Array.isArray(node.value);
+/** jq's `{...}?` constructs over objects and null (indexing null is not a type error). */
+function isConstructible(node: ModelNode): boolean {
+  return node.value === null || (typeof node.value === "object" && !Array.isArray(node.value));
 }
 
 /** Evaluates jq's value stream, including synthetic nulls for absent fields. */
@@ -102,7 +103,7 @@ export function evaluateJqExpression(root: ModelNode, expression: JqExpression):
   );
   if (expression.kind === "path") return source;
   const keys = [...new Set(expression.keys)];
-  const constructed = expression.optional ? source.filter(isConstructibleObject) : source;
+  const constructed = expression.optional ? source.filter(isConstructible) : source;
   return constructed.flatMap((node) =>
     keys.flatMap((key) => evaluateSteps(node, [{ kind: "key", key }])),
   );
@@ -116,7 +117,7 @@ export function evaluateExpression(root: ModelNode, expression: JqExpression): M
   );
   if (expression.kind === "path") return source;
   const keys = [...new Set(expression.keys)];
-  const constructed = expression.optional ? source.filter(isConstructibleObject) : source;
+  const constructed = expression.optional ? source.filter(isConstructible) : source;
   return constructed.flatMap((node) =>
     keys.flatMap((key) => matchingNodes(node, [{ kind: "key", key }])),
   );

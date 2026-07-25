@@ -82,7 +82,7 @@ oracle("construction oracle", () => {
     );
   });
 
-  it("counts object elements as N-of-M to match real jq", () => {
+  it("counts constructible (object or null) elements as N-of-M to match real jq", () => {
     assert(
       property(
         array(mixedElement, { minLength: 2, maxLength: 6 }),
@@ -104,7 +104,7 @@ oracle("construction oracle", () => {
           if (selection.noCommonPattern || output.expression.kind !== "construction") return;
           const reference = runJq(
             { items },
-            '[.items[] | type == "object"] | map(select(.)) | length',
+            '[.items[] | (type == "object" or . == null)] | map(select(.)) | length',
           );
           expect(output.matchCount).toEqual(reference[0]);
           expect(output.elementCount).toBe(items.length);

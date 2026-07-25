@@ -188,6 +188,14 @@ function App() {
     setCopyFailed(false);
   };
 
+  const handleWiden = (index: number) => {
+    copyGeneration.current += 1;
+    setAncestorIndex(index);
+    setFilter("");
+    setCopied(false);
+    setCopyFailed(false);
+  };
+
   const handleClearChips = () => {
     copyGeneration.current += 1;
     setClicks([]);
@@ -281,7 +289,7 @@ function App() {
                 ancestors={selection.breadcrumb.ancestors}
                 activeIndex={selection.breadcrumb.activeIndex}
                 labelOf={labelOf}
-                onWiden={setAncestorIndex}
+                onWiden={handleWiden}
               />
             )}
             {note !== null && (
