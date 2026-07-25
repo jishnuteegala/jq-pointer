@@ -40,6 +40,64 @@ describe("App end-to-end", () => {
     expect(screen.getByRole("button", { name: "Copied" })).toBeDefined();
   });
 
+  it("generalises a click pair to the iterator expression with a heterogeneity note", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [{"name": "a"}, 5, {"name": "c"}]}');
+
+    await user.click(within(row("items")).getByText("items"));
+    await user.click(within(row("[0]")).getByText("[0]"));
+    await user.click(within(row("[2]")).getByText("[2]"));
+    const nameRows = screen.getAllByText("name");
+    await user.click(nameRows[0]);
+    await user.click(nameRows[nameRows.length - 1]);
+
+    expect(screen.getByText(".items[].name?")).toBeDefined();
+    expect(screen.getByText("matches 2 of 3 elements")).toBeDefined();
+  });
+
+  it("generalises after expanding the second element without evicting the first click", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [{"name": "a"}, {"name": "b"}]}');
+
+    await user.click(within(row("items")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
+    await user.click(screen.getAllByText("name")[0]);
+    await user.click(within(row("[1]")).getByRole("button", { name: /^Expand / }));
+    const names = screen.getAllByText("name");
+    await user.click(names[names.length - 1]);
+
+    expect(screen.getByText(".items[].name")).toBeDefined();
+  });
+
+  it("shows a no-common-pattern note and copies a valid combined filter", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a": [1], "b": [2]}');
+
+    await user.click(within(row("a")).getByText("a"));
+    await user.click(within(row("b")).getByText("b"));
+    const zeros = screen.getAllByText("[0]");
+    await user.click(zeros[0]);
+    await user.click(zeros[zeros.length - 1]);
+
+    expect(screen.getByText(/No common pattern/)).toBeDefined();
+    expect(screen.getByText(".a[0]")).toBeDefined();
+    expect(screen.getByText(".b[0]")).toBeDefined();
+
+    await user.click(screen.getByRole("button", { name: "Copy" }));
+    expect(writeText).toHaveBeenCalledWith(".a[0], .b[0]");
+  });
+
   it("surfaces a clipboard failure without crashing", async () => {
     const writeText = vi.fn().mockRejectedValue(new Error("denied"));
     const user = userEvent.setup();

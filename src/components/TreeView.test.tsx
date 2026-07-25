@@ -49,4 +49,37 @@ describe("TreeView active descendant", () => {
     expect(active?.textContent).toContain("b");
     expect(container.textContent).toContain("x");
   });
+
+  it("declares multiselectable so multi-node click-pair previews announce correctly", () => {
+    const { root } = buildPathModel({ items: [{ name: "a" }, { name: "b" }] });
+    const highlighted = new Set(root.children ?? []);
+    const { container } = render(
+      <TreeView root={root} highlighted={highlighted} onSelect={() => {}} />,
+    );
+    const tree = container.querySelector('[role="tree"]');
+    expect(tree?.getAttribute("aria-multiselectable")).toBe("true");
+  });
+
+  it("names each expand control with its row label so they are distinguishable", () => {
+    const { root } = buildPathModel({ items: [{ name: "a" }], other: [1] });
+    const { container } = render(
+      <TreeView root={root} highlighted={new Set()} onSelect={() => {}} />,
+    );
+    const labels = [...container.querySelectorAll("button.tree-toggle")].map((button) =>
+      button.getAttribute("aria-label"),
+    );
+    expect(labels).toContain("Expand items");
+    expect(labels).toContain("Expand other");
+  });
+
+  it("keeps focus on the tree after clicking an expand control", () => {
+    const { root } = buildPathModel({ items: [{ name: "a" }] });
+    const { container } = render(
+      <TreeView root={root} highlighted={new Set()} onSelect={() => {}} />,
+    );
+    const tree = container.querySelector('[role="tree"]') as HTMLElement;
+    const toggle = container.querySelector("button.tree-toggle") as HTMLElement;
+    fireEvent.click(toggle);
+    expect(document.activeElement).toBe(tree);
+  });
 });

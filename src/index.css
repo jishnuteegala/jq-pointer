@@ -151,6 +151,16 @@ textarea:focus-visible,
   white-space: nowrap;
 }
 
+.path-line {
+  display: block;
+}
+
+.match-note {
+  margin: -0.25rem 0 0.75rem;
+  font-size: 0.8125rem;
+  opacity: 0.8;
+}
+
 .copy-button {
   font: inherit;
   padding: 0.5rem 1rem;
@@ -221,6 +231,17 @@ textarea:focus-visible,
   width: 1rem;
   text-align: center;
   flex-shrink: 0;
+}
+
+button.tree-toggle {
+  cursor: pointer;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+}
+
+button.tree-toggle:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 1px;
 }
 
 .tree-label {

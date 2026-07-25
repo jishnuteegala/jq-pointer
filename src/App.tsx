@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ClipboardEvent, DragEvent } from "react";
 import { TreeView } from "./components/TreeView";
+import { generaliseClickPair } from "./lib/click-pair";
 import { printPath } from "./lib/jq-expression";
 import { MAX_DOCUMENT_BYTES, parseDocument, type ParseOutcome } from "./lib/parse-document";
 import { buildPathModel, pathTo, type ModelNode, type PathModel } from "./lib/path-model";
@@ -18,6 +19,24 @@ function describeOutcome(outcome: ParseOutcome): string {
 
 const DISPLAY_LIMIT = 256 * 1024;
 
+function isAncestorOf(candidate: ModelNode, node: ModelNode): boolean {
+  let current: ModelNode | null = node;
+  while (current !== null) {
+    if (current === candidate) return true;
+    current = current.parent;
+  }
+  return false;
+}
+
+function areSiblingsInDocument(a: ModelNode, b: ModelNode): boolean {
+  return !isAncestorOf(a, b) && !isAncestorOf(b, a);
+}
+
+function pathOf(node: ModelNode): string | null {
+  const result = pathTo(node);
+  return result.kind === "path" ? printPath(result.segments) : null;
+}
+
 function displayText(value: string): string {
   if (value.length <= DISPLAY_LIMIT) return value;
   const megabytes = (value.length / 1024 / 1024).toFixed(1);
@@ -28,7 +47,7 @@ function App() {
   const [text, setText] = useState("");
   const [version, setVersion] = useState(0);
   const [outcome, setOutcome] = useState<ParseOutcome | null>(null);
-  const [selected, setSelected] = useState<ModelNode | null>(null);
+  const [clicks, setClicks] = useState<ModelNode[]>([]);
   const [filter, setFilter] = useState("");
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -40,33 +59,59 @@ function App() {
     return buildPathModel(outcome.value);
   }, [outcome]);
 
-  const path = useMemo(() => {
-    if (selected === null) return null;
-    const result = pathTo(selected);
-    return result.kind === "path" ? printPath(result.segments) : null;
-  }, [selected]);
+  const selected = clicks.length === 0 ? null : clicks[clicks.length - 1];
 
-  const unsupported = useMemo(() => {
-    if (selected === null) return false;
-    return pathTo(selected).kind === "unsupported";
-  }, [selected]);
+  const pair = useMemo(() => {
+    if (clicks.length < 2) return null;
+    return generaliseClickPair(clicks[clicks.length - 2], clicks[clicks.length - 1]);
+  }, [clicks]);
 
   const preview: ReverseHighlight = useMemo(() => {
     if (model === null) return { kind: "empty" };
     return reverseHighlight(model.root, filter);
   }, [model, filter]);
 
+  const noCommonPattern =
+    pair === null && clicks.length === 2 && areSiblingsInDocument(clicks[0], clicks[1]);
+
+  const paths = useMemo<string[] | null>(() => {
+    if (pair !== null) return [printPath(pair.expression.steps)];
+    if (noCommonPattern) {
+      const both = [pathOf(clicks[0]), pathOf(clicks[1])];
+      if (both.every((value) => value !== null)) return both as string[];
+    }
+    if (selected === null) return null;
+    const single = pathOf(selected);
+    return single === null ? null : [single];
+  }, [pair, selected, noCommonPattern, clicks]);
+
+  const path = useMemo(() => (paths === null ? null : paths.join("\n")), [paths]);
+  const copyText = useMemo(() => (paths === null ? null : paths.join(", ")), [paths]);
+
+  const unsupported = useMemo(() => {
+    if (pair !== null || noCommonPattern || selected === null) return false;
+    return pathTo(selected).kind === "unsupported";
+  }, [pair, noCommonPattern, selected]);
+
+  const note = useMemo(() => {
+    if (noCommonPattern)
+      return "No common pattern between these two clicks; showing both paths separately.";
+    if (pair === null || !pair.heterogeneous) return null;
+    return `matches ${pair.matchCount} of ${pair.elementCount} elements`;
+  }, [pair, noCommonPattern]);
+
   const highlighted = useMemo(() => {
     if (preview.kind === "match") return new Set(preview.nodes);
-    if (preview.kind === "empty") return new Set(selected === null ? [] : [selected]);
-    return new Set<ModelNode>();
-  }, [preview, selected]);
+    if (preview.kind !== "empty") return new Set<ModelNode>();
+    if (pair !== null) return new Set(pair.matches);
+    return new Set(selected === null ? [] : [selected]);
+  }, [preview, pair, selected]);
 
   const loadText = (value: string) => {
     loadGeneration.current += 1;
     setText(displayText(value));
     setVersion((previous) => previous + 1);
-    setSelected(null);
+    setClicks([]);
     setFilter("");
     setCopied(false);
     setCopyFailed(false);
@@ -93,7 +138,7 @@ function App() {
         loadGeneration.current += 1;
         setText("");
         setVersion((previous) => previous + 1);
-        setSelected(null);
+        setClicks([]);
         setCopied(false);
         setOutcome({ kind: "too-large", bytes: file.size, limit: MAX_DOCUMENT_BYTES });
         return;
@@ -109,10 +154,10 @@ function App() {
   };
 
   const handleCopy = async () => {
-    if (path === null) return;
+    if (copyText === null) return;
     const generation = (copyGeneration.current += 1);
     try {
-      await navigator.clipboard.writeText(path);
+      await navigator.clipboard.writeText(copyText);
       if (generation !== copyGeneration.current) return;
       setCopied(true);
       setCopyFailed(false);
@@ -125,7 +170,11 @@ function App() {
 
   const handleSelect = (node: ModelNode) => {
     copyGeneration.current += 1;
-    setSelected(node);
+    setClicks((previous) => {
+      const last = previous[previous.length - 1];
+      if (last === node) return previous;
+      return last === undefined ? [node] : [last, node];
+    });
     setFilter("");
     setCopied(false);
     setCopyFailed(false);
@@ -180,9 +229,19 @@ function App() {
                 className={`path-output${unsupported ? " path-output-unsupported" : ""}`}
                 aria-live="polite"
               >
-                {unsupported
-                  ? "This key can't be expressed as a jq path (lone surrogate in the key)."
-                  : (path ?? "Click a value in the tree to get its jq path")}
+                {unsupported ? (
+                  "This key can't be expressed as a jq path (lone surrogate in the key)."
+                ) : path === null ? (
+                  "Click a value in the tree to get its jq path, then a sibling to generalise"
+                ) : (
+                  <>
+                    {path.split("\n").map((line, index) => (
+                      <span key={index} className="path-line">
+                        {line}
+                      </span>
+                    ))}
+                  </>
+                )}
               </output>
               <button
                 type="button"
@@ -193,6 +252,11 @@ function App() {
                 {copied ? "Copied" : "Copy"}
               </button>
             </div>
+            {note !== null && (
+              <p className="match-note" aria-live="polite">
+                {note}
+              </p>
+            )}
             {copyFailed && (
               <p className="copy-error" role="alert">
                 Couldn&apos;t copy to the clipboard. Select the path above and copy it manually.
