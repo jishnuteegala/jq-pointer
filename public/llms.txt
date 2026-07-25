@@ -1,0 +1,51 @@
+# jq-pointer
+
+> Paste JSON, click the value you want, get the jq expression that extracts
+> it - the reverse of every jq playground. Fully client-side: the JSON never
+> leaves the browser and never appears in the URL.
+
+## How to use
+
+- Paste JSON into the input box, or drop a file onto it (capped at ~10MB).
+  The document renders as a collapsible, virtualised tree.
+- Click one value to get its exact jq path with correct quoting (`."foo-bar"`),
+  array indices, and top-level `.`.
+- Click the counterpart value in a sibling array element and the tool detects
+  the common array ancestor and generalises to the iterator expression
+  (`.items[].name`). When not every element contains the clicked key-path, the
+  `?` form is emitted with a "matches N of M elements" note.
+- Select different keys of the same element to get flat shorthand object
+  construction (`.items[] | {name, id}`). Selected nodes appear as removable
+  chips; clicks toggle membership.
+- When more than one ancestor array could be iterated, a breadcrumb widens the
+  generalisation to outer arrays (e.g. `.data[].items[].name`).
+- Paste a jq expression from the tool's own path/iterator/construction grammar
+  into the highlight box and the matching nodes highlight in the tree.
+  Anything outside that grammar shows an explicit "can't preview this filter"
+  state - there is no arbitrary jq evaluation.
+- Clicks with no common pattern (different key-paths across elements, or
+  across different arrays) are kept as separate outputs with a visible
+  "no common pattern" note.
+
+## Input handling
+
+Parsing is strict `JSON.parse` with no tolerant repair. Errors show the
+position and a caret excerpt. NDJSON and JavaScript-literal pastes are
+detected heuristically and named in the error message without repair.
+
+Two `JSON.parse` behaviours are inherited deliberately, with no warning:
+
+- Duplicate keys: the last occurrence wins. `{"a": 1, "a": 2}` parses as
+  `{"a": 2}` and paths address only the surviving value.
+- Number precision: numbers beyond IEEE 754 double precision lose precision.
+  `9007199254740993` parses as `9007199254740992`.
+
+## Privacy
+
+No accounts, no analytics, no third-party requests. All processing happens in
+the browser; the URL never contains the document.
+
+## Links
+
+- Source: https://github.com/jishnuteegala/jq-pointer
+- Privacy: https://jishnuteegala.com/privacy

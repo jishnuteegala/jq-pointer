@@ -38,3 +38,16 @@ jobs:
         env:
           JQ_BINARY: ./jq-1.7.1
       - run: pnpm run build
+      - run: pnpm run check:privacy
+      - name: Verify built routes
+        run: |
+          test -f dist/index.html
+          test -f dist/design-system/index.html
+          test -f dist/llms.txt
+          test -f dist/_headers
+      - name: Verify self-hosted release packaging
+        env:
+          SOURCE_DATE_EPOCH: "315532800"
+        run: |
+          python -X utf8 scripts/package_release.py snapshot
+          (cd artifact && sha256sum --check SHA256SUMS)

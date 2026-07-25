@@ -49,6 +49,107 @@ Grammar property tests use the official [jq 1.7.1](https://github.com/jqlang/jq/
 Linux AMD64 binary as a pinned oracle. CI downloads it as `jq-1.7.1`; the oracle
 tests skip on Windows because that binary cannot execute locally.
 
+## Self-hosting
+
+Deploy from a tagged release, not an arbitrary commit. Every GitHub Release
+carries a prebuilt static dist archive (`jq-pointer-<version>.zip` and
+`.tar.gz`) plus a `SHA256SUMS` file.
+
+### 1. Download and verify
+
+```sh
+VERSION=0.1.0
+curl -fLO "https://github.com/jishnuteegala/jq-pointer/releases/download/v$VERSION/jq-pointer-$VERSION.tar.gz"
+curl -fLO "https://github.com/jishnuteegala/jq-pointer/releases/download/v$VERSION/SHA256SUMS"
+sha256sum --check --ignore-missing SHA256SUMS
+mkdir -p dist && tar -xzf "jq-pointer-$VERSION.tar.gz" -C dist
+```
+
+The app is a single static page plus real static routes (`/design-system/`,
+`/llms.txt`); any static file server works with no rewrite rules required.
+
+### 2. Pick a host
+
+**Cloudflare Pages**
+
+```sh
+npx wrangler pages deploy dist --project-name jq-pointer
+```
+
+Or use git integration: import the repo in the Cloudflare dashboard with build
+command `pnpm build` and output directory `dist`. The bundled `_headers` file
+sets the security headers automatically.
+
+**Vercel**
+
+```sh
+npx vercel deploy dist --prod
+```
+
+**GitHub Pages**
+
+```sh
+git checkout --orphan gh-pages && git rm -rf . && cp -r dist/. . && rm -rf dist
+git add -A && git commit -m "deploy" && git push -f origin gh-pages
+```
+
+Then enable Pages for the `gh-pages` branch in the repo settings.
+
+**VPS with nginx** (any cloud - AWS/GCP/Azure/other)
+
+```nginx
+server {
+    listen 80;
+    server_name jq.example.com;
+    root /var/www/jq-pointer;
+    index index.html;
+    location /assets/ {
+        add_header Cache-Control "public, max-age=31536000, immutable";
+    }
+}
+```
+
+Copy the extracted `dist/` to `/var/www/jq-pointer` and reload nginx.
+
+**VPS with Caddy**
+
+```caddy
+jq.example.com {
+    root * /var/www/jq-pointer
+    file_server
+}
+```
+
+**Docker**
+
+```dockerfile
+FROM nginx:alpine
+COPY dist /usr/share/nginx/html
+EXPOSE 80
+```
+
+```sh
+docker build -t jq-pointer . && docker run -p 8080:80 jq-pointer
+```
+
+Or with compose, no image build needed:
+
+```yaml
+services:
+  jq-pointer:
+    image: nginx:alpine
+    volumes:
+      - ./dist:/usr/share/nginx/html:ro
+    ports:
+      - "8080:80"
+```
+
+## Releases
+
+Releases are managed by [release-please](https://github.com/googleapis/release-please):
+merging the release PR tags the version, and the release stays a draft until
+the dist archives are built, checksummed, and uploaded.
+
 ## License
 
 MIT - see [LICENSE](LICENSE)

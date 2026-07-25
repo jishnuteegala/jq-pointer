@@ -10,3 +10,4 @@ coverage
 !.vscode/extensions.json
 .idea
 .playwright-mcp
+artifact
