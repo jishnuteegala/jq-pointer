@@ -151,6 +151,12 @@ textarea:focus-visible,
   white-space: nowrap;
 }
 
+.match-note {
+  margin: -0.25rem 0 0.75rem;
+  font-size: 0.8125rem;
+  opacity: 0.8;
+}
+
 .copy-button {
   font: inherit;
   padding: 0.5rem 1rem;

@@ -40,6 +40,23 @@ describe("App end-to-end", () => {
     expect(screen.getByRole("button", { name: "Copied" })).toBeDefined();
   });
 
+  it("generalises a click pair to the iterator expression with a heterogeneity note", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [{"name": "a"}, 5, {"name": "c"}]}');
+
+    await user.click(within(row("items")).getByText("items"));
+    await user.click(within(row("[0]")).getByText("[0]"));
+    await user.click(within(row("[2]")).getByText("[2]"));
+    const nameRows = screen.getAllByText("name");
+    await user.click(nameRows[0]);
+    await user.click(nameRows[nameRows.length - 1]);
+
+    expect(screen.getByText(".items[].name?")).toBeDefined();
+    expect(screen.getByText("matches 2 of 3 elements")).toBeDefined();
+  });
+
   it("surfaces a clipboard failure without crashing", async () => {
     const writeText = vi.fn().mockRejectedValue(new Error("denied"));
     const user = userEvent.setup();
