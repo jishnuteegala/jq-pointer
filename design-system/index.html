@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>jq-pointer design system</title>
+    <link rel="stylesheet" href="../src/index.css" />
+    <link rel="stylesheet" href="./design-system.css" />
+  </head>
+  <body>
+    <main class="page">
+      <h1>jq-pointer design system</h1>
+      <p>The named tokens and reusable primitives behind the tool.</p>
+
+      <h2>Colour tokens</h2>
+      <ul class="ds-swatches">
+        <li><span class="ds-swatch" style="background: var(--color-text)"></span><code>--color-text</code> #172033</li>
+        <li><span class="ds-swatch" style="background: var(--color-bg)"></span><code>--color-bg</code> #f5f7fb</li>
+        <li><span class="ds-swatch" style="background: var(--color-surface)"></span><code>--color-surface</code> #ffffff</li>
+        <li><span class="ds-swatch" style="background: var(--color-border)"></span><code>--color-border</code> #b8c1d4</li>
+        <li><span class="ds-swatch" style="background: var(--color-accent)"></span><code>--color-accent</code> #2563eb</li>
+        <li><span class="ds-swatch" style="background: var(--color-danger)"></span><code>--color-danger</code> #b42318</li>
+        <li><span class="ds-swatch" style="background: var(--color-muted)"></span><code>--color-muted</code> #52607a</li>
+      </ul>
+
+      <h2>Type tokens</h2>
+      <ul class="ds-list">
+        <li><code>--font-body</code>: <span style="font-family: var(--font-body)">system-ui, sans-serif</span></li>
+        <li><code>--font-mono</code>: <span style="font-family: var(--font-mono)">ui-monospace, monospace</span></li>
+        <li><code>--font-size-body</code> 1rem, <code>--font-size-sm</code> 0.875rem, <code>--font-size-xs</code> 0.8125rem</li>
+      </ul>
+
+      <h2>Spacing tokens</h2>
+      <ul class="ds-list">
+        <li><code>--space-1</code> 0.25rem <span class="ds-bar" style="width: 0.25rem"></span></li>
+        <li><code>--space-2</code> 0.5rem <span class="ds-bar" style="width: 0.5rem"></span></li>
+        <li><code>--space-3</code> 0.75rem <span class="ds-bar" style="width: 0.75rem"></span></li>
+        <li><code>--space-4</code> 1rem <span class="ds-bar" style="width: 1rem"></span></li>
+        <li><code>--space-5</code> 1.5rem <span class="ds-bar" style="width: 1.5rem"></span></li>
+        <li><code>--space-6</code> 2rem <span class="ds-bar" style="width: 2rem"></span></li>
+      </ul>
+
+      <h2>Primitives</h2>
+      <h3>Button</h3>
+      <p><button type="button" class="button">Copy</button> <button type="button" class="button" disabled>Copy</button></p>
+      <h3>Inputs</h3>
+      <p><input class="filter-input" type="text" value=".items[].name" readonly /></p>
+      <h3>Chip</h3>
+      <p><span class="chip"><span class="chip-label">.items[0].name</span><button type="button" class="chip-remove" aria-label="Remove">&times;</button></span></p>
+      <h3>Breadcrumb item</h3>
+      <p><button type="button" class="breadcrumb-item breadcrumb-item-active">.items[]</button> <button type="button" class="breadcrumb-item">.data[]</button></p>
+      <h3>Path output</h3>
+      <p><output class="path-output"><span class="path-line">.items[].name</span></output></p>
+      <h3>Parse error</h3>
+      <div class="parse-error"><p>Unexpected token (line 1, column 9)</p><pre>{"a": 1,}
+        ^</pre></div>
+    </main>
+    <footer class="page site-footer">
+      <a href="/">Back to jq-pointer</a>
+      <a href="https://github.com/jishnuteegala/jq-pointer">Source</a>
+    </footer>
+  </body>
+</html>
