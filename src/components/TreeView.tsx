@@ -86,6 +86,16 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
   };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Home") {
+      event.preventDefault();
+      focusRow(0);
+      return;
+    }
+    if (event.key === "End") {
+      event.preventDefault();
+      focusRow(tree.total - 1);
+      return;
+    }
     if (
       !focusVisible &&
       (event.key.startsWith("Arrow") || event.key === "Enter" || event.key === " ")
@@ -108,11 +118,17 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
     } else if (event.key === "ArrowRight") {
       event.preventDefault();
       if (row.expandable && !row.expanded) toggle(row.node);
-      else focusRow(focusedIndex + 1);
+      else if (row.expandable && row.expanded) focusRow(focusedIndex + 1);
     } else if (event.key === "ArrowLeft") {
       event.preventDefault();
       if (row.expandable && row.expanded) toggle(row.node);
       else if (row.node.parent !== null) focusRow(tree.indexOf(row.node.parent));
+    } else if (event.key === "Home") {
+      event.preventDefault();
+      focusRow(0);
+    } else if (event.key === "End") {
+      event.preventDefault();
+      focusRow(tree.total - 1);
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       activateRow(row);

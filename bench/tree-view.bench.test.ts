@@ -3,9 +3,9 @@ import { generateFixture } from "./fixture";
 import { buildPathModel, pathTo, type ModelNode } from "../src/lib/path-model";
 import { printPath } from "../src/lib/jq-expression";
 import { flattenVisible, visibleTree } from "../src/lib/tree-rows";
-import type { JsonValue } from "../src/lib/json-value";
+import { MAX_DOCUMENT_BYTES, parseDocument } from "../src/lib/parse-document";
 
-const TARGET_BYTES = 10 * 1024 * 1024;
+const TARGET_BYTES = MAX_DOCUMENT_BYTES - 256 * 1024;
 const CLICK_BUDGET_MS = 100;
 const CLICK_SAMPLES = 50;
 
@@ -17,8 +17,10 @@ function percentile(values: number[], p: number): number {
 
 describe("tree view pipeline on a ~10MB document", () => {
   const { json, itemCount } = generateFixture(TARGET_BYTES);
-  const parsed = JSON.parse(json) as JsonValue;
-  const model = buildPathModel(parsed);
+  const outcome = parseDocument(json);
+  if (outcome.kind !== "ok") throw new Error(`fixture rejected: ${outcome.kind}`);
+  expect(new TextEncoder().encode(json).length).toBeLessThanOrEqual(MAX_DOCUMENT_BYTES);
+  const model = buildPathModel(outcome.value);
 
   it(`flattens visible rows with the items array expanded under ${CLICK_BUDGET_MS}ms`, () => {
     const items = model.root.children?.find(

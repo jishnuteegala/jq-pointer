@@ -31,6 +31,7 @@ function App() {
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const loadGeneration = useRef(0);
+  const copyGeneration = useRef(0);
 
   const model: PathModel | null = useMemo(() => {
     if (outcome === null || outcome.kind !== "ok") return null;
@@ -41,6 +42,11 @@ function App() {
     if (selected === null) return null;
     const result = pathTo(selected);
     return result.kind === "path" ? printPath(result.segments) : null;
+  }, [selected]);
+
+  const unsupported = useMemo(() => {
+    if (selected === null) return false;
+    return pathTo(selected).kind === "unsupported";
   }, [selected]);
 
   const highlighted = useMemo(() => new Set(selected === null ? [] : [selected]), [selected]);
@@ -92,17 +98,21 @@ function App() {
 
   const handleCopy = async () => {
     if (path === null) return;
+    const generation = (copyGeneration.current += 1);
     try {
       await navigator.clipboard.writeText(path);
+      if (generation !== copyGeneration.current) return;
       setCopied(true);
       setCopyFailed(false);
     } catch {
+      if (generation !== copyGeneration.current) return;
       setCopied(false);
       setCopyFailed(true);
     }
   };
 
   const handleSelect = (node: ModelNode) => {
+    copyGeneration.current += 1;
     setSelected(node);
     setCopied(false);
     setCopyFailed(false);
@@ -139,8 +149,13 @@ function App() {
         {model !== null && (
           <>
             <div className="path-bar">
-              <output className="path-output" aria-live="polite">
-                {path ?? "Click a value in the tree to get its jq path"}
+              <output
+                className={`path-output${unsupported ? " path-output-unsupported" : ""}`}
+                aria-live="polite"
+              >
+                {unsupported
+                  ? "This key can't be expressed as a jq path (lone surrogate in the key)."
+                  : (path ?? "Click a value in the tree to get its jq path")}
               </output>
               <button
                 type="button"
