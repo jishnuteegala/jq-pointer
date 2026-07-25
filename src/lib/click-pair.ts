@@ -1,7 +1,7 @@
 import type { PathExpression } from "./jq-expression";
 import {
   commonArrayAncestor,
-  evaluateSteps,
+  evaluateTrace,
   pathTo,
   type ModelNode,
   type PathSegment,
@@ -43,49 +43,6 @@ function generaliseSteps(a: PathSegment[], b: PathSegment[]): PathStep[] | null 
   return steps;
 }
 
-function nodeUnsafe(node: ModelNode, step: PathStep): boolean {
-  const value = node.value;
-  if (step.kind === "iterate") return node.children === null;
-  if (step.kind === "index") {
-    if (!Array.isArray(value)) return true;
-    const length = node.children?.length ?? 0;
-    const at = step.index < 0 ? length + step.index : step.index;
-    return at < 0 || at >= length;
-  }
-  if (value === null || typeof value !== "object" || Array.isArray(value)) return true;
-  return (
-    node.children?.some((c) => c.segment?.kind === "key" && c.segment.key === step.key) !== true
-  );
-}
-
-function placeOptionals(
-  ancestor: ModelNode,
-  bare: PathStep[],
-): { steps: PathStep[]; matches: ModelNode[] } {
-  const placed: PathStep[] = [];
-  let frontier: ModelNode[] = ancestor.children ?? [];
-  for (let index = 1; index < bare.length; index++) {
-    const step = bare[index];
-    let optional = false;
-    for (const node of frontier) {
-      if (nodeUnsafe(node, step)) {
-        optional = true;
-        break;
-      }
-    }
-    const resolved: PathStep = optional ? { ...step, optional: true } : { ...step };
-    placed.push(resolved);
-    frontier = evaluateSteps({ ...ancestor, segment: null, children: frontier }, [
-      { kind: "iterate" },
-      resolved,
-    ]);
-  }
-  return {
-    steps: [{ kind: "iterate" }, ...placed],
-    matches: frontier.filter((node) => node.exists),
-  };
-}
-
 export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult | null {
   const ancestor = commonArrayAncestor(a, b);
   if (ancestor === null || ancestor.children === null) return null;
@@ -97,7 +54,13 @@ export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult
   if (relativeA === null || relativeB === null) return null;
   const bare = generaliseSteps(relativeA, relativeB);
   if (bare === null) return null;
-  const { steps, matches } = placeOptionals(ancestor, bare);
+  const tail = bare.slice(1);
+  const trace = evaluateTrace(ancestor.children, tail);
+  const steps: PathStep[] = [
+    { kind: "iterate" },
+    ...tail.map((step, index) => (trace.optional[index] ? { ...step, optional: true } : step)),
+  ];
+  const matches = trace.matches.filter((node) => node.exists);
   const elementCount = ancestor.children.length;
   const expression: PathExpression = {
     kind: "path",

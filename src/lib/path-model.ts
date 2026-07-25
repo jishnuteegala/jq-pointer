@@ -101,50 +101,96 @@ export function pathTo(node: ModelNode): PathResult {
   return { kind: "path", segments };
 }
 
+export function childByKey(node: ModelNode, key: string): ModelNode | undefined {
+  if (node.children === null) return undefined;
+  for (const child of node.children) {
+    if (child.segment?.kind === "key" && child.segment.key === key) return child;
+  }
+  return undefined;
+}
+
 export function evaluateSteps(root: ModelNode, steps: PathStep[]): ModelNode[] {
-  let current: ModelNode[] = [root];
+  return evaluateStepsFrom([root], steps);
+}
+
+function applyStep(node: ModelNode, step: PathStep, out: ModelNode[]): void {
+  if (step.kind === "iterate") {
+    if (node.children !== null) {
+      for (const child of node.children) out.push(child);
+    } else if (!step.optional) throw new TypeError("cannot iterate over a scalar");
+  } else if (step.kind === "index") {
+    if (Array.isArray(node.value) && node.children !== null) {
+      const index = step.index < 0 ? node.children.length + step.index : step.index;
+      const child = node.children[index];
+      if (child !== undefined) out.push(child);
+      else out.push(nullNode(node));
+    } else if (node.value === null) {
+      out.push(nullNode(node));
+    } else if (!step.optional) throw new TypeError("cannot index a non-array");
+  } else {
+    if (
+      node.value !== null &&
+      typeof node.value === "object" &&
+      !Array.isArray(node.value) &&
+      node.children !== null
+    ) {
+      const child = childByKey(node, step.key);
+      if (child !== undefined) out.push(child);
+      else out.push(nullNode(node));
+    } else if (node.value === null) {
+      out.push(nullNode(node));
+    } else if (node.value !== null && !step.optional) {
+      throw new TypeError("cannot index a scalar with a key");
+    }
+  }
+}
+
+export function evaluateStepsFrom(roots: ModelNode[], steps: PathStep[]): ModelNode[] {
+  let current: ModelNode[] = roots;
   for (const step of steps) {
     const next: ModelNode[] = [];
-    for (const node of current) {
-      if (step.kind === "iterate") {
-        if (node.children !== null) {
-          for (const child of node.children) next.push(child);
-        } else if (!step.optional) throw new TypeError("cannot iterate over a scalar");
-      } else if (step.kind === "index") {
-        if (Array.isArray(node.value) && node.children !== null) {
-          const index = step.index < 0 ? node.children.length + step.index : step.index;
-          const child = node.children[index];
-          if (child !== undefined) next.push(child);
-          else next.push(nullNode(node));
-        } else if (node.value === null) {
-          next.push(nullNode(node));
-        } else if (!step.optional) throw new TypeError("cannot index a non-array");
-      } else {
-        if (
-          node.value !== null &&
-          typeof node.value === "object" &&
-          !Array.isArray(node.value) &&
-          node.children !== null
-        ) {
-          let found = false;
-          for (const child of node.children) {
-            if (child.segment?.kind === "key" && child.segment.key === step.key) {
-              next.push(child);
-              found = true;
-              break;
-            }
-          }
-          if (!found) next.push(nullNode(node));
-        } else if (node.value === null) {
-          next.push(nullNode(node));
-        } else if (node.value !== null && !step.optional) {
-          throw new TypeError("cannot index a scalar with a key");
-        }
-      }
-    }
+    for (const node of current) applyStep(node, step, next);
     current = next;
   }
   return current;
+}
+
+function stepUnsafe(node: ModelNode, step: PathStep): boolean {
+  if (step.kind === "iterate") return node.children === null;
+  if (step.kind === "index") {
+    if (!Array.isArray(node.value) || node.children === null) return true;
+    const at = step.index < 0 ? node.children.length + step.index : step.index;
+    return at < 0 || at >= node.children.length;
+  }
+  if (node.value === null || typeof node.value !== "object" || Array.isArray(node.value))
+    return true;
+  return childByKey(node, step.key) === undefined;
+}
+
+/**
+ * Applies each step once over the whole frontier in a single forward pass, recording
+ * per-step whether any node needed optional (`?`) semantics. Steps are evaluated as if
+ * optional so heterogeneous data never throws.
+ */
+export function evaluateTrace(
+  roots: ModelNode[],
+  steps: PathStep[],
+): { optional: boolean[]; matches: ModelNode[] } {
+  const optional: boolean[] = Array.from({ length: steps.length }, () => false);
+  let current: ModelNode[] = roots;
+  for (let s = 0; s < steps.length; s++) {
+    const step = steps[s];
+    const safeStep: PathStep = { ...step, optional: true };
+    const next: ModelNode[] = [];
+    let anyUnsafe = false;
+    for (const node of current) {
+      if (!anyUnsafe && stepUnsafe(node, step)) anyUnsafe = true;
+      applyStep(node, safeStep, next);
+    }
+    optional[s] = anyUnsafe;
+    current = next;
+  }
+  return { optional, matches: current };
 }
 
 /** Returns only document nodes that can be highlighted, excluding jq's synthetic null results. */
