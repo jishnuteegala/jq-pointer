@@ -115,6 +115,22 @@ describe("jq expression parser and evaluator", () => {
     ).toEqual(["first", 2]);
   });
 
+  it("constructs over null and skips scalar elements in the optional form", () => {
+    const expression = parseExpression(".items[] | {name, id}?");
+    if (expression === null) throw new Error("expression did not parse");
+    expect(expression).toEqual({
+      kind: "construction",
+      source: { kind: "path", steps: [{ kind: "key", key: "items" }, { kind: "iterate" }] },
+      keys: ["name", "id"],
+      optional: true,
+    });
+    const values = evaluateJqExpression(
+      buildPathModel({ items: [{ name: "a", id: 1 }, null, 5, { name: "b" }] }).root,
+      expression,
+    ).map((node) => node.value);
+    expect(values).toEqual(["a", 1, null, null, "b", null]);
+  });
+
   it("parses construction keys containing the construction delimiter", () => {
     const expression = parseExpression('.items[] | {"x | {y"}');
     expect(expression).toEqual({

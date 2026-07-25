@@ -1,11 +1,13 @@
 import { useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ClipboardEvent, DragEvent } from "react";
+import { Breadcrumb } from "./components/Breadcrumb";
+import { ChipBar } from "./components/ChipBar";
 import { TreeView } from "./components/TreeView";
-import { generaliseClickPair } from "./lib/click-pair";
-import { printPath } from "./lib/jq-expression";
+import { printExpression, printPath } from "./lib/jq-expression";
 import { MAX_DOCUMENT_BYTES, parseDocument, type ParseOutcome } from "./lib/parse-document";
 import { buildPathModel, pathTo, type ModelNode, type PathModel } from "./lib/path-model";
 import { reverseHighlight, type ReverseHighlight } from "./lib/reverse-highlight";
+import { resolveSelection } from "./lib/selection";
 
 function describeOutcome(outcome: ParseOutcome): string {
   if (outcome.kind === "too-large") {
@@ -19,22 +21,16 @@ function describeOutcome(outcome: ParseOutcome): string {
 
 const DISPLAY_LIMIT = 256 * 1024;
 
-function isAncestorOf(candidate: ModelNode, node: ModelNode): boolean {
-  let current: ModelNode | null = node;
-  while (current !== null) {
-    if (current === candidate) return true;
-    current = current.parent;
-  }
-  return false;
-}
-
-function areSiblingsInDocument(a: ModelNode, b: ModelNode): boolean {
-  return !isAncestorOf(a, b) && !isAncestorOf(b, a);
-}
-
 function pathOf(node: ModelNode): string | null {
   const result = pathTo(node);
   return result.kind === "path" ? printPath(result.segments) : null;
+}
+
+function labelOf(node: ModelNode): string {
+  const path = pathOf(node);
+  if (path !== null) return path;
+  if (node.segment?.kind === "key") return `.${node.segment.key}`;
+  return "(unrepresentable)";
 }
 
 function displayText(value: string): string {
@@ -48,6 +44,7 @@ function App() {
   const [version, setVersion] = useState(0);
   const [outcome, setOutcome] = useState<ParseOutcome | null>(null);
   const [clicks, setClicks] = useState<ModelNode[]>([]);
+  const [ancestorIndex, setAncestorIndex] = useState(0);
   const [filter, setFilter] = useState("");
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
@@ -59,59 +56,61 @@ function App() {
     return buildPathModel(outcome.value);
   }, [outcome]);
 
-  const selected = clicks.length === 0 ? null : clicks[clicks.length - 1];
-
-  const pair = useMemo(() => {
-    if (clicks.length < 2) return null;
-    return generaliseClickPair(clicks[clicks.length - 2], clicks[clicks.length - 1]);
-  }, [clicks]);
+  const selection = useMemo(() => resolveSelection(clicks, ancestorIndex), [clicks, ancestorIndex]);
 
   const preview: ReverseHighlight = useMemo(() => {
     if (model === null) return { kind: "empty" };
     return reverseHighlight(model.root, filter);
   }, [model, filter]);
 
-  const noCommonPattern =
-    pair === null && clicks.length === 2 && areSiblingsInDocument(clicks[0], clicks[1]);
+  const expressions = useMemo(
+    () => selection.outputs.map((output) => printExpression(output.expression)),
+    [selection],
+  );
 
-  const paths = useMemo<string[] | null>(() => {
-    if (pair !== null) return [printPath(pair.expression.steps)];
-    if (noCommonPattern) {
-      const both = [pathOf(clicks[0]), pathOf(clicks[1])];
-      if (both.every((value) => value !== null)) return both as string[];
-    }
-    if (selected === null) return null;
-    const single = pathOf(selected);
-    return single === null ? null : [single];
-  }, [pair, selected, noCommonPattern, clicks]);
+  const path = useMemo(
+    () => (expressions.length === 0 ? null : expressions.join("\n")),
+    [expressions],
+  );
+  const copyText = useMemo(
+    () => (expressions.length === 0 ? null : expressions.join(", ")),
+    [expressions],
+  );
 
-  const path = useMemo(() => (paths === null ? null : paths.join("\n")), [paths]);
-  const copyText = useMemo(() => (paths === null ? null : paths.join(", ")), [paths]);
-
-  const unsupported = useMemo(() => {
-    if (pair !== null || noCommonPattern || selected === null) return false;
-    return pathTo(selected).kind === "unsupported";
-  }, [pair, noCommonPattern, selected]);
+  const unsupported = useMemo(
+    () => selection.outputs.length === 0 && selection.unsupportedCount > 0,
+    [selection],
+  );
 
   const note = useMemo(() => {
-    if (noCommonPattern)
-      return "No common pattern between these two clicks; showing both paths separately.";
-    if (pair === null || !pair.heterogeneous) return null;
-    return `matches ${pair.matchCount} of ${pair.elementCount} elements`;
-  }, [pair, noCommonPattern]);
+    const unsupportedNote =
+      selection.unsupportedCount > 0 && selection.outputs.length > 0
+        ? `${selection.unsupportedCount} selected ${
+            selection.unsupportedCount === 1 ? "node has" : "nodes have"
+          } a key jq can't express (lone surrogate); showing the rest.`
+        : null;
+    const noCommonNote = selection.noCommonPattern
+      ? "No common pattern between these clicks; showing each path separately."
+      : null;
+    if (noCommonNote !== null || unsupportedNote !== null)
+      return [noCommonNote, unsupportedNote].filter((part) => part !== null).join(" ");
+    const output = selection.outputs[0];
+    if (output === undefined || !output.heterogeneous) return null;
+    return `matches ${output.matchCount} of ${output.elementCount} elements`;
+  }, [selection]);
 
   const highlighted = useMemo(() => {
     if (preview.kind === "match") return new Set(preview.nodes);
     if (preview.kind !== "empty") return new Set<ModelNode>();
-    if (pair !== null) return new Set(pair.matches);
-    return new Set(selected === null ? [] : [selected]);
-  }, [preview, pair, selected]);
+    return new Set(selection.outputs.flatMap((output) => output.matches));
+  }, [preview, selection]);
 
   const loadText = (value: string) => {
     loadGeneration.current += 1;
     setText(displayText(value));
     setVersion((previous) => previous + 1);
     setClicks([]);
+    setAncestorIndex(0);
     setFilter("");
     setCopied(false);
     setCopyFailed(false);
@@ -171,10 +170,36 @@ function App() {
   const handleSelect = (node: ModelNode) => {
     copyGeneration.current += 1;
     setClicks((previous) => {
-      const last = previous[previous.length - 1];
-      if (last === node) return previous;
-      return last === undefined ? [node] : [last, node];
+      if (previous.includes(node)) return previous.filter((click) => click !== node);
+      return [...previous, node];
     });
+    setAncestorIndex(0);
+    setFilter("");
+    setCopied(false);
+    setCopyFailed(false);
+  };
+
+  const handleRemoveChip = (index: number) => {
+    copyGeneration.current += 1;
+    setClicks((previous) => previous.filter((_, position) => position !== index));
+    setAncestorIndex(0);
+    setFilter("");
+    setCopied(false);
+    setCopyFailed(false);
+  };
+
+  const handleWiden = (index: number) => {
+    copyGeneration.current += 1;
+    setAncestorIndex(index);
+    setFilter("");
+    setCopied(false);
+    setCopyFailed(false);
+  };
+
+  const handleClearChips = () => {
+    copyGeneration.current += 1;
+    setClicks([]);
+    setAncestorIndex(0);
     setFilter("");
     setCopied(false);
     setCopyFailed(false);
@@ -224,6 +249,13 @@ function App() {
         )}
         {model !== null && (
           <>
+            <ChipBar
+              clicks={clicks}
+              labelOf={labelOf}
+              onRemove={handleRemoveChip}
+              onClear={handleClearChips}
+              onEmptied={() => document.getElementById("tree-view")?.focus()}
+            />
             <div className="path-bar">
               <output
                 className={`path-output${unsupported ? " path-output-unsupported" : ""}`}
@@ -252,6 +284,14 @@ function App() {
                 {copied ? "Copied" : "Copy"}
               </button>
             </div>
+            {selection.breadcrumb !== null && (
+              <Breadcrumb
+                ancestors={selection.breadcrumb.ancestors}
+                activeIndex={selection.breadcrumb.activeIndex}
+                labelOf={labelOf}
+                onWiden={handleWiden}
+              />
+            )}
             {note !== null && (
               <p className="match-note" aria-live="polite">
                 {note}
