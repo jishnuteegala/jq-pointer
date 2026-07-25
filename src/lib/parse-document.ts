@@ -46,7 +46,17 @@ function errorOffset(text: string, message: string): number {
   if (position !== null) return Math.min(text.length, Number(position[1]));
   const browser = browserOffset(text, message);
   if (browser !== null) return browser;
+  const webkit = webkitOffset(text, message);
+  if (webkit !== null) return webkit;
   return text.length;
+}
+
+function webkitOffset(text: string, message: string): number | null {
+  const token = message.match(/Unexpected (?:identifier|keyword|number) ["']([^"']+)["']/);
+  if (token === null) return null;
+  const masked = maskStrings(text);
+  const at = masked.indexOf(token[1]);
+  return at === -1 ? null : at;
 }
 
 function browserOffset(text: string, message: string): number | null {
@@ -124,7 +134,9 @@ function inputHint(text: string): string {
 
 function looksLikeJsLiteral(trimmed: string): boolean {
   const masked = maskStrings(trimmed);
-  return /^'|[{[,:]\s*'|[{,]\s*[\p{ID_Start}$\d][\p{ID_Continue}$]*\s*:|,\s*[}\]]/u.test(masked);
+  return /^'|[{[,:]\s*'|[{,]\s*(?:[\p{ID_Start}$][\p{ID_Continue}$]*|[\d.][\w.+-]*)\s*:|,\s*[}\]]/u.test(
+    masked,
+  );
 }
 
 function maskStrings(text: string): string {

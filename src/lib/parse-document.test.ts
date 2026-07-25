@@ -84,6 +84,14 @@ describe("parseDocument", () => {
     expect(caret.indexOf("^")).toBe(text.indexOf('"b":oops') + 4);
   });
 
+  it("locates the token from a WebKit-style identifier error outside strings", () => {
+    const text = '{"a": "oops", "b": oops}';
+    const excerpt = caretExcerpt(text, 'JSON Parse error: Unexpected identifier "oops"');
+    const [line, caret] = excerpt.split("\n");
+    expect(line).toBe(text);
+    expect(caret.indexOf("^")).toBe(text.indexOf('"b": oops') + 5);
+  });
+
   it("falls back to end of input when position metadata is missing", () => {
     const excerpt = caretExcerpt('{"a": 1', "is not valid JSON");
     const [line, caret] = excerpt.split("\n");
@@ -133,6 +141,10 @@ describe("parseDocument", () => {
     expect(numeric.kind === "error" && numeric.message).toContain("JavaScript literal");
     const unicode = parseDocument("{\u03c0: 1}");
     expect(unicode.kind === "error" && unicode.message).toContain("JavaScript literal");
+    const decimal = parseDocument('{1.5: "x"}');
+    expect(decimal.kind === "error" && decimal.message).toContain("JavaScript literal");
+    const hex = parseDocument("{0xff: 1}");
+    expect(hex.kind === "error" && hex.message).toContain("JavaScript literal");
   });
 
   it("detects a top-level single-quoted literal and single quotes in arrays", () => {
