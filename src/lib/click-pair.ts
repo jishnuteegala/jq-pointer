@@ -50,65 +50,50 @@ function stepThrows(node: ModelNode, step: PathStep): boolean {
   return typeof node.value !== "object" || Array.isArray(node.value);
 }
 
-function applyStep(node: ModelNode, step: PathStep, out: ModelNode[]): void {
-  if (step.kind === "iterate") {
-    if (node.children !== null) for (const child of node.children) out.push(child);
-  } else if (step.kind === "index") {
-    if (Array.isArray(node.value) && node.children !== null) {
-      const index = step.index < 0 ? node.children.length + step.index : step.index;
-      out.push(node.children[index] ?? nullNode(node));
-    } else if (node.value === null) {
-      out.push(nullNode(node));
-    }
-  } else if (node.value !== null && typeof node.value === "object" && node.children !== null) {
-    for (const child of node.children) {
-      if (child.segment?.kind === "key" && child.segment.key === step.key) {
-        out.push(child);
-        return;
-      }
-    }
-    out.push(nullNode(node));
-  } else if (node.value === null) {
-    out.push(nullNode(node));
-  }
-}
-
 function placeOptionals(
   ancestor: ModelNode,
   steps: PathStep[],
 ): { steps: PathStep[]; matches: ModelNode[]; matchCount: number } {
-  const placed: PathStep[] = [{ ...steps[0] }];
   const roots = ancestor.children ?? [];
-  let nodes = roots.slice();
-  let origins: number[] = roots.map((_, origin) => origin);
-  for (let index = 1; index < steps.length; index++) {
-    const step = steps[index];
-    let optional = false;
-    for (const node of nodes)
-      if (stepThrows(node, step)) {
-        optional = true;
-        break;
-      }
-    const resolved: PathStep = optional ? { ...step, optional: true } : { ...step };
-    placed.push(resolved);
-    const nextNodes: ModelNode[] = [];
-    const nextOrigins: number[] = [];
-    for (let i = 0; i < nodes.length; i++) {
-      const before = nextNodes.length;
-      applyStep(nodes[i], resolved, nextNodes);
-      for (let j = before; j < nextNodes.length; j++) nextOrigins.push(origins[i]);
-    }
-    nodes = nextNodes;
-    origins = nextOrigins;
-  }
-  const presentOrigins = new Set<number>();
+  const optionalAt: boolean[] = steps.map(() => false);
   const matches: ModelNode[] = [];
-  for (let i = 0; i < nodes.length; i++) {
-    if (!nodes[i].exists) continue;
-    matches.push(nodes[i]);
-    presentOrigins.add(origins[i]);
-  }
-  return { steps: placed, matches, matchCount: presentOrigins.size };
+  const visit = (node: ModelNode, index: number): boolean => {
+    if (index === steps.length) {
+      if (!node.exists) return false;
+      matches.push(node);
+      return true;
+    }
+    const step = steps[index];
+    if (stepThrows(node, step)) optionalAt[index] = true;
+    if (step.kind === "iterate") {
+      if (node.children === null) return false;
+      let matched = false;
+      for (const child of node.children) if (visit(child, index + 1)) matched = true;
+      return matched;
+    }
+    if (step.kind === "index") {
+      if (Array.isArray(node.value) && node.children !== null) {
+        const childIndex = step.index < 0 ? node.children.length + step.index : step.index;
+        return visit(node.children[childIndex] ?? nullNode(node), index + 1);
+      }
+      return node.value === null ? visit(nullNode(node), index + 1) : false;
+    }
+    if (node.value !== null && typeof node.value === "object" && node.children !== null) {
+      for (const child of node.children) {
+        if (child.segment?.kind === "key" && child.segment.key === step.key) {
+          return visit(child, index + 1);
+        }
+      }
+      return visit(nullNode(node), index + 1);
+    }
+    return node.value === null ? visit(nullNode(node), index + 1) : false;
+  };
+  let matchCount = 0;
+  for (const root of roots) if (visit(root, 1)) matchCount++;
+  const placed = steps.map((step, index) =>
+    optionalAt[index] ? { ...step, optional: true } : { ...step },
+  );
+  return { steps: placed, matches, matchCount };
 }
 
 export function generaliseClickPair(a: ModelNode, b: ModelNode): ClickPairResult | null {
