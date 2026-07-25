@@ -1,0 +1,10 @@
+{
+  "events": [
+    { "type": "push", "commits": [{ "sha": "a1" }] },
+    { "type": "comment", "body": "hi", "user": null },
+    { "type": "release", "tag": "v1.0", "assets": [] },
+    42,
+    "bare-string",
+    null
+  ]
+}

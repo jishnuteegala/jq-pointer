@@ -1,0 +1,11 @@
+{
+  "plain": 1,
+  "with space": 2,
+  "with/slash": 3,
+  "with~tilde": 4,
+  "\"quoted\"": 5,
+  "caf\u00e9": 6,
+  "\u65e5\u672c\u8a9e": 7,
+  "emoji \ud83d\ude00": 8,
+  "": 9
+}
