@@ -63,10 +63,10 @@ describe("App end-to-end", () => {
     await user.click(screen.getByLabelText("JSON document"));
     await user.paste('{"items": [{"name": "a"}, {"name": "b"}]}');
 
-    await user.click(within(row("items")).getByRole("button", { name: "Expand" }));
-    await user.click(within(row("[0]")).getByRole("button", { name: "Expand" }));
+    await user.click(within(row("items")).getByRole("button", { name: /^Expand / }));
+    await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
     await user.click(screen.getAllByText("name")[0]);
-    await user.click(within(row("[1]")).getByRole("button", { name: "Expand" }));
+    await user.click(within(row("[1]")).getByRole("button", { name: /^Expand / }));
     const names = screen.getAllByText("name");
     await user.click(names[names.length - 1]);
 

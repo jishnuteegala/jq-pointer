@@ -46,9 +46,13 @@ function generaliseSteps(a: PathSegment[], b: PathSegment[]): PathStep[] | null 
 function nodeUnsafe(node: ModelNode, step: PathStep): boolean {
   const value = node.value;
   if (step.kind === "iterate") return node.children === null;
-  if (value === null) return false;
-  if (step.kind === "index") return !Array.isArray(value);
-  if (typeof value !== "object" || Array.isArray(value)) return true;
+  if (step.kind === "index") {
+    if (!Array.isArray(value)) return true;
+    const length = node.children?.length ?? 0;
+    const at = step.index < 0 ? length + step.index : step.index;
+    return at < 0 || at >= length;
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return true;
   return (
     node.children?.some((c) => c.segment?.kind === "key" && c.segment.key === step.key) !== true
   );

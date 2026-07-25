@@ -131,6 +131,33 @@ describe("heterogeneity handling", () => {
     expect(result.elementCount).toBe(3);
   });
 
+  it("emits ? at the leaf when an element is null", () => {
+    const doc: JsonValue = { items: [{ name: "a" }, null, { name: "b" }] };
+    const result = pair(
+      doc,
+      (root) => child(at(child(root, "items"), 0), "name"),
+      (root) => child(at(child(root, "items"), 2), "name"),
+    );
+    expect(printPath(result.expression.steps)).toBe(".items[].name?");
+    expect(result.matchCount).toBe(2);
+    expect(result.elementCount).toBe(3);
+    expect(result.heterogeneous).toBe(true);
+  });
+
+  it("marks the mismatching intermediate level when a nested key is null", () => {
+    const doc: JsonValue = {
+      items: [{ a: { name: "x" } }, { a: null }, { a: { name: "z" } }],
+    };
+    const result = pair(
+      doc,
+      (root) => child(child(at(child(root, "items"), 0), "a"), "name"),
+      (root) => child(child(at(child(root, "items"), 2), "a"), "name"),
+    );
+    expect(printPath(result.expression.steps)).toBe(".items[].a.name?");
+    expect(result.matchCount).toBe(2);
+    expect(result.elementCount).toBe(3);
+  });
+
   it("applies ? at each mismatching nested iterator level", () => {
     const doc: JsonValue = {
       items: [{ children: [{ value: "a" }] }, { children: "x" }, { children: [{ value: "b" }] }],

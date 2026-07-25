@@ -209,7 +209,7 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
           <button
             type="button"
             className="tree-toggle"
-            aria-label={row.expanded ? "Collapse" : "Expand"}
+            aria-label={`${row.expanded ? "Collapse" : "Expand"} ${rowLabel(row.node)}`}
             aria-expanded={row.expanded}
             tabIndex={-1}
             onClick={(event) => {

@@ -59,4 +59,16 @@ describe("TreeView active descendant", () => {
     const tree = container.querySelector('[role="tree"]');
     expect(tree?.getAttribute("aria-multiselectable")).toBe("true");
   });
+
+  it("names each expand control with its row label so they are distinguishable", () => {
+    const { root } = buildPathModel({ items: [{ name: "a" }], other: [1] });
+    const { container } = render(
+      <TreeView root={root} highlighted={new Set()} onSelect={() => {}} />,
+    );
+    const labels = [...container.querySelectorAll("button.tree-toggle")].map((button) =>
+      button.getAttribute("aria-label"),
+    );
+    expect(labels).toContain("Expand items");
+    expect(labels).toContain("Expand other");
+  });
 });
