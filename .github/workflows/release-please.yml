@@ -33,6 +33,7 @@ jobs:
         id: target
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           CREATED_TAG: ${{ steps.release.outputs.tag_name }}
           RECOVER_TAG: ${{ inputs.recover_tag }}
         run: |
@@ -110,6 +111,7 @@ jobs:
         if: steps.target.outputs.has_release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           TAG_NAME: ${{ steps.target.outputs.tag }}
         run: gh release upload "$TAG_NAME" artifact/* --clobber
 
@@ -117,5 +119,6 @@ jobs:
         if: steps.target.outputs.has_release == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
           TAG_NAME: ${{ steps.target.outputs.tag }}
         run: gh release edit "$TAG_NAME" --draft=false
