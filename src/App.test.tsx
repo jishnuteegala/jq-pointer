@@ -116,6 +116,114 @@ describe("App end-to-end", () => {
     expect(row("$").getAttribute("class")).toContain("tree-row-focused");
   });
 
+  it("highlights the node set a pasted iterator expression selects without manual expanding", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [{"name": "a"}, {"name": "b"}]}');
+
+    const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
+    await user.click(filter);
+    await user.paste(".items[].name");
+
+    expect(screen.getByText("Highlighting 2 matching nodes.")).toBeDefined();
+    expect(row("name").getAttribute("aria-selected")).toBe("true");
+    const names = screen
+      .getAllByText("name")
+      .map((element) => element.closest('[role="treeitem"]'))
+      .filter((element): element is HTMLElement => element !== null);
+    expect(names).toHaveLength(2);
+    for (const item of names) expect(item.getAttribute("aria-selected")).toBe("true");
+    expect(row("items").getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("shows the explicit can't-preview state for unsupported filters", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"items": [1]}');
+    const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
+    await user.click(filter);
+    await user.paste(".items | map(select(.))");
+    expect(screen.getByText("Can't preview this filter.")).toBeDefined();
+    expect(filter.getAttribute("aria-invalid")).toBe("true");
+  });
+
+  it("round-trips a generated path back through the filter to the same node", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a-b": [{"if": true}]}');
+    await user.click(within(row("a-b")).getByText("a-b"));
+    await user.click(within(row("[0]")).getByText("[0]"));
+    await user.click(within(row("if")).getByText("if"));
+    const generated = screen.getByText('."a-b"[0]."if"').textContent;
+    if (generated === null) throw new Error("no generated path");
+
+    const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
+    await user.click(filter);
+    await user.paste(generated);
+
+    expect(screen.getByText("Highlighting 1 matching node.")).toBeDefined();
+    expect(row("if").getAttribute("aria-selected")).toBe("true");
+    expect(row("[0]").getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("reports a filter that errors on the document without highlighting", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"n": 5}');
+    const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
+    await user.click(filter);
+    await user.paste(".n[]");
+    expect(screen.getByText(/errors on this document/)).toBeDefined();
+    expect(row("n").getAttribute("aria-selected")).toBe("false");
+  });
+
+  it("drops the selected-node highlight while the filter is unsupported or erroring", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a": 1}');
+    await user.click(within(row("a")).getByText("a"));
+    expect(row("a").getAttribute("aria-selected")).toBe("true");
+
+    const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
+    await user.click(filter);
+    await user.paste("select(.a)");
+    expect(screen.getByText("Can't preview this filter.")).toBeDefined();
+    expect(row("a").getAttribute("aria-selected")).toBe("false");
+
+    await user.clear(filter);
+    await user.paste(".a[]");
+    expect(screen.getByText(/errors on this document/)).toBeDefined();
+    expect(row("a").getAttribute("aria-selected")).toBe("false");
+
+    await user.clear(filter);
+    expect(row("a").getAttribute("aria-selected")).toBe("true");
+  });
+
+  it("clears the filter highlight when a tree node is clicked", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a": 1, "b": 2}');
+    const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
+    await user.click(filter);
+    await user.paste(".a");
+    expect(row("a").getAttribute("aria-selected")).toBe("true");
+    await user.click(within(row("b")).getByText("b"));
+    expect(row("a").getAttribute("aria-selected")).toBe("false");
+    expect(row("b").getAttribute("aria-selected")).toBe("true");
+    expect((screen.getByLabelText(/Highlight nodes matching/) as HTMLInputElement).value).toBe("");
+  });
+
   it("discards a stale earlier file read when a newer drop resolves first", async () => {
     render(<App />);
     const input = screen.getByLabelText("JSON document");

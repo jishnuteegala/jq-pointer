@@ -240,6 +240,33 @@ textarea:focus-visible,
   }
 }
 
+.filter-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: ui-monospace, monospace;
+  font-size: 0.875rem;
+  padding: 0.5rem;
+  border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+}
+
+.filter-input:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.filter-status {
+  min-height: 1.25rem;
+  margin: 0.375rem 0 0.75rem;
+  font-size: 0.875rem;
+}
+
+.filter-status-unsupported {
+  color: #b42318;
+}
+
 .skip-link {
   position: absolute;
   left: -9999px;
