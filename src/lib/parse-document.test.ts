@@ -92,6 +92,50 @@ describe("parseDocument", () => {
     expect(caret.indexOf("^")).toBe(text.indexOf('"b": oops') + 5);
   });
 
+  it("locates the quote for Safari's single-quote error in multiline input", () => {
+    const text = "{\n  'a': 1,\n  \"b\": 2\n}";
+    const excerpt = caretExcerpt(
+      text,
+      "JSON Parse error: Single quotes (') are not allowed in JSON",
+    );
+    const [line, caret] = excerpt.split("\n");
+    expect(line).toBe("  'a': 1,");
+    expect(caret.indexOf("^")).toBe(line.indexOf("'"));
+  });
+
+  it("locates a single-quoted value for Safari's unpositioned error", () => {
+    const text = "{\n  \"a\": 'x'\n}";
+    const excerpt = caretExcerpt(
+      text,
+      "JSON Parse error: Single quotes (') are not allowed in JSON",
+    );
+    const [line, caret] = excerpt.split("\n");
+    expect(line).toBe("  \"a\": 'x'");
+    expect(caret.indexOf("^")).toBe(line.indexOf("'"));
+  });
+
+  it("locates the offending token for Safari errors without token metadata", () => {
+    const missingComma = '{\n  "a": 1\n  "b": 2\n}';
+    const excerpt = caretExcerpt(missingComma, "JSON Parse error: Expected '}'");
+    const [line, caret] = excerpt.split("\n");
+    expect(line).toBe('  "b": 2');
+    expect(caret.indexOf("^")).toBe(line.indexOf('"b"'));
+  });
+
+  it("scans past escapes and nested structures to find the error position", () => {
+    const text = '{"a": "q\\"uote", "b": [1, {"c": null}], "d": tru}';
+    const excerpt = caretExcerpt(text, "JSON Parse error: Unexpected character");
+    const [line, caret] = excerpt.split("\n");
+    expect(caret.indexOf("^")).toBe(line.indexOf("tru}"));
+  });
+
+  it("points at trailing garbage after a complete value", () => {
+    const text = '{"a": 1} garbage';
+    const excerpt = caretExcerpt(text, "JSON Parse error: Unexpected content at end");
+    const [line, caret] = excerpt.split("\n");
+    expect(caret.indexOf("^")).toBe(line.indexOf("garbage"));
+  });
+
   it("falls back to end of input when position metadata is missing", () => {
     const excerpt = caretExcerpt('{"a": 1', "is not valid JSON");
     const [line, caret] = excerpt.split("\n");

@@ -48,6 +48,8 @@ function errorOffset(text: string, message: string): number {
   if (browser !== null) return browser;
   const webkit = webkitOffset(text, message);
   if (webkit !== null) return webkit;
+  const scanned = scanOffset(text);
+  if (scanned !== null) return scanned;
   return text.length;
 }
 
@@ -57,6 +59,85 @@ function webkitOffset(text: string, message: string): number | null {
   const masked = maskStrings(text);
   const at = masked.indexOf(token[1]);
   return at === -1 ? null : at;
+}
+
+type ScanResult = { end: number } | { error: number };
+
+function scanOffset(text: string): number | null {
+  const start = skipWhitespace(text, 0);
+  if (start >= text.length) return null;
+  const result = scanValue(text, start);
+  if ("error" in result) return result.error;
+  const after = skipWhitespace(text, result.end);
+  return after < text.length ? after : null;
+}
+
+function skipWhitespace(text: string, index: number): number {
+  while (index < text.length && " \t\n\r".includes(text[index])) index++;
+  return index;
+}
+
+function scanValue(text: string, index: number): ScanResult {
+  const char = text[index];
+  if (char === "{") return scanObject(text, index);
+  if (char === "[") return scanArray(text, index);
+  if (char === '"') return scanString(text, index);
+  if (char === "-" || (char >= "0" && char <= "9")) return scanNumber(text, index);
+  for (const word of ["true", "false", "null"]) {
+    if (text.startsWith(word, index)) return { end: index + word.length };
+  }
+  return { error: Math.min(index, text.length) };
+}
+
+function scanObject(text: string, index: number): ScanResult {
+  index = skipWhitespace(text, index + 1);
+  if (text[index] === "}") return { end: index + 1 };
+  for (;;) {
+    if (text[index] !== '"') return { error: index };
+    const key = scanString(text, index);
+    if ("error" in key) return key;
+    index = skipWhitespace(text, key.end);
+    if (text[index] !== ":") return { error: index };
+    index = skipWhitespace(text, index + 1);
+    const value = scanValue(text, index);
+    if ("error" in value) return value;
+    index = skipWhitespace(text, value.end);
+    if (text[index] === "}") return { end: index + 1 };
+    if (text[index] !== ",") return { error: index };
+    index = skipWhitespace(text, index + 1);
+  }
+}
+
+function scanArray(text: string, index: number): ScanResult {
+  index = skipWhitespace(text, index + 1);
+  if (text[index] === "]") return { end: index + 1 };
+  for (;;) {
+    const value = scanValue(text, index);
+    if ("error" in value) return value;
+    index = skipWhitespace(text, value.end);
+    if (text[index] === "]") return { end: index + 1 };
+    if (text[index] !== ",") return { error: index };
+    index = skipWhitespace(text, index + 1);
+  }
+}
+
+function scanString(text: string, index: number): ScanResult {
+  for (let at = index + 1; at < text.length; at++) {
+    const char = text[at];
+    if (char === "\\") {
+      at++;
+      continue;
+    }
+    if (char === '"') return { end: at + 1 };
+    if (char === "\n" || char === "\r") return { error: at };
+  }
+  return { error: text.length };
+}
+
+function scanNumber(text: string, index: number): ScanResult {
+  const match = /^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?/.exec(text.slice(index));
+  if (match === null) return { error: index };
+  return { end: index + match[0].length };
 }
 
 function browserOffset(text: string, message: string): number | null {
