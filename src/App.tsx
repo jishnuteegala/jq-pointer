@@ -222,7 +222,7 @@ function App() {
       <a className="skip-link" href="#main-content">
         Skip to main content
       </a>
-      <main id="main-content">
+      <main id="main-content" className="page">
         <h1>jq-pointer</h1>
         <p>Paste or drop JSON, click the value you want, get the jq expression that extracts it.</p>
         <label className="input-label" htmlFor="json-input">
@@ -277,7 +277,7 @@ function App() {
               </output>
               <button
                 type="button"
-                className="copy-button"
+                className="button"
                 onClick={handleCopy}
                 disabled={path === null}
               >
@@ -336,6 +336,11 @@ function App() {
           </>
         )}
       </main>
+      <footer className="page site-footer">
+        <span>&copy; {new Date().getFullYear()} Jishnu Teegala</span>
+        <a href="https://jishnuteegala.com/privacy">Privacy</a>
+        <a href="https://github.com/jishnuteegala/jq-pointer">Source</a>
+      </footer>
     </>
   );
 }
