@@ -78,14 +78,19 @@ function runScenario(scenario: (typeof firstClickPairScenarios)[number]): Scenar
   return { id: scenario.id, pass: true, reason: printed };
 }
 
+const allowedMiss = "08-heterogeneous-array";
+
 oracle("corpus first-click-pair gate", () => {
   it("passes at least 9 of 10 corpus documents through real jq", () => {
     const results = firstClickPairScenarios.map(runScenario);
     const passes = results.filter((result) => result.pass).length;
+    const failing = results.filter((result) => !result.pass).map((result) => result.id);
     const report = results
       .map((result) => `${result.pass ? "PASS" : "FAIL"} ${result.id}: ${result.reason}`)
       .join("\n");
     expect(passes, `first-click-pair results (${passes}/10):\n${report}`).toBeGreaterThanOrEqual(9);
+    const unexpected = failing.filter((id) => id !== allowedMiss);
+    expect(unexpected, `only ${allowedMiss} may miss; unexpected failures:\n${report}`).toEqual([]);
   });
 
   it("round-trips every tool-generated expression through real jq for the non-null stream", () => {

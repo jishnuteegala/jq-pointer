@@ -17,6 +17,6 @@ Ten pinned documents for the first-click-pair acceptance corpus, per issue #3.
 
 ## Notes
 
-Docs 1, 2, 5, and 7 are byte-faithful snapshots of the exact sources in issue #3, taken at the recorded fetch date. Docs 5 and 7 are byte-equal to their upstream Kubernetes fixtures under canonical JSON.
+Docs 1, 2, 5, and 7 were fetched verbatim from the exact sources in issue #3 at the recorded fetch date, then reformatted with `oxfmt` to satisfy the repository's format gate. They are therefore not byte-identical to the raw responses, but each is semantically faithful: docs 5 and 7 remain equal to their upstream Kubernetes fixtures under canonical JSON (verified by re-parsing and re-serialising both).
 
 Doc 2 is a snapshot of the exact pinned endpoint (`per_page=3&state=all`). Issue #3 lists bot authors (`coderabbitai[bot]`), `pull_request` keys, and nullable `milestone` as characteristics this endpoint exercised when the corpus was pinned; the live endpoint has since drifted and the current top-3 issues no longer include a bot author or a `pull_request` key. The snapshot faithfully records what the pinned URL returns today (heterogeneous array of issue objects, nullable `milestone`), which is the source of truth for the fixture. Escaping and heterogeneity coverage that doc 2 no longer supplies is exercised instead by docs 8 (heterogeneous `?` form) and 9 (quoted/slashed/tilde/unicode/empty keys).
