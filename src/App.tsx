@@ -4,6 +4,7 @@ import { TreeView } from "./components/TreeView";
 import { printPath } from "./lib/jq-expression";
 import { MAX_DOCUMENT_BYTES, parseDocument, type ParseOutcome } from "./lib/parse-document";
 import { buildPathModel, pathTo, type ModelNode, type PathModel } from "./lib/path-model";
+import { reverseHighlight, type ReverseHighlight } from "./lib/reverse-highlight";
 
 function describeOutcome(outcome: ParseOutcome): string {
   if (outcome.kind === "too-large") {
@@ -28,6 +29,7 @@ function App() {
   const [version, setVersion] = useState(0);
   const [outcome, setOutcome] = useState<ParseOutcome | null>(null);
   const [selected, setSelected] = useState<ModelNode | null>(null);
+  const [filter, setFilter] = useState("");
   const [copied, setCopied] = useState(false);
   const [copyFailed, setCopyFailed] = useState(false);
   const loadGeneration = useRef(0);
@@ -49,13 +51,22 @@ function App() {
     return pathTo(selected).kind === "unsupported";
   }, [selected]);
 
-  const highlighted = useMemo(() => new Set(selected === null ? [] : [selected]), [selected]);
+  const preview: ReverseHighlight = useMemo(() => {
+    if (model === null) return { kind: "empty" };
+    return reverseHighlight(model.root, filter);
+  }, [model, filter]);
+
+  const highlighted = useMemo(() => {
+    if (preview.kind === "match") return new Set(preview.nodes);
+    return new Set(selected === null ? [] : [selected]);
+  }, [preview, selected]);
 
   const loadText = (value: string) => {
     loadGeneration.current += 1;
     setText(displayText(value));
     setVersion((previous) => previous + 1);
     setSelected(null);
+    setFilter("");
     setCopied(false);
     setCopyFailed(false);
     setOutcome(value.trim() === "" ? null : parseDocument(value));
@@ -114,8 +125,21 @@ function App() {
   const handleSelect = (node: ModelNode) => {
     copyGeneration.current += 1;
     setSelected(node);
+    setFilter("");
     setCopied(false);
     setCopyFailed(false);
+  };
+
+  const filterStatus = (): string => {
+    if (preview.kind === "unsupported") return "Can't preview this filter.";
+    if (preview.kind === "runtime-error")
+      return "This filter errors on this document, so there is nothing to highlight.";
+    if (preview.kind === "match") {
+      if (preview.nodes.length === 0) return "No nodes match this filter.";
+      if (preview.nodes.length === 1) return "Highlighting 1 matching node.";
+      return `Highlighting ${preview.nodes.length} matching nodes.`;
+    }
+    return "";
   };
 
   return (
@@ -171,6 +195,31 @@ function App() {
                 Couldn&apos;t copy to the clipboard. Select the path above and copy it manually.
               </p>
             )}
+            <label className="input-label" htmlFor="filter-input">
+              Highlight nodes matching a jq expression
+            </label>
+            <input
+              id="filter-input"
+              className="filter-input"
+              type="text"
+              value={filter}
+              onChange={(event: ChangeEvent<HTMLInputElement>) => setFilter(event.target.value)}
+              placeholder="Paste a jq expression, e.g. .items[].name"
+              spellCheck={false}
+              aria-invalid={preview.kind === "unsupported"}
+              aria-describedby="filter-status"
+            />
+            <p
+              id="filter-status"
+              className={`filter-status${
+                preview.kind === "unsupported" || preview.kind === "runtime-error"
+                  ? " filter-status-unsupported"
+                  : ""
+              }`}
+              aria-live="polite"
+            >
+              {filterStatus()}
+            </p>
             <TreeView
               key={version}
               root={model.root}
