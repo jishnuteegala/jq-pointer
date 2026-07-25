@@ -235,6 +235,8 @@ textarea:focus-visible,
 
 button.tree-toggle {
   cursor: pointer;
+  min-width: 1.5rem;
+  min-height: 1.5rem;
 }
 
 button.tree-toggle:focus-visible {

@@ -216,6 +216,7 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
               event.stopPropagation();
               focusRow(index);
               toggle(row.node);
+              containerRef.current?.focus();
             }}
           >
             {row.expanded ? "\u25be" : "\u25b8"}

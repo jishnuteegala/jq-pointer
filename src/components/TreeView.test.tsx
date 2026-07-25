@@ -71,4 +71,15 @@ describe("TreeView active descendant", () => {
     expect(labels).toContain("Expand items");
     expect(labels).toContain("Expand other");
   });
+
+  it("keeps focus on the tree after clicking an expand control", () => {
+    const { root } = buildPathModel({ items: [{ name: "a" }] });
+    const { container } = render(
+      <TreeView root={root} highlighted={new Set()} onSelect={() => {}} />,
+    );
+    const tree = container.querySelector('[role="tree"]') as HTMLElement;
+    const toggle = container.querySelector("button.tree-toggle") as HTMLElement;
+    fireEvent.click(toggle);
+    expect(document.activeElement).toBe(tree);
+  });
 });

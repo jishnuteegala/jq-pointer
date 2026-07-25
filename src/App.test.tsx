@@ -73,8 +73,13 @@ describe("App end-to-end", () => {
     expect(screen.getByText(".items[].name")).toBeDefined();
   });
 
-  it("shows a no-common-pattern note when two clicks cannot generalise", async () => {
+  it("shows a no-common-pattern note and copies a valid combined filter", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
     render(<App />);
     await user.click(screen.getByLabelText("JSON document"));
     await user.paste('{"a": [1], "b": [2]}');
@@ -88,6 +93,9 @@ describe("App end-to-end", () => {
     expect(screen.getByText(/No common pattern/)).toBeDefined();
     expect(screen.getByText(".a[0]")).toBeDefined();
     expect(screen.getByText(".b[0]")).toBeDefined();
+
+    await user.click(screen.getByRole("button", { name: "Copy" }));
+    expect(writeText).toHaveBeenCalledWith(".a[0], .b[0]");
   });
 
   it("surfaces a clipboard failure without crashing", async () => {

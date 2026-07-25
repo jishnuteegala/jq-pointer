@@ -74,15 +74,19 @@ function App() {
   const noCommonPattern =
     pair === null && clicks.length === 2 && areSiblingsInDocument(clicks[0], clicks[1]);
 
-  const path = useMemo(() => {
-    if (pair !== null) return printPath(pair.expression.steps);
+  const paths = useMemo<string[] | null>(() => {
+    if (pair !== null) return [printPath(pair.expression.steps)];
     if (noCommonPattern) {
       const both = [pathOf(clicks[0]), pathOf(clicks[1])];
-      if (both.every((value) => value !== null)) return both.join("\n");
+      if (both.every((value) => value !== null)) return both as string[];
     }
     if (selected === null) return null;
-    return pathOf(selected);
+    const single = pathOf(selected);
+    return single === null ? null : [single];
   }, [pair, selected, noCommonPattern, clicks]);
+
+  const path = useMemo(() => (paths === null ? null : paths.join("\n")), [paths]);
+  const copyText = useMemo(() => (paths === null ? null : paths.join(", ")), [paths]);
 
   const unsupported = useMemo(() => {
     if (pair !== null || noCommonPattern || selected === null) return false;
@@ -150,10 +154,10 @@ function App() {
   };
 
   const handleCopy = async () => {
-    if (path === null) return;
+    if (copyText === null) return;
     const generation = (copyGeneration.current += 1);
     try {
-      await navigator.clipboard.writeText(path);
+      await navigator.clipboard.writeText(copyText);
       if (generation !== copyGeneration.current) return;
       setCopied(true);
       setCopyFailed(false);
