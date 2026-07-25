@@ -98,13 +98,43 @@ function excerptAt(text: string, offset: number): string {
 
 function inputHint(text: string): string {
   const trimmed = text.trim();
-  if (/[{,]\s*'|[{,]\s*[a-zA-Z_$][\w$]*\s*:|,\s*[}\]]/.test(trimmed)) {
+  if (looksLikeJsLiteral(trimmed)) {
     return "This looks like a JavaScript literal, not strict JSON. ";
   }
   if (looksLikeNdjson(trimmed)) {
     return "This looks like NDJSON. Paste one JSON value instead. ";
   }
   return "";
+}
+
+function looksLikeJsLiteral(trimmed: string): boolean {
+  const masked = maskStrings(trimmed);
+  return /^'|[{[,:]\s*'|[{,]\s*[a-zA-Z_$][\w$]*\s*:|,\s*[}\]]/.test(masked);
+}
+
+function maskStrings(text: string): string {
+  let masked = "";
+  let inString = false;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (inString) {
+      if (char === "\\") {
+        masked += "  ";
+        index++;
+        continue;
+      }
+      if (char === '"') {
+        inString = false;
+        masked += char;
+      } else {
+        masked += char === "\n" ? "\n" : " ";
+      }
+      continue;
+    }
+    if (char === '"') inString = true;
+    masked += char;
+  }
+  return masked;
 }
 
 function looksLikeNdjson(trimmed: string): boolean {
