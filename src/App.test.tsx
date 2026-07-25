@@ -116,14 +116,11 @@ describe("App end-to-end", () => {
     expect(row("$").getAttribute("class")).toContain("tree-row-focused");
   });
 
-  it("highlights the node set a pasted iterator expression selects", async () => {
+  it("highlights the node set a pasted iterator expression selects without manual expanding", async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByLabelText("JSON document"));
     await user.paste('{"items": [{"name": "a"}, {"name": "b"}]}');
-    await user.click(within(row("items")).getByText("items"));
-    await user.click(within(row("[0]")).getByText("[0]"));
-    await user.click(within(row("[1]")).getByText("[1]"));
 
     const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
     await user.click(filter);

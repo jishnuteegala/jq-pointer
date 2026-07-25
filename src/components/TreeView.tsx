@@ -16,6 +16,23 @@ interface TreeViewProps {
 
 export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
   const [expanded, setExpanded] = useState<ReadonlySet<ModelNode>>(() => new Set([root]));
+
+  useEffect(() => {
+    setExpanded((previous) => {
+      let next: Set<ModelNode> | null = null;
+      for (const node of highlighted) {
+        let ancestor = node.parent;
+        while (ancestor !== null) {
+          if (!(next ?? previous).has(ancestor)) {
+            next ??= new Set(previous);
+            next.add(ancestor);
+          }
+          ancestor = ancestor.parent;
+        }
+      }
+      return next ?? previous;
+    });
+  }, [highlighted]);
   const [scrollTop, setScrollTop] = useState(0);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(INITIAL_VIEWPORT);
