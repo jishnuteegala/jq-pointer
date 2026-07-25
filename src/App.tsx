@@ -70,7 +70,7 @@ function App() {
     setFilter("");
     setCopied(false);
     setCopyFailed(false);
-    setOutcome(value.trim() === "" ? null : parseDocument(value));
+    setOutcome(parseDocument(value));
   };
 
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -164,9 +164,11 @@ function App() {
           onDragOver={(event: DragEvent<HTMLTextAreaElement>) => event.preventDefault()}
           placeholder="Paste JSON here or drop a file onto this box"
           spellCheck={false}
+          aria-invalid={outcome !== null && outcome.kind !== "ok"}
+          aria-describedby={outcome !== null && outcome.kind !== "ok" ? "parse-error" : undefined}
         />
         {outcome !== null && outcome.kind !== "ok" && (
-          <div className="parse-error" role="alert">
+          <div id="parse-error" className="parse-error" role="alert">
             <p>{describeOutcome(outcome)}</p>
             {outcome.kind === "error" && <pre>{outcome.excerpt}</pre>}
           </div>

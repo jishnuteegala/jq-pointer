@@ -18,35 +18,192 @@ export function parseDocument(text: string): ParseOutcome {
   } catch (error) {
     const detail = error instanceof Error ? error.message : "invalid JSON";
     const offset = errorOffset(text, detail);
-    const line = text.slice(0, offset).split("\n").length;
-    const column = offset - (text.lastIndexOf("\n", Math.max(0, offset - 1)) + 1) + 1;
+    const line = text.slice(0, offset).split(/\r\n|\r|\n/).length;
+    const column = offset - lineStartAt(text, offset) + 1;
     const message = `${inputHint(text)}${detail} (line ${line}, column ${column})`;
     return { kind: "error", message, excerpt: excerptAt(text, offset) };
   }
 }
 
 function errorOffset(text: string, message: string): number {
-  const lineColumn = message.match(/line (\d+) column (\d+)/);
+  const metadata = message.replace(/(\.\.\.)?"[\s\S]*"(\.\.\.)?\s+is not valid JSON/, "");
+  const lineColumn = metadata.match(/line (\d+) column (\d+)/);
   if (lineColumn !== null) {
     const line = Number(lineColumn[1]);
     const column = Number(lineColumn[2]);
     let lineStart = 0;
     let found = true;
     for (let seen = 1; seen < line; seen++) {
-      const next = text.indexOf("\n", lineStart);
-      if (next === -1) {
+      const end = lineEndAt(text, lineStart);
+      if (end === text.length) {
         found = false;
         break;
       }
-      lineStart = next + 1;
+      lineStart = end + (text[end] === "\r" && text[end + 1] === "\n" ? 2 : 1);
     }
     if (found) return Math.min(text.length, lineStart + column - 1);
   }
-  const position = message.match(/position (\d+)/);
+  const position = metadata.match(/position (\d+)/);
   if (position !== null) return Math.min(text.length, Number(position[1]));
+  const scanned = safeScanOffset(text);
+  if (scanned !== null) return scanned;
   const browser = browserOffset(text, message);
   if (browser !== null) return browser;
+  const webkit = webkitOffset(text, message);
+  if (webkit !== null) return webkit;
   return text.length;
+}
+
+function safeScanOffset(text: string): number | null {
+  try {
+    return scanOffset(text);
+  } catch {
+    return null;
+  }
+}
+
+function webkitOffset(text: string, message: string): number | null {
+  const token = message.match(/Unexpected (?:identifier|keyword|number) ["']([^"']+)["']/);
+  if (token === null) return null;
+  const masked = maskStrings(text);
+  const at = masked.indexOf(token[1]);
+  return at === -1 ? null : at;
+}
+
+type ScanResult = { end: number } | { error: number };
+
+function scanOffset(text: string): number | null {
+  const start = skipWhitespace(text, 0);
+  if (start >= text.length) return null;
+  const result = scanValue(text, start);
+  if ("error" in result) return result.error;
+  const after = skipWhitespace(text, result.end);
+  return after < text.length ? after : null;
+}
+
+function skipWhitespace(text: string, index: number): number {
+  while (index < text.length && " \t\n\r".includes(text[index])) index++;
+  return index;
+}
+
+function scanValue(text: string, index: number): ScanResult {
+  const stack: Array<"object" | "array"> = [];
+  for (;;) {
+    const opened = scanOpenOrLeaf(text, index);
+    if ("error" in opened) return opened;
+    let end: number;
+    if ("open" in opened) {
+      stack.push(opened.open);
+      index = opened.next;
+      continue;
+    } else {
+      end = opened.end;
+    }
+    for (;;) {
+      if (stack.length === 0) return { end };
+      const frame = stack[stack.length - 1];
+      const at = skipWhitespace(text, end);
+      if (text[at] === (frame === "object" ? "}" : "]")) {
+        stack.pop();
+        end = at + 1;
+        continue;
+      }
+      if (text[at] !== ",") return { error: at };
+      const next = scanEntryStart(text, skipWhitespace(text, at + 1), frame);
+      if (typeof next !== "number") return next;
+      index = next;
+      break;
+    }
+  }
+}
+
+type OpenOrLeaf = ScanResult | { open: "object" | "array"; next: number };
+
+function scanOpenOrLeaf(text: string, index: number): OpenOrLeaf {
+  const char = text[index];
+  if (char === "{" || char === "[") {
+    const at = skipWhitespace(text, index + 1);
+    if (text[at] === (char === "{" ? "}" : "]")) return { end: at + 1 };
+    const kind = char === "{" ? "object" : "array";
+    const next = scanEntryStart(text, at, kind);
+    if (typeof next !== "number") return next;
+    return { open: kind, next };
+  }
+  if (char === '"') return scanString(text, index);
+  if (char === "-" || (char >= "0" && char <= "9")) return scanNumber(text, index);
+  const literal = scanLiteral(text, index);
+  if (literal !== null) return literal;
+  return { error: Math.min(index, text.length) };
+}
+
+function scanEntryStart(
+  text: string,
+  index: number,
+  frame: "object" | "array",
+): number | { error: number } {
+  if (frame === "array") return index;
+  if (text[index] !== '"') return { error: index };
+  const key = scanString(text, index);
+  if ("error" in key) return key;
+  const afterKey = skipWhitespace(text, key.end);
+  if (text[afterKey] !== ":") return { error: afterKey };
+  return skipWhitespace(text, afterKey + 1);
+}
+
+function scanLiteral(text: string, index: number): ScanResult | null {
+  for (const word of ["true", "false", "null"]) {
+    if (text[index] !== word[0]) continue;
+    let matched = 0;
+    while (matched < word.length && text[index + matched] === word[matched]) matched++;
+    if (matched === word.length) return { end: index + word.length };
+    return { error: Math.min(index + matched, text.length) };
+  }
+  return null;
+}
+
+function scanString(text: string, index: number): ScanResult {
+  for (let at = index + 1; at < text.length; at++) {
+    const char = text[at];
+    if (char === "\\") {
+      const next = text[at + 1];
+      if (next !== undefined && '"\\/bfnrt'.includes(next)) {
+        at++;
+        continue;
+      }
+      if (next === "u" && /^[0-9a-fA-F]{4}$/.test(text.slice(at + 2, at + 6))) {
+        at += 5;
+        continue;
+      }
+      return { error: at };
+    }
+    if (char === '"') return { end: at + 1 };
+    if (char < " ") return { error: at };
+  }
+  return { error: text.length };
+}
+
+function scanNumber(text: string, index: number): ScanResult {
+  let at = index;
+  if (text[at] === "-") at++;
+  if (text[at] === "0") at++;
+  else if (isDigit(text[at])) while (isDigit(text[at])) at++;
+  else return { error: Math.min(at, text.length) };
+  if (text[at] === ".") {
+    at++;
+    if (!isDigit(text[at])) return { error: Math.min(at, text.length) };
+    while (isDigit(text[at])) at++;
+  }
+  if (text[at] === "e" || text[at] === "E") {
+    at++;
+    if (text[at] === "+" || text[at] === "-") at++;
+    if (!isDigit(text[at])) return { error: Math.min(at, text.length) };
+    while (isDigit(text[at])) at++;
+  }
+  return { end: at };
+}
+
+function isDigit(char: string | undefined): boolean {
+  return char !== undefined && char >= "0" && char <= "9";
 }
 
 function browserOffset(text: string, message: string): number | null {
@@ -59,15 +216,29 @@ function browserOffset(text: string, message: string): number | null {
   if (truncatedStart) {
     const base = text.indexOf(source);
     if (base === -1) return null;
-    const local = tokenOffset(source, marker);
+    const local = tokenOffset(source, marker, insideString(text, base));
     return local === -1 ? base : base + local;
   }
-  const at = tokenOffset(source, marker);
+  const at = tokenOffset(source, marker, false);
   return at === -1 ? null : Math.min(text.length, at);
 }
 
-function tokenOffset(source: string, marker: string): number {
+function insideString(text: string, end: number): boolean {
   let inString = false;
+  for (let index = 0; index < end; index++) {
+    const char = text[index];
+    if (inString) {
+      if (char === "\\") index++;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+  }
+  return inString;
+}
+
+function tokenOffset(source: string, marker: string, startInString: boolean): number {
+  let inString = startInString;
   let firstInString = -1;
   for (let index = 0; index < source.length; index++) {
     const char = source[index];
@@ -86,19 +257,32 @@ function tokenOffset(source: string, marker: string): number {
   return firstInString;
 }
 
+function lineStartAt(text: string, offset: number): number {
+  const newline = text.lastIndexOf("\n", Math.max(0, offset - 1));
+  const carriage = text.lastIndexOf("\r", Math.max(0, offset - 1));
+  return Math.max(newline, carriage) + 1;
+}
+
+function lineEndAt(text: string, offset: number): number {
+  for (let at = offset; at < text.length; at++) {
+    if (text[at] === "\n" || text[at] === "\r") return at;
+  }
+  return text.length;
+}
+
 function excerptAt(text: string, offset: number): string {
-  const lineStart = text.lastIndexOf("\n", Math.max(0, offset - 1)) + 1;
-  const lineEnd = text.indexOf("\n", offset);
-  const line = text.slice(lineStart, lineEnd === -1 ? text.length : lineEnd);
+  const lineStart = lineStartAt(text, offset);
+  const line = text.slice(lineStart, lineEndAt(text, offset));
   const column = offset - lineStart;
   const from = Math.max(0, column - 40);
   const shown = line.slice(from, from + 80);
-  return `${shown}\n${" ".repeat(column - from)}^`;
+  const prefix = shown.slice(0, column - from).replace(/[^\t]/g, " ");
+  return `${shown}\n${prefix}^`;
 }
 
 function inputHint(text: string): string {
   const trimmed = text.trim();
-  if (/[{,]\s*'|[{,]\s*[a-zA-Z_$][\w$]*\s*:|,\s*[}\]]/.test(trimmed)) {
+  if (looksLikeJsLiteral(trimmed)) {
     return "This looks like a JavaScript literal, not strict JSON. ";
   }
   if (looksLikeNdjson(trimmed)) {
@@ -107,8 +291,40 @@ function inputHint(text: string): string {
   return "";
 }
 
+function looksLikeJsLiteral(trimmed: string): boolean {
+  const masked = maskStrings(trimmed);
+  return /^'|[{[,:]\s*'|[{,]\s*(?:[\p{ID_Start}$][\p{ID_Continue}$]*|[\d.][\w.+-]*)\s*:|,\s*[}\]]/u.test(
+    masked,
+  );
+}
+
+function maskStrings(text: string): string {
+  let masked = "";
+  let inString = false;
+  for (let index = 0; index < text.length; index++) {
+    const char = text[index];
+    if (inString) {
+      if (char === "\\") {
+        masked += "  ";
+        index++;
+        continue;
+      }
+      if (char === '"') {
+        inString = false;
+        masked += char;
+      } else {
+        masked += char === "\n" ? "\n" : " ";
+      }
+      continue;
+    }
+    if (char === '"') inString = true;
+    masked += char;
+  }
+  return masked;
+}
+
 function looksLikeNdjson(trimmed: string): boolean {
-  const lines = trimmed.split("\n").filter((line) => line.trim() !== "");
+  const lines = trimmed.split(/\r\n|\r|\n/).filter((line) => line.trim() !== "");
   if (lines.length < 2) return false;
   return lines.every((line) => {
     try {

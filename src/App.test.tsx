@@ -101,6 +101,58 @@ describe("App end-to-end", () => {
     expect((screen.getByRole("button", { name: "Copy" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("shows a positioned parse error with a caret excerpt", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a": 1,\n  "b": oops}');
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toMatch(/line \d+, column \d+/);
+    expect(within(alert).getByText(/\^/)).toBeDefined();
+  });
+
+  it("marks the textarea invalid and associates it with the parse error", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const input = screen.getByLabelText("JSON document");
+    expect(input.getAttribute("aria-invalid")).toBe("false");
+    await user.click(input);
+    await user.paste("{oops}");
+    expect(input.getAttribute("aria-invalid")).toBe("true");
+    expect(input.getAttribute("aria-describedby")).toBe("parse-error");
+    expect(screen.getByRole("alert").id).toBe("parse-error");
+  });
+
+  it("shows a positioned error after clearing to whitespace, but none initially", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    expect(screen.queryByRole("alert")).toBeNull();
+    const input = screen.getByLabelText("JSON document");
+    await user.click(input);
+    await user.paste("   \n  ");
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toMatch(/line \d+, column \d+/);
+    expect(within(alert).getByText(/\^/)).toBeDefined();
+  });
+
+  it("names NDJSON input in the parse error without repairing it", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a": 1}\n{"a": 2}');
+    expect(screen.getByRole("alert").textContent).toContain("NDJSON");
+    expect(screen.queryByRole("tree")).toBeNull();
+  });
+
+  it("names JS-literal input in the parse error without repairing it", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste("{item: 1, other: 'x',}");
+    expect(screen.getByRole("alert").textContent).toContain("JavaScript literal");
+    expect(screen.queryByRole("tree")).toBeNull();
+  });
+
   it("navigates with Home, End, and treats ArrowRight on a leaf as a no-op", async () => {
     const user = userEvent.setup();
     render(<App />);

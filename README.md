@@ -23,6 +23,21 @@ pnpm dev
 | `pnpm bench`        | Run only the performance spike               |
 | `pnpm check`        | lint + format + typecheck + test             |
 
+## Input handling
+
+Parsing is strict `JSON.parse` only - there is no tolerant repair. Invalid input
+shows a positioned error with a caret excerpt of the offending line. NDJSON
+pastes and JavaScript-literal pastes (trailing commas, single quotes, unquoted
+keys) are detected heuristically and named in the error message without any
+repair.
+
+Two `JSON.parse` behaviours are inherited deliberately and produce no warning:
+
+- **Duplicate keys:** the last occurrence wins (`{"a": 1, "a": 2}` parses as
+  `{"a": 2}`).
+- **Number precision:** numbers beyond IEEE 754 double precision lose
+  precision (`9007199254740993` parses as `9007199254740992`).
+
 ## Performance spike (D7)
 
 The spike result and the main-thread vs worker decision are documented in
