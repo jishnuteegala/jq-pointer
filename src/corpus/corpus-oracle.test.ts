@@ -40,14 +40,14 @@ interface ScenarioResult {
 function runScenario(scenario: (typeof firstClickPairScenarios)[number]): ScenarioResult {
   const model = buildPathModel(scenario.document);
   const clicks = scenario.clicks.map((segments) => nodeAtSegments(model.root, segments));
-  const clickedValues = clicks.map((node) => node.value);
   const selection = resolveSelection(clicks);
   if (selection.noCommonPattern || selection.outputs.length !== 1) {
     return { id: scenario.id, pass: false, reason: "no single generalised output" };
   }
   const output = selection.outputs[0];
   const printed = printExpression(output.expression);
-  const preview = evaluateExpression(model.root, output.expression).map((node) => node.value);
+  const matches = evaluateExpression(model.root, output.expression);
+  const preview = matches.map((node) => node.value);
   const jqStream = flattenStream(
     runJq(scenario.document, printed),
     output.expression,
@@ -59,13 +59,13 @@ function runScenario(scenario: (typeof firstClickPairScenarios)[number]): Scenar
       reason: `jq ${printed} => ${JSON.stringify(jqStream)} != preview ${JSON.stringify(preview)}`,
     };
   }
-  const previewJson = preview.map((value) => JSON.stringify(value));
-  const missing = clickedValues.filter((value) => !previewJson.includes(JSON.stringify(value)));
+  const matched = new Set(matches);
+  const missing = clicks.filter((node) => !matched.has(node));
   if (missing.length > 0) {
     return {
       id: scenario.id,
       pass: false,
-      reason: `default ancestor dropped clicked values ${JSON.stringify(missing)}`,
+      reason: `default ancestor missed ${missing.length} clicked node(s)`,
     };
   }
   return { id: scenario.id, pass: true, reason: printed };
