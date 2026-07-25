@@ -37,8 +37,21 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(INITIAL_VIEWPORT);
   const containerRef = useRef<HTMLDivElement>(null);
+  const focusedNodeRef = useRef<ModelNode | null>(null);
   const treeId = useId();
   const tree = useMemo(() => visibleTree(root, expanded), [root, expanded]);
+
+  useEffect(() => {
+    const node = focusedNodeRef.current;
+    if (node === null) return;
+    let ancestor = node.parent;
+    while (ancestor !== null) {
+      if (!expanded.has(ancestor)) return;
+      ancestor = ancestor.parent;
+    }
+    const index = tree.indexOf(node);
+    setFocusedIndex((previous) => (previous === index ? previous : index));
+  }, [tree, expanded]);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -86,6 +99,7 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
   const focusRow = (index: number) => {
     const clamped = Math.max(0, Math.min(tree.total - 1, index));
     setFocusedIndex(clamped);
+    focusedNodeRef.current = tree.rowAt(clamped)?.node ?? null;
     const container = containerRef.current;
     if (container === null) return;
     const target = scrollTopForRow(

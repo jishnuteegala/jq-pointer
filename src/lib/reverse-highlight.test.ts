@@ -48,10 +48,11 @@ describe("reverseHighlight", () => {
     expect(reverseHighlight(model.root, ".items.name")).toEqual({ kind: "runtime-error" });
   });
 
-  it("round-trips every generated single-node path to exactly that node", () => {
+  it("round-trips every generated single-node path to exactly that node instance", () => {
     const documentModel = buildPathModel({
       "face \u{1F600}": { "a-b": [null, { if: [1, "x"] }] },
-      arr: [[0, 1], []],
+      arr: [[7, 7], [7]],
+      dup: 7,
       "": { " ": true },
     });
     const nodes: ModelNode[] = [documentModel.root];
@@ -62,8 +63,58 @@ describe("reverseHighlight", () => {
       const printed = printExpression({ kind: "path", steps: result.segments });
       const highlight = reverseHighlight(documentModel.root, printed);
       if (highlight.kind !== "match") throw new Error(`no match for ${printed}`);
-      expect(highlight.nodes).toEqual([node]);
+      expect(highlight.nodes).toHaveLength(1);
+      expect(highlight.nodes[0]).toBe(node);
     }
+  });
+
+  it("round-trips generated iterator and construction expressions to the exact node instances", () => {
+    const documentModel = buildPathModel({
+      items: [{ "a-b": 7, name: "x" }, { name: "x" }, 7],
+    });
+    const items = documentModel.root.children?.[0];
+    const first = items?.children?.[0];
+    const second = items?.children?.[1];
+    if (items === undefined || first === undefined || second === undefined)
+      throw new Error("missing nodes");
+
+    const iterator: JqExpression = {
+      kind: "path",
+      steps: [
+        { kind: "key", key: "items" },
+        { kind: "iterate" },
+        { kind: "key", key: "name", optional: true },
+      ],
+    };
+    const iterated = reverseHighlight(documentModel.root, printExpression(iterator));
+    if (iterated.kind !== "match") throw new Error("expected a match");
+    expect(iterated.nodes).toHaveLength(2);
+    expect(iterated.nodes[0]).toBe(first.children?.[1]);
+    expect(iterated.nodes[1]).toBe(second.children?.[0]);
+
+    const construction: JqExpression = {
+      kind: "construction",
+      source: {
+        kind: "path",
+        steps: [
+          { kind: "key", key: "items" },
+          { kind: "index", index: 0 },
+        ],
+      },
+      keys: ["a-b", "name"],
+    };
+    const constructed = reverseHighlight(documentModel.root, printExpression(construction));
+    if (constructed.kind !== "match") throw new Error("expected a match");
+    expect(constructed.nodes).toHaveLength(2);
+    expect(constructed.nodes[0]).toBe(first.children?.[0]);
+    expect(constructed.nodes[1]).toBe(first.children?.[1]);
+  });
+
+  it("reports construction over a scalar element as a runtime error like jq", () => {
+    const scalarModel = buildPathModel({ items: [7] });
+    expect(reverseHighlight(scalarModel.root, ".items[] | {name}")).toEqual({
+      kind: "runtime-error",
+    });
   });
 
   it.each<[JqExpression, unknown[]]>([

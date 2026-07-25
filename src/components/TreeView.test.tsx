@@ -26,4 +26,27 @@ describe("TreeView active descendant", () => {
     expect(scrolledId).toBe(activeId);
     expect(document.getElementById(scrolledId as string)).not.toBeNull();
   });
+
+  it("keeps the focused node active when auto-expansion shifts row indices", () => {
+    const { root } = buildPathModel({ a: { x: 1 }, b: 2 });
+    const nodeA = root.children?.[0];
+    const nodeX = nodeA?.children?.[0];
+    if (nodeA === undefined || nodeX === undefined) throw new Error("missing nodes");
+    const { container, rerender } = render(
+      <TreeView root={root} highlighted={new Set()} onSelect={() => {}} />,
+    );
+    const tree = container.querySelector('[role="tree"]');
+    if (tree === null) throw new Error("no tree");
+
+    fireEvent.keyDown(tree, { key: "End" });
+    const activeId = tree.getAttribute("aria-activedescendant");
+    expect(document.getElementById(activeId as string)?.textContent).toContain("b");
+
+    rerender(<TreeView root={root} highlighted={new Set([nodeX])} onSelect={() => {}} />);
+
+    const shiftedId = tree.getAttribute("aria-activedescendant");
+    const active = document.getElementById(shiftedId as string);
+    expect(active?.textContent).toContain("b");
+    expect(container.textContent).toContain("x");
+  });
 });
