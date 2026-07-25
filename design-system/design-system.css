@@ -32,3 +32,49 @@
   background: var(--color-accent);
   vertical-align: middle;
 }
+
+.ds-text {
+  background: var(--color-text);
+}
+.ds-bg {
+  background: var(--color-bg);
+}
+.ds-surface {
+  background: var(--color-surface);
+}
+.ds-border {
+  background: var(--color-border);
+}
+.ds-accent {
+  background: var(--color-accent);
+}
+.ds-danger {
+  background: var(--color-danger);
+}
+.ds-muted {
+  background: var(--color-muted);
+}
+.ds-font-body {
+  font-family: var(--font-body);
+}
+.ds-font-mono {
+  font-family: var(--font-mono);
+}
+.ds-w-1 {
+  width: var(--space-1);
+}
+.ds-w-2 {
+  width: var(--space-2);
+}
+.ds-w-3 {
+  width: var(--space-3);
+}
+.ds-w-4 {
+  width: var(--space-4);
+}
+.ds-w-5 {
+  width: var(--space-5);
+}
+.ds-w-6 {
+  width: var(--space-6);
+}
