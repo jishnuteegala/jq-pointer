@@ -48,6 +48,10 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
   );
   const windowRows = useMemo(() => tree.window(start, end), [tree, start, end]);
   const focusVisible = focusedIndex >= start && focusedIndex < end;
+  const pinnedRow = useMemo(
+    () => (focusVisible ? undefined : tree.rowAt(focusedIndex)),
+    [focusVisible, tree, focusedIndex],
+  );
 
   const toggle = (node: ModelNode) => {
     setExpanded((previous) => {
@@ -135,53 +139,55 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
     }
   };
 
+  const renderRow = (row: TreeRow, index: number) => {
+    const selected = highlighted.has(row.node);
+    return (
+      <div
+        key={index}
+        id={`${treeId}-row-${index}`}
+        role="treeitem"
+        aria-level={row.depth + 1}
+        aria-posinset={row.posInSet}
+        aria-setsize={row.setSize}
+        aria-expanded={row.expandable ? row.expanded : undefined}
+        aria-selected={selected}
+        tabIndex={-1}
+        className={`tree-row${selected ? " tree-row-highlighted" : ""}${
+          index === focusedIndex ? " tree-row-focused" : ""
+        }`}
+        style={{ top: offsetFor(index), paddingLeft: `${row.depth * 1.25 + 0.5}rem` }}
+        onClick={() => {
+          focusRow(index);
+          activateRow(row);
+        }}
+        onKeyDown={(event) => {
+          event.stopPropagation();
+          handleKeyDown(event);
+        }}
+      >
+        <span className="tree-toggle" aria-hidden="true">
+          {row.expandable ? (row.expanded ? "\u25be" : "\u25b8") : ""}
+        </span>
+        <span className="tree-label">{rowLabel(row.node)}</span>
+        <span className="tree-value">{valuePreview(row.node)}</span>
+      </div>
+    );
+  };
+
   return (
     <div
       ref={containerRef}
       className="tree-view"
       role="tree"
       aria-label="JSON document tree"
-      aria-activedescendant={focusVisible ? `${treeId}-row-${focusedIndex}` : undefined}
+      aria-activedescendant={`${treeId}-row-${focusedIndex}`}
       tabIndex={0}
       onScroll={handleScroll}
       onKeyDown={handleKeyDown}
     >
       <div className="tree-spacer" style={{ height: spacerHeight }}>
-        {windowRows.map((row, offset) => {
-          const index = start + offset;
-          const selected = highlighted.has(row.node);
-          return (
-            <div
-              key={index}
-              id={`${treeId}-row-${index}`}
-              role="treeitem"
-              aria-level={row.depth + 1}
-              aria-posinset={row.posInSet}
-              aria-setsize={row.setSize}
-              aria-expanded={row.expandable ? row.expanded : undefined}
-              aria-selected={selected}
-              tabIndex={-1}
-              className={`tree-row${selected ? " tree-row-highlighted" : ""}${
-                index === focusedIndex ? " tree-row-focused" : ""
-              }`}
-              style={{ top: offsetFor(index), paddingLeft: `${row.depth * 1.25 + 0.5}rem` }}
-              onClick={() => {
-                focusRow(index);
-                activateRow(row);
-              }}
-              onKeyDown={(event) => {
-                event.stopPropagation();
-                handleKeyDown(event);
-              }}
-            >
-              <span className="tree-toggle" aria-hidden="true">
-                {row.expandable ? (row.expanded ? "\u25be" : "\u25b8") : ""}
-              </span>
-              <span className="tree-label">{rowLabel(row.node)}</span>
-              <span className="tree-value">{valuePreview(row.node)}</span>
-            </div>
-          );
-        })}
+        {windowRows.map((row, offset) => renderRow(row, start + offset))}
+        {pinnedRow !== undefined && renderRow(pinnedRow, focusedIndex)}
       </div>
     </div>
   );
