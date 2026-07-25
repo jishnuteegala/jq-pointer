@@ -93,7 +93,8 @@ function excerptAt(text: string, offset: number): string {
   const column = offset - lineStart;
   const from = Math.max(0, column - 40);
   const shown = line.slice(from, from + 80);
-  return `${shown}\n${" ".repeat(column - from)}^`;
+  const prefix = shown.slice(0, column - from).replace(/[^\t]/g, " ");
+  return `${shown}\n${prefix}^`;
 }
 
 function inputHint(text: string): string {
@@ -109,7 +110,7 @@ function inputHint(text: string): string {
 
 function looksLikeJsLiteral(trimmed: string): boolean {
   const masked = maskStrings(trimmed);
-  return /^'|[{[,:]\s*'|[{,]\s*[a-zA-Z_$][\w$]*\s*:|,\s*[}\]]/.test(masked);
+  return /^'|[{[,:]\s*'|[{,]\s*[\p{ID_Start}$\d][\p{ID_Continue}$]*\s*:|,\s*[}\]]/u.test(masked);
 }
 
 function maskStrings(text: string): string {

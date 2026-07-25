@@ -108,6 +108,22 @@ describe("parseDocument", () => {
     expect(trailing.kind === "error" && trailing.message).toContain("JavaScript literal");
   });
 
+  it("preserves tab indentation when positioning the caret", () => {
+    const text = '{\n\t"a": oops\n}';
+    const excerpt = caretExcerpt(text, "Unexpected token at line 2 column 7");
+    const [line, caret] = excerpt.split("\n");
+    expect(line).toBe('\t"a": oops');
+    expect(caret).toBe("\t     ^");
+    expect(caret.indexOf("^")).toBe(line.indexOf("oops"));
+  });
+
+  it("detects numeric and unicode unquoted keys as JavaScript literals", () => {
+    const numeric = parseDocument('{1: "x"}');
+    expect(numeric.kind === "error" && numeric.message).toContain("JavaScript literal");
+    const unicode = parseDocument("{\u03c0: 1}");
+    expect(unicode.kind === "error" && unicode.message).toContain("JavaScript literal");
+  });
+
   it("detects a top-level single-quoted literal and single quotes in arrays", () => {
     const outcome = parseDocument("'hello'");
     expect(outcome.kind === "error" && outcome.message).toContain("JavaScript literal");
