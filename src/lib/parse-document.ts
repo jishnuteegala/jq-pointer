@@ -59,15 +59,29 @@ function browserOffset(text: string, message: string): number | null {
   if (truncatedStart) {
     const base = text.indexOf(source);
     if (base === -1) return null;
-    const local = tokenOffset(source, marker);
+    const local = tokenOffset(source, marker, insideString(text, base));
     return local === -1 ? base : base + local;
   }
-  const at = tokenOffset(source, marker);
+  const at = tokenOffset(source, marker, false);
   return at === -1 ? null : Math.min(text.length, at);
 }
 
-function tokenOffset(source: string, marker: string): number {
+function insideString(text: string, end: number): boolean {
   let inString = false;
+  for (let index = 0; index < end; index++) {
+    const char = text[index];
+    if (inString) {
+      if (char === "\\") index++;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') inString = true;
+  }
+  return inString;
+}
+
+function tokenOffset(source: string, marker: string, startInString: boolean): number {
+  let inString = startInString;
   let firstInString = -1;
   for (let index = 0; index < source.length; index++) {
     const char = source[index];
