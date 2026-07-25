@@ -92,9 +92,24 @@ describe("heterogeneity handling", () => {
       (root) => child(at(child(root, "items"), 0), "name"),
       (root) => child(at(child(root, "items"), 2), "name"),
     );
+    expect(printPath(result.expression.steps)).toBe(".items[].name");
     expect(result.matchCount).toBe(2);
     expect(result.elementCount).toBe(3);
     expect(result.heterogeneous).toBe(true);
+  });
+
+  it("generalises divergent nested indices to nested iterators", () => {
+    const doc: JsonValue = {
+      data: [{ items: [{ name: "a" }, { name: "b" }] }, { items: [{ name: "c" }] }],
+    };
+    const result = pair(
+      doc,
+      (root) => child(at(child(at(child(root, "data"), 0), "items"), 1), "name"),
+      (root) => child(at(child(at(child(root, "data"), 1), "items"), 0), "name"),
+    );
+    expect(printPath(result.expression.steps)).toBe(".data[].items[].name");
+    expect(result.matchCount).toBe(2);
+    expect(result.elementCount).toBe(2);
   });
 
   it("applies ? at each mismatching nested iterator level", () => {

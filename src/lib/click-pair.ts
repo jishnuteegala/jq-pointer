@@ -32,8 +32,8 @@ function generaliseSteps(a: PathSegment[], b: PathSegment[]): PathStep[] | null 
     if (index === 0) {
       if (segA.kind !== "index" || segB.kind !== "index" || segA.index === segB.index) return null;
       steps.push({ kind: "iterate" });
-    } else if (segA.kind === "index" && segB.kind === "index" && segA.index === segB.index) {
-      steps.push({ ...segA });
+    } else if (segA.kind === "index" && segB.kind === "index") {
+      steps.push(segA.index === segB.index ? { ...segA } : { kind: "iterate" });
     } else if (segA.kind === "key" && segB.kind === "key" && segA.key === segB.key) {
       steps.push({ ...segA });
     } else {

@@ -4,7 +4,7 @@ import { platform } from "node:os";
 import { array, assert, boolean, constantFrom, oneof, property, tuple } from "fast-check";
 import { describe, expect, it } from "vitest";
 import { generaliseClickPair } from "./click-pair";
-import { printPath } from "./jq-expression";
+import { evaluateJqExpression, printPath } from "./jq-expression";
 import type { JsonValue } from "./json-value";
 import { buildPathModel, type ModelNode } from "./path-model";
 
@@ -64,7 +64,7 @@ oracle("click-pair heterogeneity oracle", () => {
     );
   });
 
-  it("emits a ? form that evaluates in jq without error", () => {
+  it("emits a ? form whose full value stream matches real jq exactly", () => {
     assert(
       property(array(element, { minLength: 2, maxLength: 8 }), (items) => {
         const model = buildPathModel({ items });
@@ -73,11 +73,10 @@ oracle("click-pair heterogeneity oracle", () => {
         const result = generaliseClickPair(pair[0], pair[1]);
         if (result === null) throw new Error("expected generalisation");
         const printed = printPath(result.expression.steps);
-        const jqValues = runJq({ items }, printed);
-        const previewValues = result.matches.map((node) => node.value);
-        expect(jqValues.filter((value) => value !== null)).toEqual(
-          previewValues.filter((value) => value !== null),
+        const evaluated = evaluateJqExpression(model.root, result.expression).map(
+          (node) => node.value,
         );
+        expect(evaluated).toEqual(runJq({ items }, printed));
       }),
       { numRuns: 200, seed: 43 },
     );

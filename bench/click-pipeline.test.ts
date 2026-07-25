@@ -81,13 +81,19 @@ describe("runClickPair", () => {
     expect(runClickPair(a, b)).toBeNull();
   });
 
-  it("returns null when nested indices differ", () => {
+  it("generalises differing nested indices to a nested iterator", () => {
     const nested: JsonValue = {
       items: [{ tags: ["x", "y"] }, { tags: ["p", "q"] }],
     };
     const m = buildPathModel(nested);
     const a = descend(m.root, ["items", 0, "tags", 0]);
     const b = descend(m.root, ["items", 1, "tags", 1]);
-    expect(runClickPair(a, b)).toBeNull();
+    const result = runClickPair(a, b);
+    expect(result?.steps).toEqual([
+      { kind: "iterate" },
+      { kind: "key", key: "tags" },
+      { kind: "iterate" },
+    ]);
+    expect(result?.matches.map((n) => n.value)).toEqual(["x", "y", "p", "q"]);
   });
 });
