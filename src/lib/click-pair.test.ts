@@ -131,6 +131,26 @@ describe("heterogeneity handling", () => {
     expect(result.elementCount).toBe(3);
   });
 
+  it("applies ? to a nested iterator when an element's array is empty", () => {
+    const doc: JsonValue = {
+      items: [
+        { children: [{ value: "a" }, { value: "b" }] },
+        { children: [] },
+        { children: [{ value: "c" }] },
+      ],
+    };
+    const result = pair(
+      doc,
+      (root) => child(at(child(at(child(root, "items"), 0), "children"), 1), "value"),
+      (root) => child(at(child(at(child(root, "items"), 2), "children"), 0), "value"),
+    );
+    expect(printPath(result.expression.steps)).toBe(".items[].children[]?.value");
+    expect(result.matches.map((node) => node.value)).toEqual(["a", "b", "c"]);
+    expect(result.matchCount).toBe(2);
+    expect(result.elementCount).toBe(3);
+    expect(result.heterogeneous).toBe(true);
+  });
+
   it("emits ? at the leaf when an element is null", () => {
     const doc: JsonValue = { items: [{ name: "a" }, null, { name: "b" }] };
     const result = pair(

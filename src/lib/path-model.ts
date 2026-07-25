@@ -101,7 +101,7 @@ export function pathTo(node: ModelNode): PathResult {
   return { kind: "path", segments };
 }
 
-export function childByKey(node: ModelNode, key: string): ModelNode | undefined {
+function childByKey(node: ModelNode, key: string): ModelNode | undefined {
   if (node.children === null) return undefined;
   for (const child of node.children) {
     if (child.segment?.kind === "key" && child.segment.key === key) return child;
@@ -145,7 +145,7 @@ function applyStep(node: ModelNode, step: PathStep, out: ModelNode[]): void {
   }
 }
 
-export function evaluateStepsFrom(roots: ModelNode[], steps: PathStep[]): ModelNode[] {
+function evaluateStepsFrom(roots: ModelNode[], steps: PathStep[]): ModelNode[] {
   let current: ModelNode[] = roots;
   for (const step of steps) {
     const next: ModelNode[] = [];
@@ -156,7 +156,7 @@ export function evaluateStepsFrom(roots: ModelNode[], steps: PathStep[]): ModelN
 }
 
 function stepUnsafe(node: ModelNode, step: PathStep): boolean {
-  if (step.kind === "iterate") return node.children === null;
+  if (step.kind === "iterate") return node.children === null || node.children.length === 0;
   if (step.kind === "index") {
     if (!Array.isArray(node.value) || node.children === null) return true;
     const at = step.index < 0 ? node.children.length + step.index : step.index;
@@ -167,11 +167,6 @@ function stepUnsafe(node: ModelNode, step: PathStep): boolean {
   return childByKey(node, step.key) === undefined;
 }
 
-/**
- * Applies each step once over the whole frontier in a single forward pass, recording
- * per-step whether any node needed optional (`?`) semantics. Steps are evaluated as if
- * optional so heterogeneous data never throws.
- */
 export function evaluateTrace(
   roots: ModelNode[],
   steps: PathStep[],
@@ -198,7 +193,7 @@ export function matchingNodes(root: ModelNode, steps: PathStep[]): ModelNode[] {
   return evaluateSteps(root, steps).filter((node) => node.exists);
 }
 
-export function nullNode(parent: ModelNode): ModelNode {
+function nullNode(parent: ModelNode): ModelNode {
   return {
     value: null,
     parent,
