@@ -101,6 +101,34 @@ describe("App end-to-end", () => {
     expect((screen.getByRole("button", { name: "Copy" }) as HTMLButtonElement).disabled).toBe(true);
   });
 
+  it("shows a positioned parse error with a caret excerpt", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a": 1,\n  "b": oops}');
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toMatch(/line \d+, column \d+/);
+    expect(within(alert).getByText(/\^/)).toBeDefined();
+  });
+
+  it("names NDJSON input in the parse error without repairing it", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a": 1}\n{"a": 2}');
+    expect(screen.getByRole("alert").textContent).toContain("NDJSON");
+    expect(screen.queryByRole("tree")).toBeNull();
+  });
+
+  it("names JS-literal input in the parse error without repairing it", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste("{item: 1, other: 'x',}");
+    expect(screen.getByRole("alert").textContent).toContain("JavaScript literal");
+    expect(screen.queryByRole("tree")).toBeNull();
+  });
+
   it("navigates with Home, End, and treats ArrowRight on a leaf as a no-op", async () => {
     const user = userEvent.setup();
     render(<App />);
