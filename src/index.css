@@ -6,7 +6,7 @@
   --color-accent: #2563eb;
   --color-accent-contrast: #ffffff;
   --color-danger: #b42318;
-  --color-muted: #52607a;
+  --color-muted: #4a5871;
   --font-body: system-ui, sans-serif;
   --font-mono: ui-monospace, monospace;
   --font-size-body: 1rem;
@@ -54,6 +54,11 @@ input {
 
 .skip-link:focus-visible {
   left: 0;
+}
+
+::placeholder {
+  color: var(--color-muted);
+  opacity: 1;
 }
 
 .input-label {
@@ -196,7 +201,7 @@ input {
 }
 
 .tree-row-highlighted:hover {
-  background: color-mix(in srgb, var(--color-accent) 32%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 
 .tree-row-focused {

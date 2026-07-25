@@ -585,3 +585,39 @@ describe("App end-to-end", () => {
     expect(row("fast")).toBeDefined();
   });
 });
+
+describe("shipping baseline", () => {
+  it("renders a skip link that targets the main content", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    const skip = screen.getByRole("link", { name: "Skip to main content" });
+    expect(skip.getAttribute("href")).toBe("#main-content");
+    const main = screen.getByRole("main");
+    expect(main.id).toBe("main-content");
+    await user.tab();
+    expect(document.activeElement).toBe(skip);
+  });
+
+  it("renders the footer with copyright, privacy, and source links", () => {
+    render(<App />);
+    const footer = screen.getByRole("contentinfo");
+    expect(footer.textContent).toContain("Jishnu Teegala");
+    expect(within(footer).getByRole("link", { name: "Privacy" }).getAttribute("href")).toBe(
+      "https://jishnuteegala.com/privacy",
+    );
+    expect(within(footer).getByRole("link", { name: "Source" }).getAttribute("href")).toBe(
+      "https://github.com/jishnuteegala/jq-pointer",
+    );
+  });
+
+  it("never writes document content to the URL", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"secret-key": "secret-value"}');
+    await user.click(within(row("secret-key")).getByText("secret-key"));
+    expect(window.location.href).not.toContain("secret");
+    expect(window.location.search).toBe("");
+    expect(window.location.hash).toBe("");
+  });
+});
