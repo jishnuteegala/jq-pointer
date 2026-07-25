@@ -22,19 +22,19 @@ describe("parseDocument", () => {
     expect(parseDocument(text).kind).toBe("too-large");
   });
 
-  it("reports a parse error for invalid JSON", () => {
+  it("reports a parse error with position and excerpt for invalid JSON", () => {
     const outcome = parseDocument('{"a": 1,\n  "b": oops}');
     expect(outcome.kind).toBe("error");
     if (outcome.kind === "error") {
-      expect(outcome.message).toContain("JSON");
+      expect(outcome.message).toMatch(/line \d+, column \d+/);
+      expect(outcome.excerpt).toContain("^");
     }
   });
 
   it("builds a caret excerpt from line and column metadata", () => {
     const text = '{"a": 1,\n  "b": oops}';
     const excerpt = caretExcerpt(text, "Unexpected token at line 2 column 8");
-    expect(excerpt).not.toBeNull();
-    const [line, caret] = (excerpt as string).split("\n");
+    const [line, caret] = excerpt.split("\n");
     expect(line).toBe('  "b": oops}');
     expect(caret.indexOf("^")).toBe(line.indexOf("oops"));
   });
@@ -42,13 +42,24 @@ describe("parseDocument", () => {
   it("builds a caret excerpt from position metadata", () => {
     const text = '{"a": oops}';
     const excerpt = caretExcerpt(text, "Unexpected token o in JSON at position 6");
-    expect(excerpt).not.toBeNull();
-    const [line, caret] = (excerpt as string).split("\n");
+    const [line, caret] = excerpt.split("\n");
     expect(caret.indexOf("^")).toBe(line.indexOf("oops"));
   });
 
-  it("returns null for messages without position metadata", () => {
-    expect(caretExcerpt("{", "is not valid JSON")).toBeNull();
+  it("falls back to end of input when position metadata is missing", () => {
+    const excerpt = caretExcerpt('{"a": 1', "is not valid JSON");
+    const [line, caret] = excerpt.split("\n");
+    expect(line).toBe('{"a": 1');
+    expect(caret.indexOf("^")).toBe(line.length);
+  });
+
+  it("reports position for truncated documents", () => {
+    const outcome = parseDocument('{"a": [1, 2');
+    expect(outcome.kind).toBe("error");
+    if (outcome.kind === "error") {
+      expect(outcome.message).toMatch(/line 1, column \d+/);
+      expect(outcome.excerpt.split("\n")[1]).toContain("^");
+    }
   });
 
   it("names likely NDJSON input", () => {
@@ -65,8 +76,9 @@ describe("parseDocument", () => {
     expect(trailing.kind === "error" && trailing.message).toContain("JavaScript literal");
   });
 
-  it("still reports an error when position metadata is unavailable", () => {
+  it("still reports an error with an excerpt for empty input", () => {
     const outcome = parseDocument("");
     expect(outcome.kind).toBe("error");
+    if (outcome.kind === "error") expect(outcome.excerpt).toContain("^");
   });
 });

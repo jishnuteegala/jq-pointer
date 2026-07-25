@@ -94,53 +94,58 @@ function App() {
   };
 
   return (
-    <main>
-      <h1>jq-pointer</h1>
-      <p>Paste or drop JSON, click the value you want, get the jq expression that extracts it.</p>
-      <label className="input-label" htmlFor="json-input">
-        JSON document
-      </label>
-      <textarea
-        id="json-input"
-        className="json-input"
-        value={text}
-        onChange={handleChange}
-        onPaste={handlePaste}
-        onDrop={handleDrop}
-        onDragOver={(event: DragEvent<HTMLTextAreaElement>) => event.preventDefault()}
-        placeholder="Paste JSON here or drop a file onto this box"
-        spellCheck={false}
-      />
-      {outcome !== null && outcome.kind !== "ok" && (
-        <div className="parse-error" role="alert">
-          <p>{describeOutcome(outcome)}</p>
-          {outcome.kind === "error" && outcome.excerpt !== null && <pre>{outcome.excerpt}</pre>}
-        </div>
-      )}
-      {model !== null && (
-        <>
-          <div className="path-bar">
-            <output className="path-output" aria-live="polite">
-              {path ?? "Click a value in the tree to get its jq path"}
-            </output>
-            <button
-              type="button"
-              className="copy-button"
-              onClick={handleCopy}
-              disabled={path === null}
-            >
-              {copied ? "Copied" : "Copy"}
-            </button>
+    <>
+      <a className="skip-link" href="#main-content">
+        Skip to main content
+      </a>
+      <main id="main-content">
+        <h1>jq-pointer</h1>
+        <p>Paste or drop JSON, click the value you want, get the jq expression that extracts it.</p>
+        <label className="input-label" htmlFor="json-input">
+          JSON document
+        </label>
+        <textarea
+          id="json-input"
+          className="json-input"
+          value={text}
+          onChange={handleChange}
+          onPaste={handlePaste}
+          onDrop={handleDrop}
+          onDragOver={(event: DragEvent<HTMLTextAreaElement>) => event.preventDefault()}
+          placeholder="Paste JSON here or drop a file onto this box"
+          spellCheck={false}
+        />
+        {outcome !== null && outcome.kind !== "ok" && (
+          <div className="parse-error" role="alert">
+            <p>{describeOutcome(outcome)}</p>
+            {outcome.kind === "error" && <pre>{outcome.excerpt}</pre>}
           </div>
-          <TreeView
-            key={version}
-            root={model.root}
-            highlighted={highlighted}
-            onSelect={handleSelect}
-          />
-        </>
-      )}
-    </main>
+        )}
+        {model !== null && (
+          <>
+            <div className="path-bar">
+              <output className="path-output" aria-live="polite">
+                {path ?? "Click a value in the tree to get its jq path"}
+              </output>
+              <button
+                type="button"
+                className="copy-button"
+                onClick={handleCopy}
+                disabled={path === null}
+              >
+                {copied ? "Copied" : "Copy"}
+              </button>
+            </div>
+            <TreeView
+              key={version}
+              root={model.root}
+              highlighted={highlighted}
+              onSelect={handleSelect}
+            />
+          </>
+        )}
+      </main>
+    </>
   );
 }
 

@@ -1,7 +1,7 @@
 import { useId, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent, UIEvent } from "react";
 import type { ModelNode } from "../lib/path-model";
-import { flattenVisible, rowLabel, valuePreview, type TreeRow } from "../lib/tree-rows";
+import { rowLabel, valuePreview, visibleTree, type TreeRow } from "../lib/tree-rows";
 import { computeWindow, scrollTopForRow } from "../lib/virtual-scroll";
 
 const ROW_HEIGHT = 28;
@@ -19,16 +19,17 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
   const [focusedIndex, setFocusedIndex] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
   const treeId = useId();
-  const rows = useMemo(() => flattenVisible(root, expanded), [root, expanded]);
+  const tree = useMemo(() => visibleTree(root, expanded), [root, expanded]);
 
   const viewportHeight = containerRef.current?.clientHeight ?? 480;
   const { spacerHeight, start, end, offsetFor } = computeWindow(
-    rows.length,
+    tree.total,
     ROW_HEIGHT,
     scrollTop,
     viewportHeight,
     OVERSCAN,
   );
+  const windowRows = useMemo(() => tree.window(start, end), [tree, start, end]);
   const focusVisible = focusedIndex >= start && focusedIndex < end;
 
   const toggle = (node: ModelNode) => {
@@ -45,13 +46,13 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
   };
 
   const focusRow = (index: number) => {
-    const clamped = Math.max(0, Math.min(rows.length - 1, index));
+    const clamped = Math.max(0, Math.min(tree.total - 1, index));
     setFocusedIndex(clamped);
     const container = containerRef.current;
     if (container === null) return;
     const target = scrollTopForRow(
       clamped,
-      rows.length,
+      tree.total,
       ROW_HEIGHT,
       container.scrollTop,
       container.clientHeight,
@@ -73,10 +74,10 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
       (event.key.startsWith("Arrow") || event.key === "Enter" || event.key === " ")
     ) {
       event.preventDefault();
-      focusRow(Math.min(rows.length - 1, start + OVERSCAN));
+      focusRow(Math.min(tree.total - 1, start + OVERSCAN));
       return;
     }
-    const row = rows[focusedIndex];
+    const row = tree.rowAt(focusedIndex);
     if (row === undefined) return;
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -91,10 +92,7 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
     } else if (event.key === "ArrowLeft") {
       event.preventDefault();
       if (row.expandable && row.expanded) toggle(row.node);
-      else {
-        const parentIndex = rows.findIndex((candidate) => candidate.node === row.node.parent);
-        if (parentIndex !== -1) focusRow(parentIndex);
-      }
+      else if (row.node.parent !== null) focusRow(tree.indexOf(row.node.parent));
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       activateRow(row);
@@ -113,7 +111,7 @@ export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
       onKeyDown={handleKeyDown}
     >
       <div className="tree-spacer" style={{ height: spacerHeight }}>
-        {rows.slice(start, end).map((row, offset) => {
+        {windowRows.map((row, offset) => {
           const index = start + offset;
           const selected = highlighted.has(row.node);
           return (

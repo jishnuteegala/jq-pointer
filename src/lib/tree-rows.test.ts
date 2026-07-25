@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildPathModel, type ModelNode } from "./path-model";
-import { flattenVisible, rowLabel, valuePreview } from "./tree-rows";
+import { flattenVisible, rowLabel, valuePreview, visibleTree } from "./tree-rows";
 import type { JsonValue } from "./json-value";
 
 const doc: JsonValue = {
@@ -47,6 +47,47 @@ describe("flattenVisible", () => {
       "2/3",
       "3/3",
     ]);
+  });
+});
+
+describe("visibleTree", () => {
+  const model = buildPathModel(doc);
+
+  it("matches flattenVisible for full windows", () => {
+    const items = model.root.children?.[0] as ModelNode;
+    const expanded = new Set([model.root, items]);
+    const tree = visibleTree(model.root, expanded);
+    const flat = flattenVisible(model.root, expanded);
+    expect(tree.total).toBe(flat.length);
+    expect(tree.window(0, tree.total)).toEqual(flat);
+  });
+
+  it("returns only the requested window", () => {
+    const items = model.root.children?.[0] as ModelNode;
+    const expanded = new Set([model.root, items]);
+    const tree = visibleTree(model.root, expanded);
+    const window = tree.window(2, 4);
+    expect(labels(window)).toEqual(["2:[0]", "2:[1]"]);
+    expect(tree.rowAt(5)).toEqual(flattenVisible(model.root, expanded)[5]);
+  });
+
+  it("maps nodes back to their visible index", () => {
+    const items = model.root.children?.[0] as ModelNode;
+    const expanded = new Set([model.root, items]);
+    const tree = visibleTree(model.root, expanded);
+    const flat = flattenVisible(model.root, expanded);
+    for (let index = 0; index < flat.length; index++) {
+      expect(tree.indexOf(flat[index].node)).toBe(index);
+    }
+  });
+
+  it("windows a large scalar array without materialising all rows", () => {
+    const big = buildPathModel(Array.from({ length: 100000 }, (_, index) => index));
+    const tree = visibleTree(big.root, new Set([big.root]));
+    expect(tree.total).toBe(100001);
+    const window = tree.window(99990, 100001);
+    expect(window).toHaveLength(11);
+    expect(labels(window)[10]).toBe("1:[99999]");
   });
 });
 

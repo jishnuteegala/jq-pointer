@@ -5,7 +5,7 @@ export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 export type ParseOutcome =
   | { kind: "ok"; value: JsonValue }
   | { kind: "too-large"; bytes: number; limit: number }
-  | { kind: "error"; message: string; excerpt: string | null };
+  | { kind: "error"; message: string; excerpt: string };
 
 export function parseDocument(text: string): ParseOutcome {
   const bytes = new TextEncoder().encode(text).length;
@@ -17,9 +17,44 @@ export function parseDocument(text: string): ParseOutcome {
     return { kind: "ok", value };
   } catch (error) {
     const detail = error instanceof Error ? error.message : "invalid JSON";
-    const message = `${inputHint(text)}${detail}`;
-    return { kind: "error", message, excerpt: caretExcerpt(text, detail) };
+    const offset = errorOffset(text, detail);
+    const line = text.slice(0, offset).split("\n").length;
+    const column = offset - (text.lastIndexOf("\n", Math.max(0, offset - 1)) + 1) + 1;
+    const message = `${inputHint(text)}${detail} (line ${line}, column ${column})`;
+    return { kind: "error", message, excerpt: excerptAt(text, offset) };
   }
+}
+
+function errorOffset(text: string, message: string): number {
+  const lineColumn = message.match(/line (\d+) column (\d+)/);
+  if (lineColumn !== null) {
+    const line = Number(lineColumn[1]);
+    const column = Number(lineColumn[2]);
+    let lineStart = 0;
+    let found = true;
+    for (let seen = 1; seen < line; seen++) {
+      const next = text.indexOf("\n", lineStart);
+      if (next === -1) {
+        found = false;
+        break;
+      }
+      lineStart = next + 1;
+    }
+    if (found) return Math.min(text.length, lineStart + column - 1);
+  }
+  const position = message.match(/position (\d+)/);
+  if (position !== null) return Math.min(text.length, Number(position[1]));
+  return text.length;
+}
+
+function excerptAt(text: string, offset: number): string {
+  const lineStart = text.lastIndexOf("\n", Math.max(0, offset - 1)) + 1;
+  const lineEnd = text.indexOf("\n", offset);
+  const line = text.slice(lineStart, lineEnd === -1 ? text.length : lineEnd);
+  const column = offset - lineStart;
+  const from = Math.max(0, column - 40);
+  const shown = line.slice(from, from + 80);
+  return `${shown}\n${" ".repeat(column - from)}^`;
 }
 
 function inputHint(text: string): string {
@@ -33,29 +68,6 @@ function inputHint(text: string): string {
   return "";
 }
 
-export function caretExcerpt(text: string, message: string): string | null {
-  const lineColumn = message.match(/line (\d+) column (\d+)/);
-  const position = message.match(/position (\d+)/);
-  let offset: number | null = null;
-  if (lineColumn !== null) {
-    const line = Number(lineColumn[1]);
-    const column = Number(lineColumn[2]);
-    let lineStart = 0;
-    for (let seen = 1; seen < line; seen++) {
-      const next = text.indexOf("\n", lineStart);
-      if (next === -1) return null;
-      lineStart = next + 1;
-    }
-    offset = lineStart + column - 1;
-  } else if (position !== null) {
-    offset = Number(position[1]);
-  }
-  if (offset === null || offset > text.length) return null;
-  const lineStart = text.lastIndexOf("\n", Math.max(0, offset - 1)) + 1;
-  const lineEnd = text.indexOf("\n", offset);
-  const line = text.slice(lineStart, lineEnd === -1 ? text.length : lineEnd);
-  const column = offset - lineStart;
-  const from = Math.max(0, column - 40);
-  const shown = line.slice(from, from + 80);
-  return `${shown}\n${" ".repeat(column - from)}^`;
+export function caretExcerpt(text: string, message: string): string {
+  return excerptAt(text, errorOffset(text, message));
 }

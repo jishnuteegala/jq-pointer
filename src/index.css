@@ -239,3 +239,18 @@ textarea:focus-visible,
     transition: background-color 120ms ease;
   }
 }
+
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  background: #2563eb;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 0 0 4px 0;
+  z-index: 10;
+}
+
+.skip-link:focus-visible {
+  left: 0;
+}
