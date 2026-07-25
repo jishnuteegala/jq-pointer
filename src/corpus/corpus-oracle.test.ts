@@ -2,11 +2,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { platform } from "node:os";
 import { describe, expect, it } from "vitest";
-import {
-  evaluateExpression,
-  printExpression,
-  type JqExpression,
-} from "../lib/jq-expression";
+import { evaluateExpression, printExpression, type JqExpression } from "../lib/jq-expression";
 import type { JsonValue } from "../lib/json-value";
 import { buildPathModel } from "../lib/path-model";
 import { resolveSelection } from "../lib/selection";
@@ -32,9 +28,7 @@ function runJq(document: unknown, expression: string): unknown[] {
 function flattenStream(raw: unknown[], expression: JqExpression): unknown[] {
   if (expression.kind === "path") return raw;
   const keys = [...new Set(expression.keys)];
-  return raw.flatMap((object) =>
-    keys.map((key) => (object as Record<string, unknown>)[key]),
-  );
+  return raw.flatMap((object) => keys.map((key) => (object as Record<string, unknown>)[key]));
 }
 
 interface ScenarioResult {
@@ -66,9 +60,7 @@ function runScenario(scenario: (typeof firstClickPairScenarios)[number]): Scenar
     };
   }
   const previewJson = preview.map((value) => JSON.stringify(value));
-  const missing = clickedValues.filter(
-    (value) => !previewJson.includes(JSON.stringify(value)),
-  );
+  const missing = clickedValues.filter((value) => !previewJson.includes(JSON.stringify(value)));
   if (missing.length > 0) {
     return {
       id: scenario.id,

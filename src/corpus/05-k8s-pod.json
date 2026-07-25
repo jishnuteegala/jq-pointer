@@ -28,9 +28,7 @@
         "blockOwnerDeletion": true
       }
     ],
-    "finalizers": [
-      "finalizersValue"
-    ],
+    "finalizers": ["finalizersValue"],
     "managedFields": [
       {
         "manager": "managerValue",
@@ -99,9 +97,7 @@
           "iscsiInterface": "iscsiInterfaceValue",
           "fsType": "fsTypeValue",
           "readOnly": true,
-          "portals": [
-            "portalsValue"
-          ],
+          "portals": ["portalsValue"],
           "chapAuthDiscovery": true,
           "chapAuthSession": true,
           "secretRef": {
@@ -119,9 +115,7 @@
           "readOnly": true
         },
         "rbd": {
-          "monitors": [
-            "monitorsValue"
-          ],
+          "monitors": ["monitorsValue"],
           "image": "imageValue",
           "fsType": "fsTypeValue",
           "pool": "poolValue",
@@ -152,9 +146,7 @@
           }
         },
         "cephfs": {
-          "monitors": [
-            "monitorsValue"
-          ],
+          "monitors": ["monitorsValue"],
           "path": "pathValue",
           "user": "userValue",
           "secretFile": "secretFileValue",
@@ -188,15 +180,11 @@
           "defaultUser": 3
         },
         "fc": {
-          "targetWWNs": [
-            "targetWWNsValue"
-          ],
+          "targetWWNs": ["targetWWNsValue"],
           "lun": 2,
           "fsType": "fsTypeValue",
           "readOnly": true,
-          "wwids": [
-            "wwidsValue"
-          ]
+          "wwids": ["wwidsValue"]
         },
         "azureFile": {
           "secretName": "secretNameValue",
@@ -305,9 +293,7 @@
                     {
                       "key": "keyValue",
                       "operator": "operatorValue",
-                      "values": [
-                        "valuesValue"
-                      ]
+                      "values": ["valuesValue"]
                     }
                   ]
                 },
@@ -400,9 +386,7 @@
                   "blockOwnerDeletion": true
                 }
               ],
-              "finalizers": [
-                "finalizersValue"
-              ],
+              "finalizers": ["finalizersValue"],
               "managedFields": [
                 {
                   "manager": "managerValue",
@@ -416,9 +400,7 @@
               ]
             },
             "spec": {
-              "accessModes": [
-                "accessModesValue"
-              ],
+              "accessModes": ["accessModesValue"],
               "selector": {
                 "matchLabels": {
                   "matchLabelsKey": "matchLabelsValue"
@@ -427,9 +409,7 @@
                   {
                     "key": "keyValue",
                     "operator": "operatorValue",
-                    "values": [
-                      "valuesValue"
-                    ]
+                    "values": ["valuesValue"]
                   }
                 ]
               },
@@ -469,12 +449,8 @@
       {
         "name": "nameValue",
         "image": "imageValue",
-        "command": [
-          "commandValue"
-        ],
-        "args": [
-          "argsValue"
-        ],
+        "command": ["commandValue"],
+        "args": ["argsValue"],
         "workingDir": "workingDirValue",
         "ports": [
           {
@@ -557,9 +533,7 @@
             "action": "actionValue",
             "exitCodes": {
               "operator": "operatorValue",
-              "values": [
-                2
-              ]
+              "values": [2]
             }
           }
         ],
@@ -572,9 +546,7 @@
             "subPath": "subPathValue",
             "mountPropagation": "mountPropagationValue",
             "subPathExpr": "subPathExprValue",
-            "bindMountOptions": [
-              "bindMountOptionsValue"
-            ]
+            "bindMountOptions": ["bindMountOptionsValue"]
           }
         ],
         "volumeDevices": [
@@ -585,9 +557,7 @@
         ],
         "livenessProbe": {
           "exec": {
-            "command": [
-              "commandValue"
-            ]
+            "command": ["commandValue"]
           },
           "httpGet": {
             "path": "pathValue",
@@ -620,9 +590,7 @@
         },
         "readinessProbe": {
           "exec": {
-            "command": [
-              "commandValue"
-            ]
+            "command": ["commandValue"]
           },
           "httpGet": {
             "path": "pathValue",
@@ -655,9 +623,7 @@
         },
         "startupProbe": {
           "exec": {
-            "command": [
-              "commandValue"
-            ]
+            "command": ["commandValue"]
           },
           "httpGet": {
             "path": "pathValue",
@@ -691,9 +657,7 @@
         "lifecycle": {
           "postStart": {
             "exec": {
-              "command": [
-                "commandValue"
-              ]
+              "command": ["commandValue"]
             },
             "httpGet": {
               "path": "pathValue",
@@ -718,9 +682,7 @@
           },
           "preStop": {
             "exec": {
-              "command": [
-                "commandValue"
-              ]
+              "command": ["commandValue"]
             },
             "httpGet": {
               "path": "pathValue",
@@ -750,12 +712,8 @@
         "imagePullPolicy": "imagePullPolicyValue",
         "securityContext": {
           "capabilities": {
-            "add": [
-              "addValue"
-            ],
-            "drop": [
-              "dropValue"
-            ]
+            "add": ["addValue"],
+            "drop": ["dropValue"]
           },
           "privileged": true,
           "seLinuxOptions": {
@@ -794,12 +752,8 @@
       {
         "name": "nameValue",
         "image": "imageValue",
-        "command": [
-          "commandValue"
-        ],
-        "args": [
-          "argsValue"
-        ],
+        "command": ["commandValue"],
+        "args": ["argsValue"],
         "workingDir": "workingDirValue",
         "ports": [
           {
@@ -882,9 +836,7 @@
             "action": "actionValue",
             "exitCodes": {
               "operator": "operatorValue",
-              "values": [
-                2
-              ]
+              "values": [2]
             }
           }
         ],
@@ -897,9 +849,7 @@
             "subPath": "subPathValue",
             "mountPropagation": "mountPropagationValue",
             "subPathExpr": "subPathExprValue",
-            "bindMountOptions": [
-              "bindMountOptionsValue"
-            ]
+            "bindMountOptions": ["bindMountOptionsValue"]
           }
         ],
         "volumeDevices": [
@@ -910,9 +860,7 @@
         ],
         "livenessProbe": {
           "exec": {
-            "command": [
-              "commandValue"
-            ]
+            "command": ["commandValue"]
           },
           "httpGet": {
             "path": "pathValue",
@@ -945,9 +893,7 @@
         },
         "readinessProbe": {
           "exec": {
-            "command": [
-              "commandValue"
-            ]
+            "command": ["commandValue"]
           },
           "httpGet": {
             "path": "pathValue",
@@ -980,9 +926,7 @@
         },
         "startupProbe": {
           "exec": {
-            "command": [
-              "commandValue"
-            ]
+            "command": ["commandValue"]
           },
           "httpGet": {
             "path": "pathValue",
@@ -1016,9 +960,7 @@
         "lifecycle": {
           "postStart": {
             "exec": {
-              "command": [
-                "commandValue"
-              ]
+              "command": ["commandValue"]
             },
             "httpGet": {
               "path": "pathValue",
@@ -1043,9 +985,7 @@
           },
           "preStop": {
             "exec": {
-              "command": [
-                "commandValue"
-              ]
+              "command": ["commandValue"]
             },
             "httpGet": {
               "path": "pathValue",
@@ -1075,12 +1015,8 @@
         "imagePullPolicy": "imagePullPolicyValue",
         "securityContext": {
           "capabilities": {
-            "add": [
-              "addValue"
-            ],
-            "drop": [
-              "dropValue"
-            ]
+            "add": ["addValue"],
+            "drop": ["dropValue"]
           },
           "privileged": true,
           "seLinuxOptions": {
@@ -1119,12 +1055,8 @@
       {
         "name": "nameValue",
         "image": "imageValue",
-        "command": [
-          "commandValue"
-        ],
-        "args": [
-          "argsValue"
-        ],
+        "command": ["commandValue"],
+        "args": ["argsValue"],
         "workingDir": "workingDirValue",
         "ports": [
           {
@@ -1207,9 +1139,7 @@
             "action": "actionValue",
             "exitCodes": {
               "operator": "operatorValue",
-              "values": [
-                2
-              ]
+              "values": [2]
             }
           }
         ],
@@ -1222,9 +1152,7 @@
             "subPath": "subPathValue",
             "mountPropagation": "mountPropagationValue",
             "subPathExpr": "subPathExprValue",
-            "bindMountOptions": [
-              "bindMountOptionsValue"
-            ]
+            "bindMountOptions": ["bindMountOptionsValue"]
           }
         ],
         "volumeDevices": [
@@ -1235,9 +1163,7 @@
         ],
         "livenessProbe": {
           "exec": {
-            "command": [
-              "commandValue"
-            ]
+            "command": ["commandValue"]
           },
           "httpGet": {
             "path": "pathValue",
@@ -1270,9 +1196,7 @@
         },
         "readinessProbe": {
           "exec": {
-            "command": [
-              "commandValue"
-            ]
+            "command": ["commandValue"]
           },
           "httpGet": {
             "path": "pathValue",
@@ -1305,9 +1229,7 @@
         },
         "startupProbe": {
           "exec": {
-            "command": [
-              "commandValue"
-            ]
+            "command": ["commandValue"]
           },
           "httpGet": {
             "path": "pathValue",
@@ -1341,9 +1263,7 @@
         "lifecycle": {
           "postStart": {
             "exec": {
-              "command": [
-                "commandValue"
-              ]
+              "command": ["commandValue"]
             },
             "httpGet": {
               "path": "pathValue",
@@ -1368,9 +1288,7 @@
           },
           "preStop": {
             "exec": {
-              "command": [
-                "commandValue"
-              ]
+              "command": ["commandValue"]
             },
             "httpGet": {
               "path": "pathValue",
@@ -1400,12 +1318,8 @@
         "imagePullPolicy": "imagePullPolicyValue",
         "securityContext": {
           "capabilities": {
-            "add": [
-              "addValue"
-            ],
-            "drop": [
-              "dropValue"
-            ]
+            "add": ["addValue"],
+            "drop": ["dropValue"]
           },
           "privileged": true,
           "seLinuxOptions": {
@@ -1472,9 +1386,7 @@
       "runAsUser": 2,
       "runAsGroup": 6,
       "runAsNonRoot": true,
-      "supplementalGroups": [
-        4
-      ],
+      "supplementalGroups": [4],
       "supplementalGroupsPolicy": "supplementalGroupsPolicyValue",
       "fsGroup": 5,
       "sysctls": [
@@ -1510,18 +1422,14 @@
                 {
                   "key": "keyValue",
                   "operator": "operatorValue",
-                  "values": [
-                    "valuesValue"
-                  ]
+                  "values": ["valuesValue"]
                 }
               ],
               "matchFields": [
                 {
                   "key": "keyValue",
                   "operator": "operatorValue",
-                  "values": [
-                    "valuesValue"
-                  ]
+                  "values": ["valuesValue"]
                 }
               ]
             }
@@ -1535,18 +1443,14 @@
                 {
                   "key": "keyValue",
                   "operator": "operatorValue",
-                  "values": [
-                    "valuesValue"
-                  ]
+                  "values": ["valuesValue"]
                 }
               ],
               "matchFields": [
                 {
                   "key": "keyValue",
                   "operator": "operatorValue",
-                  "values": [
-                    "valuesValue"
-                  ]
+                  "values": ["valuesValue"]
                 }
               ]
             }
@@ -1564,15 +1468,11 @@
                 {
                   "key": "keyValue",
                   "operator": "operatorValue",
-                  "values": [
-                    "valuesValue"
-                  ]
+                  "values": ["valuesValue"]
                 }
               ]
             },
-            "namespaces": [
-              "namespacesValue"
-            ],
+            "namespaces": ["namespacesValue"],
             "topologyKey": "topologyKeyValue",
             "namespaceSelector": {
               "matchLabels": {
@@ -1582,18 +1482,12 @@
                 {
                   "key": "keyValue",
                   "operator": "operatorValue",
-                  "values": [
-                    "valuesValue"
-                  ]
+                  "values": ["valuesValue"]
                 }
               ]
             },
-            "matchLabelKeys": [
-              "matchLabelKeysValue"
-            ],
-            "mismatchLabelKeys": [
-              "mismatchLabelKeysValue"
-            ]
+            "matchLabelKeys": ["matchLabelKeysValue"],
+            "mismatchLabelKeys": ["mismatchLabelKeysValue"]
           }
         ],
         "preferredDuringSchedulingIgnoredDuringExecution": [
@@ -1608,15 +1502,11 @@
                   {
                     "key": "keyValue",
                     "operator": "operatorValue",
-                    "values": [
-                      "valuesValue"
-                    ]
+                    "values": ["valuesValue"]
                   }
                 ]
               },
-              "namespaces": [
-                "namespacesValue"
-              ],
+              "namespaces": ["namespacesValue"],
               "topologyKey": "topologyKeyValue",
               "namespaceSelector": {
                 "matchLabels": {
@@ -1626,18 +1516,12 @@
                   {
                     "key": "keyValue",
                     "operator": "operatorValue",
-                    "values": [
-                      "valuesValue"
-                    ]
+                    "values": ["valuesValue"]
                   }
                 ]
               },
-              "matchLabelKeys": [
-                "matchLabelKeysValue"
-              ],
-              "mismatchLabelKeys": [
-                "mismatchLabelKeysValue"
-              ]
+              "matchLabelKeys": ["matchLabelKeysValue"],
+              "mismatchLabelKeys": ["mismatchLabelKeysValue"]
             }
           }
         ]
@@ -1653,15 +1537,11 @@
                 {
                   "key": "keyValue",
                   "operator": "operatorValue",
-                  "values": [
-                    "valuesValue"
-                  ]
+                  "values": ["valuesValue"]
                 }
               ]
             },
-            "namespaces": [
-              "namespacesValue"
-            ],
+            "namespaces": ["namespacesValue"],
             "topologyKey": "topologyKeyValue",
             "namespaceSelector": {
               "matchLabels": {
@@ -1671,18 +1551,12 @@
                 {
                   "key": "keyValue",
                   "operator": "operatorValue",
-                  "values": [
-                    "valuesValue"
-                  ]
+                  "values": ["valuesValue"]
                 }
               ]
             },
-            "matchLabelKeys": [
-              "matchLabelKeysValue"
-            ],
-            "mismatchLabelKeys": [
-              "mismatchLabelKeysValue"
-            ]
+            "matchLabelKeys": ["matchLabelKeysValue"],
+            "mismatchLabelKeys": ["mismatchLabelKeysValue"]
           }
         ],
         "preferredDuringSchedulingIgnoredDuringExecution": [
@@ -1697,15 +1571,11 @@
                   {
                     "key": "keyValue",
                     "operator": "operatorValue",
-                    "values": [
-                      "valuesValue"
-                    ]
+                    "values": ["valuesValue"]
                   }
                 ]
               },
-              "namespaces": [
-                "namespacesValue"
-              ],
+              "namespaces": ["namespacesValue"],
               "topologyKey": "topologyKeyValue",
               "namespaceSelector": {
                 "matchLabels": {
@@ -1715,18 +1585,12 @@
                   {
                     "key": "keyValue",
                     "operator": "operatorValue",
-                    "values": [
-                      "valuesValue"
-                    ]
+                    "values": ["valuesValue"]
                   }
                 ]
               },
-              "matchLabelKeys": [
-                "matchLabelKeysValue"
-              ],
-              "mismatchLabelKeys": [
-                "mismatchLabelKeysValue"
-              ]
+              "matchLabelKeys": ["matchLabelKeysValue"],
+              "mismatchLabelKeys": ["mismatchLabelKeysValue"]
             }
           }
         ]
@@ -1745,20 +1609,14 @@
     "hostAliases": [
       {
         "ip": "ipValue",
-        "hostnames": [
-          "hostnamesValue"
-        ]
+        "hostnames": ["hostnamesValue"]
       }
     ],
     "priorityClassName": "priorityClassNameValue",
     "priority": 25,
     "dnsConfig": {
-      "nameservers": [
-        "nameserversValue"
-      ],
-      "searches": [
-        "searchesValue"
-      ],
+      "nameservers": ["nameserversValue"],
+      "searches": ["searchesValue"],
       "options": [
         {
           "name": "nameValue",
@@ -1790,18 +1648,14 @@
             {
               "key": "keyValue",
               "operator": "operatorValue",
-              "values": [
-                "valuesValue"
-              ]
+              "values": ["valuesValue"]
             }
           ]
         },
         "minDomains": 5,
         "nodeAffinityPolicy": "nodeAffinityPolicyValue",
         "nodeTaintsPolicy": "nodeTaintsPolicyValue",
-        "matchLabelKeys": [
-          "matchLabelKeysValue"
-        ]
+        "matchLabelKeys": ["matchLabelKeysValue"]
       }
     ],
     "setHostnameAsFQDN": true,
@@ -1955,9 +1809,7 @@
           "linux": {
             "uid": 1,
             "gid": 2,
-            "supplementalGroups": [
-              3
-            ]
+            "supplementalGroups": [3]
           }
         },
         "allocatedResourcesStatus": [
@@ -2054,9 +1906,7 @@
           "linux": {
             "uid": 1,
             "gid": 2,
-            "supplementalGroups": [
-              3
-            ]
+            "supplementalGroups": [3]
           }
         },
         "allocatedResourcesStatus": [
@@ -2154,9 +2004,7 @@
           "linux": {
             "uid": 1,
             "gid": 2,
-            "supplementalGroups": [
-              3
-            ]
+            "supplementalGroups": [3]
           }
         },
         "allocatedResourcesStatus": [
@@ -2211,9 +2059,7 @@
     "nodeAllocatableResourceClaimStatuses": [
       {
         "resourceClaimName": "resourceClaimNameValue",
-        "containers": [
-          "containersValue"
-        ],
+        "containers": ["containersValue"],
         "mapping": [
           {
             "name": "nameValue",

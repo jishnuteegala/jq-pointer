@@ -95,9 +95,7 @@
     "web_commit_signoff_required": false,
     "has_pull_requests": true,
     "pull_request_creation_policy": "all",
-    "topics": [
-
-    ],
+    "topics": [],
     "visibility": "public",
     "forks": 27,
     "open_issues": 1,
@@ -206,9 +204,7 @@
     "web_commit_signoff_required": false,
     "has_pull_requests": true,
     "pull_request_creation_policy": "all",
-    "topics": [
-
-    ],
+    "topics": [],
     "visibility": "public",
     "forks": 174,
     "open_issues": 48,
@@ -311,9 +307,7 @@
     "web_commit_signoff_required": false,
     "has_pull_requests": true,
     "pull_request_creation_policy": "all",
-    "topics": [
-
-    ],
+    "topics": [],
     "visibility": "public",
     "forks": 289,
     "open_issues": 92,
