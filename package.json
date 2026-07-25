@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "check:privacy": "node scripts/check-privacy.mjs",
     "lint": "oxlint",
     "format": "oxfmt --check .",
     "format:write": "oxfmt .",
