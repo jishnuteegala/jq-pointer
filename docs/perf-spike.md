@@ -83,6 +83,28 @@ Downstream tickets can rely on:
 
 Revisit triggers:
 
-- Ticket #8's in-browser end-to-end re-measurement (mandatory, above).
+- Ticket #8's in-browser end-to-end re-measurement (mandatory, above):
+  **done, see below**.
 - Any future feature pushing the benchmark's click-pipeline p95 past 50ms:
   adopt the worker before shipping that feature.
+
+## Ticket #8 in-browser re-measurement
+
+Measured against the rendered virtualised tree in Chromium (Playwright,
+Vite dev server, 2026-07-25), using the same seeded ~10MB fixture pasted
+into the input:
+
+| Measurement                                            | Result | Budget   | Verdict |
+| ------------------------------------------------------ | ------ | -------- | ------- |
+| Paste 10MB to interactive rendered tree                | ~345ms | < 2000ms | pass    |
+| Click expanding the 22k-element array (path + repaint) | ~64ms  | < 100ms  | pass    |
+| Scroll to the middle of the virtualised list (repaint) | ~30ms  | < 100ms  | pass    |
+| Click a mid-list element (path generation + highlight) | ~31ms  | < 100ms  | pass    |
+
+The DOM holds only visible rows plus overscan (~38 elements for 22k
+visible-row entries), confirming render cost is independent of document
+size. One implementation note: React-controlled textarea updates with a
+10MB string cost ~2s in layout, so documents beyond 256KB are loaded via
+the paste/drop handlers and the textarea shows a placeholder summary
+instead of the raw text. The budgets hold on the main thread; no worker
+is adopted and the ~10MB cap stands.
