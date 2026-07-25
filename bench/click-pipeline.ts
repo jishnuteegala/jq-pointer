@@ -1,10 +1,5 @@
-import {
-  commonArrayAncestor,
-  evaluateSteps,
-  pathTo,
-  type ModelNode,
-  type PathStep,
-} from "../src/lib/path-model";
+import { generaliseClickPair } from "../src/lib/click-pair";
+import { pathTo, type ModelNode, type PathStep } from "../src/lib/path-model";
 
 export interface ClickPairResult {
   ancestor: ModelNode;
@@ -13,40 +8,13 @@ export interface ClickPairResult {
 }
 
 export function runClickPair(a: ModelNode, b: ModelNode): ClickPairResult | null {
-  const ancestor = commonArrayAncestor(a, b);
-  if (ancestor === null) return null;
-  const pathA = pathTo(a);
-  const pathB = pathTo(b);
-  const ancestorPath = pathTo(ancestor);
-  if (
-    pathA.kind === "unsupported" ||
-    pathB.kind === "unsupported" ||
-    ancestorPath.kind === "unsupported"
-  )
-    return null;
-  const ancestorDepth = ancestorPath.segments.length;
-  const relativeA = pathA.segments.slice(ancestorDepth);
-  const relativeB = pathB.segments.slice(ancestorDepth);
-  if (relativeA.length !== relativeB.length) return null;
-  const steps: PathStep[] = [];
-  for (let i = 0; i < relativeA.length; i++) {
-    const segA = relativeA[i];
-    const segB = relativeB[i];
-    if (segA.kind === "index" && segB.kind === "index") {
-      if (i === 0) {
-        if (segA.index === segB.index) return null;
-        steps.push({ kind: "iterate" });
-      } else if (segA.index === segB.index) {
-        steps.push(segA);
-      } else {
-        return null;
-      }
-    } else if (segA.kind === "key" && segB.kind === "key" && segA.key === segB.key) {
-      steps.push(segA);
-    } else {
-      return null;
-    }
-  }
-  const matches = evaluateSteps(ancestor, steps);
-  return { ancestor, steps, matches };
+  const result = generaliseClickPair(a, b);
+  if (result === null) return null;
+  const ancestorPath = pathTo(result.ancestor);
+  if (ancestorPath.kind !== "path") return null;
+  return {
+    ancestor: result.ancestor,
+    steps: result.expression.steps.slice(ancestorPath.segments.length),
+    matches: result.matches,
+  };
 }
