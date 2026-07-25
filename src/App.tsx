@@ -70,7 +70,7 @@ function App() {
     setFilter("");
     setCopied(false);
     setCopyFailed(false);
-    setOutcome(value.trim() === "" ? null : parseDocument(value));
+    setOutcome(parseDocument(value));
   };
 
   const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {

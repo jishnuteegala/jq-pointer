@@ -111,6 +111,18 @@ describe("App end-to-end", () => {
     expect(within(alert).getByText(/\^/)).toBeDefined();
   });
 
+  it("shows a positioned error after clearing to whitespace, but none initially", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    expect(screen.queryByRole("alert")).toBeNull();
+    const input = screen.getByLabelText("JSON document");
+    await user.click(input);
+    await user.paste("   \n  ");
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toMatch(/line \d+, column \d+/);
+    expect(within(alert).getByText(/\^/)).toBeDefined();
+  });
+
   it("names NDJSON input in the parse error without repairing it", async () => {
     const user = userEvent.setup();
     render(<App />);
