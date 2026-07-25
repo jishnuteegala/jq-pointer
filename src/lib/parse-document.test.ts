@@ -176,6 +176,14 @@ describe("parseDocument", () => {
     expect(corruptedCaret.indexOf("^")).toBe(corruptedLine.indexOf("X"));
   });
 
+  it("scans deeply nested invalid input without overflowing the stack", () => {
+    const depth = 200000;
+    const text = `${"[".repeat(depth)}oops${"]".repeat(depth)}`;
+    const excerpt = caretExcerpt(text, "JSON Parse error: Unexpected identifier");
+    const [, caret] = excerpt.split("\n");
+    expect(caret.indexOf("^")).toBe(40);
+  });
+
   it("points at the missing digit of an incomplete number", () => {
     const cases: Array<[string, number]> = [
       ["[-]", 2],

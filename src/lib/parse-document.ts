@@ -87,14 +87,67 @@ function skipWhitespace(text: string, index: number): number {
 }
 
 function scanValue(text: string, index: number): ScanResult {
+  const stack: Array<"object" | "array"> = [];
+  for (;;) {
+    const opened = scanOpenOrLeaf(text, index);
+    if ("error" in opened) return opened;
+    let end: number;
+    if ("open" in opened) {
+      stack.push(opened.open);
+      index = opened.next;
+      continue;
+    } else {
+      end = opened.end;
+    }
+    for (;;) {
+      if (stack.length === 0) return { end };
+      const frame = stack[stack.length - 1];
+      const at = skipWhitespace(text, end);
+      if (text[at] === (frame === "object" ? "}" : "]")) {
+        stack.pop();
+        end = at + 1;
+        continue;
+      }
+      if (text[at] !== ",") return { error: at };
+      const next = scanEntryStart(text, skipWhitespace(text, at + 1), frame);
+      if (typeof next !== "number") return next;
+      index = next;
+      break;
+    }
+  }
+}
+
+type OpenOrLeaf = ScanResult | { open: "object" | "array"; next: number };
+
+function scanOpenOrLeaf(text: string, index: number): OpenOrLeaf {
   const char = text[index];
-  if (char === "{") return scanObject(text, index);
-  if (char === "[") return scanArray(text, index);
+  if (char === "{" || char === "[") {
+    const at = skipWhitespace(text, index + 1);
+    if (text[at] === (char === "{" ? "}" : "]")) return { end: at + 1 };
+    const kind = char === "{" ? "object" : "array";
+    const next = scanEntryStart(text, at, kind);
+    if (typeof next !== "number") return next;
+    return { open: kind, next };
+  }
   if (char === '"') return scanString(text, index);
   if (char === "-" || (char >= "0" && char <= "9")) return scanNumber(text, index);
   const literal = scanLiteral(text, index);
   if (literal !== null) return literal;
   return { error: Math.min(index, text.length) };
+}
+
+function scanEntryStart(
+  text: string,
+  index: number,
+  frame: "object" | "array",
+): number | { error: number } {
+  if (frame === "array") return index;
+  if (text[index] !== '"') return { error: index };
+  const key = scanString(text, index);
+  if ("error" in key) return key;
+  const afterKey = skipWhitespace(text, key.end);
+  if (text[afterKey] !== ":") return { error: afterKey };
+  return skipWhitespace(text, afterKey + 1);
 }
 
 function scanLiteral(text: string, index: number): ScanResult | null {
@@ -106,38 +159,6 @@ function scanLiteral(text: string, index: number): ScanResult | null {
     return { error: Math.min(index + matched, text.length) };
   }
   return null;
-}
-
-function scanObject(text: string, index: number): ScanResult {
-  index = skipWhitespace(text, index + 1);
-  if (text[index] === "}") return { end: index + 1 };
-  for (;;) {
-    if (text[index] !== '"') return { error: index };
-    const key = scanString(text, index);
-    if ("error" in key) return key;
-    index = skipWhitespace(text, key.end);
-    if (text[index] !== ":") return { error: index };
-    index = skipWhitespace(text, index + 1);
-    const value = scanValue(text, index);
-    if ("error" in value) return value;
-    index = skipWhitespace(text, value.end);
-    if (text[index] === "}") return { end: index + 1 };
-    if (text[index] !== ",") return { error: index };
-    index = skipWhitespace(text, index + 1);
-  }
-}
-
-function scanArray(text: string, index: number): ScanResult {
-  index = skipWhitespace(text, index + 1);
-  if (text[index] === "]") return { end: index + 1 };
-  for (;;) {
-    const value = scanValue(text, index);
-    if ("error" in value) return value;
-    index = skipWhitespace(text, value.end);
-    if (text[index] === "]") return { end: index + 1 };
-    if (text[index] !== ",") return { error: index };
-    index = skipWhitespace(text, index + 1);
-  }
 }
 
 function scanString(text: string, index: number): ScanResult {
