@@ -4,16 +4,11 @@ import { buildPathModel, pathTo, type ModelNode } from "../src/lib/path-model";
 import { printPath } from "../src/lib/jq-expression";
 import { flattenVisible, visibleTree } from "../src/lib/tree-rows";
 import { MAX_DOCUMENT_BYTES, parseDocument } from "../src/lib/parse-document";
+import { coldEstimate, percentile } from "./stats";
 
 const TARGET_BYTES = MAX_DOCUMENT_BYTES - 256 * 1024;
 const CLICK_BUDGET_MS = 100;
 const CLICK_SAMPLES = 50;
-
-function percentile(values: number[], p: number): number {
-  const sorted = values.toSorted((a, b) => a - b);
-  const index = Math.min(sorted.length - 1, Math.ceil((p / 100) * sorted.length) - 1);
-  return sorted[Math.max(0, index)];
-}
 
 describe("tree view pipeline on a ~10MB document", () => {
   const { json, itemCount } = generateFixture(TARGET_BYTES);
@@ -34,7 +29,7 @@ describe("tree view pipeline on a ~10MB document", () => {
       rowCount = flattenVisible(model.root, expanded).length;
       timings.push(performance.now() - start);
     }
-    const coldMs = timings[0];
+    const coldMs = coldEstimate(timings);
     const p95Ms = percentile(timings, 95);
     console.log(
       `[tree-view] rows=${rowCount} cold=${coldMs.toFixed(2)}ms p95=${p95Ms.toFixed(2)}ms budget=${CLICK_BUDGET_MS}ms`,
@@ -58,7 +53,7 @@ describe("tree view pipeline on a ~10MB document", () => {
       const segment = window[window.length - 1].node.segment;
       lastLabel = segment?.kind === "index" ? `[${segment.index}]` : "";
     }
-    const coldMs = timings[0];
+    const coldMs = coldEstimate(timings);
     const p95Ms = percentile(timings, 95);
     console.log(
       `[tree-view] scalar-window last=${lastLabel} cold=${coldMs.toFixed(2)}ms p95=${p95Ms.toFixed(2)}ms budget=${CLICK_BUDGET_MS}ms`,
@@ -82,7 +77,7 @@ describe("tree view pipeline on a ~10MB document", () => {
       if (result.kind === "path") expression = printPath(result.segments);
       timings.push(performance.now() - start);
     }
-    const coldMs = timings[0];
+    const coldMs = coldEstimate(timings);
     const p95Ms = percentile(timings, 95);
     console.log(
       `[tree-view] click-path="${expression.slice(0, 60)}" cold=${coldMs.toFixed(2)}ms p95=${p95Ms.toFixed(2)}ms budget=${CLICK_BUDGET_MS}ms`,
