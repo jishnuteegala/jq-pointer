@@ -38,9 +38,13 @@ typography:
     lineHeight: 1.6
   label:
     fontFamily: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
-    fontSize: "0.75rem"
+    fontSize: "0.875rem"
     fontWeight: 600
-    letterSpacing: "0.08em"
+  tagline:
+    fontFamily: "Inter, -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 400
+    lineHeight: 1.6
   mono:
     fontFamily: "SF Mono, JetBrains Mono, Fira Code, ui-monospace, Cascadia Code, Menlo, Consolas, monospace"
     fontSize: "0.875rem"
@@ -148,8 +152,9 @@ A cool blue-grey neutral base tinted toward one indigo accent, with reserved dan
 
 - **H1** (700, 2.25rem, line-height 1.15, letter-spacing -0.02em): The single page title.
 - **H2** (600, 1.0625rem, line-height 1.15): Section headings on the design-system page.
-- **Body** (400, 1rem, line-height 1.6): Intro and prose; the intro caps at ~40rem for readable measure.
-- **Label** (600, 0.75rem, letter-spacing 0.08em, uppercase): The eyebrow and input labels. Input labels use the small (0.875rem) size in sentence case; the eyebrow is the tracked uppercase form.
+- **Tagline** (400, 0.875rem, line-height 1.6, muted): The one positioning line under the title, sentence case. No tracked-uppercase kicker sits above the heading.
+- **Body** (400, 1rem, line-height 1.6): Intro and prose; the intro reads at ink weight and caps at ~40rem for readable measure.
+- **Label** (600, 0.875rem, sentence case): Input labels. There is no all-caps label form.
 - **Mono** (400, 0.875rem, line-height 1.6): All JSON input, jq paths, chips, breadcrumbs, and tree rows.
 
 ### Named Rules
@@ -222,7 +227,7 @@ The virtualized JSON tree is the heart of the tool. Rows are fixed 28px, monospa
 
 ### Don't:
 
-- **Don't** add hero metrics, identical feature-card grids, or a tracked-uppercase eyebrow above every section; this is a tool, not a marketing landing page.
+- **Don't** add hero metrics, identical feature-card grids, or any tracked-uppercase eyebrow/kicker above a heading; this is a tool, not a marketing landing page. Positioning is carried by one sentence-case tagline, never an all-caps label.
 - **Don't** use gradient text or `background-clip: text` for emphasis; emphasis is weight and size.
 - **Don't** pair a 1px border with a wide soft drop shadow on the same element, and don't over-round: cards top out at 14px, pills are for chips only.
 - **Don't** use a colored `border-left`/`border-right` greater than 1px as an accent stripe; the tree's selection bar is a 2px inset box-shadow, not a border.
