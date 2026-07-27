@@ -103,6 +103,12 @@
   gap: var(--space-2);
   align-items: center;
 }
+.ds-wordmark {
+  font-size: var(--font-size-h1);
+  line-height: var(--leading-tight);
+  letter-spacing: var(--tracking-tight);
+  font-weight: 700;
+}
 .ds-font-body {
   font-family: var(--font-body);
 }

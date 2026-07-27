@@ -229,7 +229,10 @@ function App() {
         Skip to main content
       </a>
       <main id="main-content" className="page">
-        <h1>jq-pointer</h1>
+        <h1>
+          <span className="wordmark-jq">jq</span>
+          <span className="wordmark-rest">-pointer</span>
+        </h1>
         <p className="tagline">The reverse of a jq playground: point at the value, get the path.</p>
         <p className="intro">
           Paste or drop JSON, click the value you want, get the jq expression that extracts it.

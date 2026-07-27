@@ -87,6 +87,10 @@ components:
     backgroundColor: "{colors.surface-sunken}"
     textColor: "{colors.mono}"
     rounded: "{rounded.md}"
+    fontSize: "1.0625rem"
+    fontWeight: 500
+    prompt: "$"
+    leadingBar: "{colors.accent}"
 ---
 
 # Design System: jq-pointer
@@ -101,10 +105,14 @@ The palette is a restrained cool-neutral system tinted toward a single indigo ac
 
 Depth is quiet and structural rather than decorative: small ambient shadows separate the input, tree, and result surfaces from the page, and the tree's inner content is where the density lives. The register is a developer's instrument, confident and legible, that stays out of the way until pointed at.
 
+The instrument has one point of view: **the answer is the loudest thing on the page.** The wordmark sets `jq` in accent monospace against the Inter `-pointer`, so the title states what the tool operates on. The derived expression lands in the result well as a shell-ready command — a leading accent `$` prompt and an accent bar down its edge — one type step larger and heavier than any other data. Click a value and the same accent bar links the highlighted row to the command it produced; on arrival the well plays a single crisp accent beat (instant under reduced motion). Everything else stays restrained so this one moment reads.
+
 **Key Characteristics:**
 
 - Single narrow column, flat surfaces, generous vertical rhythm.
 - One indigo accent, used sparingly for state and action only.
+- The answer is the focal point: `$`-prompted, accent-barred, one type step up.
+- `jq` wordmark in accent monospace states the tool's subject.
 - Monospace for all data, Inter for all chrome.
 - Full automatic light/dark parity.
 - Depth from small ambient shadows, never from borders-plus-glow.
@@ -155,7 +163,8 @@ A cool blue-grey neutral base tinted toward one indigo accent, with reserved dan
 - **Tagline** (400, 0.875rem, line-height 1.6, muted): The one positioning line under the title, sentence case. No tracked-uppercase kicker sits above the heading.
 - **Body** (400, 1rem, line-height 1.6): Intro and prose; the intro reads at ink weight and caps at ~40rem for readable measure.
 - **Label** (600, 0.875rem, sentence case): Input labels. There is no all-caps label form.
-- **Mono** (400, 0.875rem, line-height 1.6): All JSON input, jq paths, chips, breadcrumbs, and tree rows.
+- **Mono** (400, 0.875rem, line-height 1.6): All JSON input, chips, breadcrumbs, and tree rows.
+- **Answer** (500, 1.0625rem, mono): The derived jq expression in the result well, one step larger and heavier than the rest of the mono data — the loudest piece of type on the page, because it is the answer the tool exists to give.
 
 ### Named Rules
 
@@ -200,6 +209,14 @@ Radii come from a four-step scale: sm 6px, md 10px, lg 14px, full 999px (pill). 
 - **Shadow Strategy:** Ambient Mid for the tree; inset hairline shadow for the path well.
 - **Border:** Default hairline Border on containers; no border-plus-glow pairing.
 
+### The Answer (result well)
+
+- **Role:** The focal point of the tool — where the derived jq expression appears.
+- **Type:** Answer size (500, 1.0625rem, mono), the loudest data on the page.
+- **Prompt:** Each expression line is prefixed with an accent `$` sigil (decorative, `user-select: none`) so it reads as a shell-ready command.
+- **Edge:** A 2px inset accent bar down the leading edge (Border Strong hairline around), matching the highlighted tree row so click and answer read as one gesture. The unsupported state swaps the bar to Danger; the empty prompt drops the bar and reverts to Inter body.
+- **Arrival:** On resolve, a single 320ms accent beat (background fades from Indigo Wash, bar settles from 4px to 2px). Gated behind `prefers-reduced-motion: no-preference`; instant otherwise.
+
 ### Inputs / Fields
 
 - **Style:** Surface white, Border Strong hairline, md radius, monospace, Ambient Low shadow. The JSON textarea is vertically resizable with an 8.5rem floor.
@@ -212,13 +229,14 @@ Radii come from a four-step scale: sm 6px, md 10px, lg 14px, full 999px (pill). 
 
 ### Signature Component: the value tree
 
-The virtualized JSON tree is the heart of the tool. Rows are fixed 28px, monospace, with a muted toggle, a bold label, and a muted, ellipsized value. Hover tints a row to Sunken Surface. A **highlighted** (selected/matched) row takes an Indigo Wash background with a 2px inset accent bar on its leading edge; a **focused** row takes a 2px inset accent ring. Selection and keyboard focus are always visible.
+The virtualized JSON tree is the heart of the tool. Rows are fixed 28px, monospace, with a muted toggle, a bold label, and a muted, ellipsized value. Hover tints a row to Sunken Surface. A **highlighted** (selected/matched) row takes an Indigo Wash background with a 3px inset accent bar on its leading edge and lifts its label to Indigo Deep; a **focused** row takes a 2px inset accent ring. The 3px bar deliberately echoes the result well's leading bar, so the clicked row and the command it produces read as the same gesture. Selection and keyboard focus are always visible.
 
 ## 6. Do's and Don'ts
 
 ### Do:
 
 - **Do** keep the indigo accent (#5b53e0) to selection, focus, links, and the single primary action; treat its rarity as the point.
+- **Do** let the answer be the loudest element: the result well carries the `$` accent prompt, the leading accent bar, and Answer-size mono. Don't dilute it by making neighbouring chrome compete.
 - **Do** set every piece of user data (JSON, jq paths, chips, breadcrumbs, tree rows) in the monospace stack, and all chrome in Inter.
 - **Do** lift surfaces with the small ambient shadow steps (Ambient Low/Mid/High); keep surfaces flat at rest.
 - **Do** keep to the single 46rem column and the existing spacing scale (0.25rem to 3rem) for vertical rhythm.
@@ -230,6 +248,6 @@ The virtualized JSON tree is the heart of the tool. Rows are fixed 28px, monospa
 - **Don't** add hero metrics, identical feature-card grids, or any tracked-uppercase eyebrow/kicker above a heading; this is a tool, not a marketing landing page. Positioning is carried by one sentence-case tagline, never an all-caps label.
 - **Don't** use gradient text or `background-clip: text` for emphasis; emphasis is weight and size.
 - **Don't** pair a 1px border with a wide soft drop shadow on the same element, and don't over-round: cards top out at 14px, pills are for chips only.
-- **Don't** use a colored `border-left`/`border-right` greater than 1px as an accent stripe; the tree's selection bar is a 2px inset box-shadow, not a border.
+- **Don't** use a colored `border-left`/`border-right` greater than 1px as an accent stripe; the tree's selection bar and the result well's leading bar are inset `box-shadow` (3px / 2px), not borders.
 - **Don't** introduce a second accent hue or use danger/success colours for anything but real error and confirmation states.
 - **Don't** set user data in a proportional font or chrome in monospace.

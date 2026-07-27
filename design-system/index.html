@@ -52,8 +52,8 @@
         </li>
         <li>
           <code>--font-size-h1</code> 2.25rem, <code>--font-size-h2</code> 1.0625rem,
-          <code>--font-size-body</code> 1rem, <code>--font-size-sm</code> 0.875rem,
-          <code>--font-size-xs</code> 0.8125rem
+          <code>--font-size-answer</code> 1.0625rem, <code>--font-size-body</code> 1rem,
+          <code>--font-size-sm</code> 0.875rem, <code>--font-size-xs</code> 0.8125rem
         </li>
         <li>
           <code>--leading-tight</code> 1.15, <code>--leading-body</code> 1.6,
@@ -88,7 +88,10 @@
       </ul>
 
       <h2>Primitives</h2>
-      <h3>Heading &amp; tagline</h3>
+      <h3>Wordmark &amp; tagline</h3>
+      <p class="ds-wordmark">
+        <span class="wordmark-jq">jq</span><span class="wordmark-rest">-pointer</span>
+      </p>
       <p class="tagline">The reverse of a jq playground: point at the value, get the path.</p>
       <h3>Button</h3>
       <p class="ds-row">
@@ -110,9 +113,14 @@
         <button type="button" class="breadcrumb-item breadcrumb-item-active">.items[]</button>
         <button type="button" class="breadcrumb-item">.data[]</button>
       </p>
-      <h3>Path output</h3>
+      <h3>The answer (path output)</h3>
       <p>
         <output class="path-output"><span class="path-line">.items[].name</span></output>
+      </p>
+      <p>
+        <output class="path-output path-output-empty"
+          >Click a value in the tree to get its jq path, then a sibling to generalise</output
+        >
       </p>
       <h3>Parse error</h3>
       <div class="parse-error">
