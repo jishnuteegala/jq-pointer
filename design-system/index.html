@@ -11,26 +11,53 @@
     <a class="skip-link" href="#main-content">Skip to main content</a>
     <main id="main-content" class="page">
       <h1>jq-pointer design system</h1>
-      <p>The named tokens and reusable primitives behind the tool.</p>
+      <p class="intro">The named tokens and reusable primitives behind the tool.</p>
 
       <h2>Colour tokens</h2>
+      <p class="intro">
+        Every colour is a token that flips automatically under
+        <code>prefers-color-scheme: dark</code>. Swatches below render the live value for your
+        current theme.
+      </p>
       <ul class="ds-swatches">
-        <li><span class="ds-swatch ds-text"></span><code>--color-text</code> #172033</li>
-        <li><span class="ds-swatch ds-bg"></span><code>--color-bg</code> #f5f7fb</li>
-        <li><span class="ds-swatch ds-surface"></span><code>--color-surface</code> #ffffff</li>
-        <li><span class="ds-swatch ds-border"></span><code>--color-border</code> #8490a5</li>
-        <li><span class="ds-swatch ds-accent"></span><code>--color-accent</code> #2563eb</li>
-        <li><span class="ds-swatch ds-danger"></span><code>--color-danger</code> #b42318</li>
-        <li><span class="ds-swatch ds-muted"></span><code>--color-muted</code> #4a5871</li>
+        <li><span class="ds-swatch ds-text"></span><code>--color-text</code></li>
+        <li><span class="ds-swatch ds-heading"></span><code>--color-heading</code></li>
+        <li><span class="ds-swatch ds-bg"></span><code>--color-bg</code></li>
+        <li><span class="ds-swatch ds-bg-accent"></span><code>--color-bg-accent</code></li>
+        <li><span class="ds-swatch ds-surface"></span><code>--color-surface</code></li>
+        <li>
+          <span class="ds-swatch ds-surface-sunken"></span><code>--color-surface-sunken</code>
+        </li>
+        <li><span class="ds-swatch ds-border"></span><code>--color-border</code></li>
+        <li><span class="ds-swatch ds-border-strong"></span><code>--color-border-strong</code></li>
+        <li><span class="ds-swatch ds-accent"></span><code>--color-accent</code></li>
+        <li><span class="ds-swatch ds-accent-strong"></span><code>--color-accent-strong</code></li>
+        <li><span class="ds-swatch ds-accent-soft"></span><code>--color-accent-soft</code></li>
+        <li><span class="ds-swatch ds-mono"></span><code>--color-mono</code></li>
+        <li><span class="ds-swatch ds-danger"></span><code>--color-danger</code></li>
+        <li>
+          <span class="ds-swatch ds-danger-surface"></span><code>--color-danger-surface</code>
+        </li>
+        <li><span class="ds-swatch ds-success"></span><code>--color-success</code></li>
+        <li><span class="ds-swatch ds-muted"></span><code>--color-muted</code></li>
       </ul>
 
       <h2>Type tokens</h2>
       <ul class="ds-list">
-        <li><code>--font-body</code>: <span class="ds-font-body">system-ui, sans-serif</span></li>
-        <li><code>--font-mono</code>: <span class="ds-font-mono">ui-monospace, monospace</span></li>
         <li>
-          <code>--font-size-body</code> 1rem, <code>--font-size-sm</code> 0.875rem,
-          <code>--font-size-xs</code> 0.8125rem
+          <code>--font-body</code>: <span class="ds-font-body">Inter, system-ui, sans-serif</span>
+        </li>
+        <li>
+          <code>--font-mono</code>: <span class="ds-font-mono">SF Mono, JetBrains Mono, ...</span>
+        </li>
+        <li>
+          <code>--font-size-h1</code> 2.25rem, <code>--font-size-h2</code> 1.0625rem,
+          <code>--font-size-answer</code> 1.0625rem, <code>--font-size-body</code> 1rem,
+          <code>--font-size-sm</code> 0.875rem, <code>--font-size-xs</code> 0.8125rem
+        </li>
+        <li>
+          <code>--leading-tight</code> 1.15, <code>--leading-body</code> 1.6,
+          <code>--tracking-tight</code> -0.02em
         </li>
       </ul>
 
@@ -42,12 +69,34 @@
         <li><code>--space-4</code> 1rem <span class="ds-bar ds-w-4"></span></li>
         <li><code>--space-5</code> 1.5rem <span class="ds-bar ds-w-5"></span></li>
         <li><code>--space-6</code> 2rem <span class="ds-bar ds-w-6"></span></li>
+        <li><code>--space-7</code> 3rem <span class="ds-bar ds-w-7"></span></li>
+      </ul>
+
+      <h2>Radius tokens</h2>
+      <ul class="ds-list">
+        <li>
+          <code>--radius-sm</code> 6px, <code>--radius-md</code> 10px,
+          <code>--radius-lg</code> 14px, <code>--radius-full</code> 999px
+        </li>
+      </ul>
+
+      <h2>Elevation tokens</h2>
+      <ul class="ds-list">
+        <li><span class="ds-shadow ds-shadow-sm"></span><code>--shadow-sm</code></li>
+        <li><span class="ds-shadow ds-shadow-md"></span><code>--shadow-md</code></li>
+        <li><span class="ds-shadow ds-shadow-lg"></span><code>--shadow-lg</code></li>
       </ul>
 
       <h2>Primitives</h2>
+      <h3>Wordmark &amp; tagline</h3>
+      <p class="ds-wordmark">
+        <span class="wordmark-jq">jq</span><span class="wordmark-rest">-pointer</span>
+      </p>
+      <p class="tagline">The reverse of a jq playground: point at the value, get the path.</p>
       <h3>Button</h3>
-      <p>
+      <p class="ds-row">
         <button type="button" class="button">Copy</button>
+        <button type="button" class="button button-copied">Copied</button>
         <button type="button" class="button" disabled>Copy</button>
       </p>
       <h3>Inputs</h3>
@@ -64,9 +113,14 @@
         <button type="button" class="breadcrumb-item breadcrumb-item-active">.items[]</button>
         <button type="button" class="breadcrumb-item">.data[]</button>
       </p>
-      <h3>Path output</h3>
+      <h3>The answer (path output)</h3>
       <p>
         <output class="path-output"><span class="path-line">.items[].name</span></output>
+      </p>
+      <p>
+        <output class="path-output path-output-empty"
+          >Click a value in the tree to get its jq path, then a sibling to generalise</output
+        >
       </p>
       <h3>Parse error</h3>
       <div class="parse-error">

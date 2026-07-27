@@ -11,7 +11,7 @@ const allowed = new Set([
   "http://www.w3.org/1998/Math/MathML",
   "http://www.w3.org/XML/1998/namespace",
 ]);
-const allowedPrefixes = ["https://react.dev/errors/"];
+const allowedPrefixes = ["https://react.dev/errors/", "https://bit.ly/wb-precache"];
 
 function walk(dir) {
   return readdirSync(dir).flatMap((name) => {

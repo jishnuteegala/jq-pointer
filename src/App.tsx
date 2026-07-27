@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent, ClipboardEvent, DragEvent } from "react";
 import { Breadcrumb } from "./components/Breadcrumb";
 import { ChipBar } from "./components/ChipBar";
@@ -55,6 +55,12 @@ function App() {
     if (outcome === null || outcome.kind !== "ok") return null;
     return buildPathModel(outcome.value);
   }, [outcome]);
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
 
   const selection = useMemo(() => resolveSelection(clicks, ancestorIndex), [clicks, ancestorIndex]);
 
@@ -223,8 +229,14 @@ function App() {
         Skip to main content
       </a>
       <main id="main-content" className="page">
-        <h1>jq-pointer</h1>
-        <p>Paste or drop JSON, click the value you want, get the jq expression that extracts it.</p>
+        <h1>
+          <span className="wordmark-jq">jq</span>
+          <span className="wordmark-rest">-pointer</span>
+        </h1>
+        <p className="tagline">The reverse of a jq playground: point at the value, get the path.</p>
+        <p className="intro">
+          Paste or drop JSON, click the value you want, get the jq expression that extracts it.
+        </p>
         <label className="input-label" htmlFor="json-input">
           JSON document
         </label>
@@ -258,7 +270,13 @@ function App() {
             />
             <div className="path-bar">
               <output
-                className={`path-output${unsupported ? " path-output-unsupported" : ""}`}
+                className={`path-output${
+                  unsupported
+                    ? " path-output-unsupported"
+                    : path === null
+                      ? " path-output-empty"
+                      : ""
+                }`}
                 aria-live="polite"
               >
                 {unsupported ? (
@@ -277,7 +295,7 @@ function App() {
               </output>
               <button
                 type="button"
-                className="button"
+                className={`button${copied ? " button-copied" : ""}`}
                 onClick={handleCopy}
                 disabled={path === null}
               >
