@@ -2,52 +2,34 @@ name: CI
 
 on:
   push:
+    branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node-version: [20, 22]
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - uses: pnpm/action-setup@a7487c7e89a18df4991f7f222e4898a00d66ddda
-        with:
-          version: 10
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: pnpm
-      - name: Install pinned jq oracle
-        run: |
-          curl --fail --location --output jq \
-            https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
-          echo "5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5  jq" | sha256sum --check
-          chmod +x jq
-          ./jq --version | grep -Fx jq-1.7.1
-          mv jq jq-1.7.1
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run lint
-      - run: pnpm run format
-      - run: pnpm run typecheck
-      - run: pnpm run test
-        env:
-          JQ_BINARY: ./jq-1.7.1
-      - run: pnpm run build
-      - run: pnpm run check:privacy
-      - name: Verify built routes
-        run: |
-          test -f dist/index.html
-          test -f dist/design-system/index.html
-          test -f dist/llms.txt
-          test -f dist/_headers
-      - name: Verify self-hosted release packaging
-        env:
-          SOURCE_DATE_EPOCH: "315532800"
-        run: |
-          python -X utf8 scripts/package_release.py snapshot
-          (cd artifact && sha256sum --check SHA256SUMS)
+    uses: jishnuteegala/.github/.github/workflows/app-ci.yml@v1
+    with:
+      pre-check: |
+        curl --fail --location --output jq \
+          https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
+        echo "5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5  jq" | sha256sum --check
+        chmod +x jq
+        ./jq --version | grep -Fx jq-1.7.1
+        mv jq jq-1.7.1
+      post-check: |
+        pnpm run build
+        pnpm run check:privacy
+        test -f dist/index.html
+        test -f dist/design-system/index.html
+        test -f dist/llms.txt
+        test -f dist/_headers
+        SOURCE_DATE_EPOCH=315532800 python -X utf8 scripts/package_release.py snapshot
+        (cd artifact && sha256sum --check SHA256SUMS)
