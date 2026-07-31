@@ -8,7 +8,6 @@ import { coldEstimate, percentile } from "./stats";
 const TARGET_BYTES = 10 * 1024 * 1024;
 const INTERACTIVE_BUDGET_MS = 2000;
 const CLICK_BUDGET_MS = 100;
-const CLICK_COLD_BUDGET_MS = 200;
 const CLICK_SAMPLES = 50;
 
 function descend(node: ModelNode, keys: string[]): ModelNode {
@@ -83,6 +82,6 @@ describe("D7 performance spike: 10MB parse + path model + click evaluation", () 
     expect(matchCount).toBe(itemCount);
     expect(medianMs).toBeLessThan(CLICK_BUDGET_MS);
     expect(p95Ms).toBeLessThan(CLICK_BUDGET_MS);
-    expect(coldMs).toBeLessThan(CLICK_COLD_BUDGET_MS);
+    expect(coldMs).toBeLessThan(CLICK_BUDGET_MS);
   });
 });

@@ -46,7 +46,7 @@ function App() {
   const [clicks, setClicks] = useState<ModelNode[]>([]);
   const [ancestorIndex, setAncestorIndex] = useState(0);
   const [filter, setFilter] = useState("");
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
   const [copyFailed, setCopyFailed] = useState(false);
   const loadGeneration = useRef(0);
   const copyGeneration = useRef(0);
@@ -57,8 +57,8 @@ function App() {
   }, [outcome]);
 
   useEffect(() => {
-    if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), 2000);
+    if (copied === null) return;
+    const timer = setTimeout(() => setCopied(null), 2000);
     return () => clearTimeout(timer);
   }, [copied]);
 
@@ -74,14 +74,7 @@ function App() {
     [selection],
   );
 
-  const path = useMemo(
-    () => (expressions.length === 0 ? null : expressions.join("\n")),
-    [expressions],
-  );
-  const copyText = useMemo(
-    () => (expressions.length === 0 ? null : expressions.join(", ")),
-    [expressions],
-  );
+  const path = expressions.length === 0 ? null : expressions;
 
   const unsupported = useMemo(
     () => selection.outputs.length === 0 && selection.unsupportedCount > 0,
@@ -118,7 +111,7 @@ function App() {
     setClicks([]);
     setAncestorIndex(0);
     setFilter("");
-    setCopied(false);
+    setCopied(null);
     setCopyFailed(false);
     setOutcome(parseDocument(value));
   };
@@ -144,7 +137,7 @@ function App() {
         setText("");
         setVersion((previous) => previous + 1);
         setClicks([]);
-        setCopied(false);
+        setCopied(null);
         setOutcome({ kind: "too-large", bytes: file.size, limit: MAX_DOCUMENT_BYTES });
         return;
       }
@@ -158,17 +151,16 @@ function App() {
     if (dropped !== "") loadText(dropped);
   };
 
-  const handleCopy = async () => {
-    if (copyText === null) return;
+  const handleCopy = async (expression: string) => {
     const generation = (copyGeneration.current += 1);
     try {
-      await navigator.clipboard.writeText(copyText);
+      await navigator.clipboard.writeText(expression);
       if (generation !== copyGeneration.current) return;
-      setCopied(true);
+      setCopied(expression);
       setCopyFailed(false);
     } catch {
       if (generation !== copyGeneration.current) return;
-      setCopied(false);
+      setCopied(null);
       setCopyFailed(true);
     }
   };
@@ -181,7 +173,7 @@ function App() {
     });
     setAncestorIndex(0);
     setFilter("");
-    setCopied(false);
+    setCopied(null);
     setCopyFailed(false);
   };
 
@@ -190,7 +182,7 @@ function App() {
     setClicks((previous) => previous.filter((_, position) => position !== index));
     setAncestorIndex(0);
     setFilter("");
-    setCopied(false);
+    setCopied(null);
     setCopyFailed(false);
   };
 
@@ -198,7 +190,7 @@ function App() {
     copyGeneration.current += 1;
     setAncestorIndex(index);
     setFilter("");
-    setCopied(false);
+    setCopied(null);
     setCopyFailed(false);
   };
 
@@ -207,7 +199,7 @@ function App() {
     setClicks([]);
     setAncestorIndex(0);
     setFilter("");
-    setCopied(false);
+    setCopied(null);
     setCopyFailed(false);
   };
 
@@ -279,28 +271,23 @@ function App() {
                 }`}
                 aria-live="polite"
               >
-                {unsupported ? (
-                  "This key can't be expressed as a jq path (lone surrogate in the key)."
-                ) : path === null ? (
-                  "Click a value in the tree to get its jq path, then a sibling to generalise"
-                ) : (
-                  <>
-                    {path.split("\n").map((line, index) => (
-                      <span key={index} className="path-line">
-                        {line}
-                      </span>
-                    ))}
-                  </>
-                )}
+                {unsupported
+                  ? "This key can't be expressed as a jq path (lone surrogate in the key)."
+                  : path === null
+                    ? "Click a value in the tree to get its jq path, then a sibling to generalise"
+                    : path.map((line) => (
+                        <span key={line} className="path-line">
+                          <span className="path-expression">{line}</span>
+                          <button
+                            type="button"
+                            className={`path-copy${copied === line ? " path-copy-copied" : ""}`}
+                            onClick={() => handleCopy(line)}
+                          >
+                            {copied === line ? "Copied" : "Copy"}
+                          </button>
+                        </span>
+                      ))}
               </output>
-              <button
-                type="button"
-                className={`button${copied ? " button-copied" : ""}`}
-                onClick={handleCopy}
-                disabled={path === null}
-              >
-                {copied ? "Copied" : "Copy"}
-              </button>
             </div>
             {selection.breadcrumb !== null && (
               <Breadcrumb

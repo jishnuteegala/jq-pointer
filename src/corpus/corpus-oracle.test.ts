@@ -2,11 +2,16 @@ import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { platform } from "node:os";
 import { describe, expect, it } from "vitest";
-import { evaluateExpression, printExpression, type JqExpression } from "../lib/jq-expression";
+import {
+  evaluateExpression,
+  evaluateJqExpression,
+  printExpression,
+  type JqExpression,
+} from "../lib/jq-expression";
 import type { JsonValue } from "../lib/json-value";
 import { buildPathModel } from "../lib/path-model";
 import { resolveSelection } from "../lib/selection";
-import { firstClickPairScenarios, nodeAtSegments } from "./corpus";
+import { extraKeyRoundTripScenarios, firstClickPairScenarios, nodeAtSegments } from "./corpus";
 
 const jq = process.env.JQ_BINARY ?? "./jq-1.7.1";
 const canRunOracle = platform() !== "win32" && existsSync(jq);
@@ -93,20 +98,21 @@ oracle("corpus first-click-pair gate", () => {
     expect(unexpected, `only ${allowedMiss} may miss; unexpected failures:\n${report}`).toEqual([]);
   });
 
-  it("round-trips every tool-generated expression through real jq for the non-null stream", () => {
-    for (const scenario of firstClickPairScenarios) {
+  it("matches real jq exactly while preserving document nulls and marking synthetic missing values", () => {
+    const scenarios = [...firstClickPairScenarios, ...extraKeyRoundTripScenarios];
+    for (const scenario of scenarios) {
       const model = buildPathModel(scenario.document);
       const clicks = scenario.clicks.map((segments) => nodeAtSegments(model.root, segments));
       const selection = resolveSelection(clicks);
-      if (selection.noCommonPattern || selection.outputs.length !== 1) continue;
-      const output = selection.outputs[0];
-      const printed = printExpression(output.expression);
-      const jqStream = flattenStream(runJq(scenario.document, printed), output.expression);
-      const nonNullJq = jqStream.filter((value) => value !== null);
-      const previewValues = output.matches
-        .map((node) => node.value)
-        .filter((value) => value !== null);
-      expect(nonNullJq, `${scenario.id}: ${printed}`).toEqual(previewValues);
+      for (const output of selection.outputs) {
+        const printed = printExpression(output.expression);
+        const jqStream = flattenStream(runJq(scenario.document, printed), output.expression);
+        const evaluated = evaluateJqExpression(model.root, output.expression);
+        expect(jqStream, `${scenario.id}: ${printed}`).toEqual(evaluated.map((node) => node.value));
+        expect(evaluateExpression(model.root, output.expression)).toEqual(
+          evaluated.filter((node) => node.exists),
+        );
+      }
     }
   });
 });

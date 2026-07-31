@@ -47,7 +47,19 @@ export interface VisibleTree {
   indexOf: (node: ModelNode) => number;
 }
 
+const visibleTrees = new WeakMap<ModelNode, WeakMap<ReadonlySet<ModelNode>, VisibleTree>>();
+
 export function visibleTree(root: ModelNode, expanded: ReadonlySet<ModelNode>): VisibleTree {
+  const byExpansion = visibleTrees.get(root);
+  const cached = byExpansion?.get(expanded);
+  if (cached !== undefined) return cached;
+  const tree = createVisibleTree(root, expanded);
+  if (byExpansion !== undefined) byExpansion.set(expanded, tree);
+  else visibleTrees.set(root, new WeakMap([[expanded, tree]]));
+  return tree;
+}
+
+function createVisibleTree(root: ModelNode, expanded: ReadonlySet<ModelNode>): VisibleTree {
   const counts = new Map<ModelNode, number>();
   const prefixes = new Map<ModelNode, Float64Array>();
 

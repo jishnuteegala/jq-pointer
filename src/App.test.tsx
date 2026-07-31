@@ -14,6 +14,15 @@ function row(label: string): HTMLElement {
   return item as HTMLElement;
 }
 
+function expressionLine(expression: string): HTMLElement {
+  const output = screen
+    .getAllByText(expression)
+    .find((element) => element.className === "path-expression");
+  const line = output?.closest(".path-line");
+  if (line === null || line === undefined) throw new Error(`no output line for ${expression}`);
+  return line as HTMLElement;
+}
+
 describe("App end-to-end", () => {
   it("pastes JSON, clicks a scalar array element, and copies the indexed path", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
@@ -32,9 +41,7 @@ describe("App end-to-end", () => {
     const first = within(row("[0]")).getByText("[0]");
     await user.click(first);
 
-    expect(screen.getAllByText(".arr[0]").map((element) => element.className)).toContain(
-      "path-line",
-    );
+    expect(expressionLine(".arr[0]")).toBeDefined();
     expect(row("[0]").getAttribute("aria-selected")).toBe("true");
 
     await user.click(screen.getByRole("button", { name: "Copy" }));
@@ -75,7 +82,7 @@ describe("App end-to-end", () => {
     expect(screen.getByText(".items[].name")).toBeDefined();
   });
 
-  it("shows a no-common-pattern note and copies a valid combined filter", async () => {
+  it("shows separate, independently round-trippable outputs for no common pattern", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     const user = userEvent.setup();
     Object.defineProperty(navigator, "clipboard", {
@@ -93,12 +100,18 @@ describe("App end-to-end", () => {
     await user.click(zeros[zeros.length - 1]);
 
     expect(screen.getByText(/No common pattern/)).toBeDefined();
-    const pathLines = screen.getAllByText(".a[0]").map((element) => element.className);
-    expect(pathLines).toContain("path-line");
-    expect(screen.getAllByText(".b[0]").map((element) => element.className)).toContain("path-line");
+    expect(expressionLine(".a[0]")).toBeDefined();
+    expect(expressionLine(".b[0]")).toBeDefined();
 
-    await user.click(screen.getByRole("button", { name: "Copy" }));
-    expect(writeText).toHaveBeenCalledWith(".a[0], .b[0]");
+    const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
+    for (const expression of [".a[0]", ".b[0]"]) {
+      await user.clear(filter);
+      await user.paste(expression);
+      expect(screen.getByText("Highlighting 1 matching node.")).toBeDefined();
+    }
+
+    await user.click(screen.getAllByRole("button", { name: "Copy" })[0]);
+    expect(writeText).toHaveBeenCalledWith(".a[0]");
   });
 
   it("builds flat shorthand construction from two keys in one element", async () => {
@@ -112,9 +125,7 @@ describe("App end-to-end", () => {
     await user.click(within(row("name")).getByText("name"));
     await user.click(within(row("id")).getByText("id"));
 
-    expect(
-      screen.getAllByText(".items[] | {name, id}").map((element) => element.className),
-    ).toContain("path-line");
+    expect(expressionLine(".items[] | {name, id}")).toBeDefined();
   });
 
   it("highlights construction source keys across every matching element", async () => {
@@ -148,9 +159,7 @@ describe("App end-to-end", () => {
     await user.click(within(row("a-b")).getByText("a-b"));
     await user.click(within(row("2fa")).getByText("2fa"));
 
-    expect(
-      screen.getAllByText('.items[] | {"a-b", "2fa"}').map((element) => element.className),
-    ).toContain("path-line");
+    expect(expressionLine('.items[] | {"a-b", "2fa"}')).toBeDefined();
   });
 
   it("removes a chip and re-resolves the output", async () => {
@@ -163,14 +172,10 @@ describe("App end-to-end", () => {
     await user.click(within(row("[0]")).getByRole("button", { name: /^Expand / }));
     await user.click(within(row("name")).getByText("name"));
     await user.click(within(row("id")).getByText("id"));
-    expect(
-      screen.getAllByText(".items[] | {name, id}").map((element) => element.className),
-    ).toContain("path-line");
+    expect(expressionLine(".items[] | {name, id}")).toBeDefined();
 
     await user.click(screen.getByRole("button", { name: /Remove .items\[0\].id/ }));
-    expect(screen.getAllByText(".items[0].name").map((element) => element.className)).toContain(
-      "path-line",
-    );
+    expect(expressionLine(".items[0].name")).toBeDefined();
   });
 
   it("clears every chip with the Clear button", async () => {
@@ -230,16 +235,12 @@ describe("App end-to-end", () => {
     await user.click(names[0]);
     await user.click(names[names.length - 1]);
 
-    expect(screen.getAllByText(".data[0].items[].name").map((e) => e.className)).toContain(
-      "path-line",
-    );
+    expect(expressionLine(".data[0].items[].name")).toBeDefined();
 
     const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
     await user.type(filter, ".data[0].items[0].name");
     await user.click(screen.getByRole("button", { name: ".data" }));
-    expect(screen.getAllByText(".data[].items[].name").map((e) => e.className)).toContain(
-      "path-line",
-    );
+    expect(expressionLine(".data[].items[].name")).toBeDefined();
     expect((filter as HTMLInputElement).value).toBe("");
   });
 
@@ -262,9 +263,7 @@ describe("App end-to-end", () => {
     expect(names).toHaveLength(3);
     await user.click(names[0]);
     await user.click(names[1]);
-    expect(screen.getAllByText(".data[0].items[].name").map((e) => e.className)).toContain(
-      "path-line",
-    );
+    expect(expressionLine(".data[0].items[].name")).toBeDefined();
     const selectedBefore = names.filter(
       (label) =>
         (label.closest('[role="treeitem"]') as HTMLElement).getAttribute("aria-selected") ===
@@ -273,9 +272,7 @@ describe("App end-to-end", () => {
     expect(selectedBefore).toHaveLength(2);
 
     await user.click(screen.getByRole("button", { name: ".data" }));
-    expect(screen.getAllByText(".data[].items[].name").map((e) => e.className)).toContain(
-      "path-line",
-    );
+    expect(expressionLine(".data[].items[].name")).toBeDefined();
     for (const label of screen.getAllByText("name")) {
       expect(
         (label.closest('[role="treeitem"]') as HTMLElement).getAttribute("aria-selected"),
@@ -299,7 +296,7 @@ describe("App end-to-end", () => {
 
     expect(screen.getByText(/No common pattern/)).toBeDefined();
     for (const expression of [".a[0]", ".b[0]", ".c[0]"])
-      expect(screen.getAllByText(expression).map((e) => e.className)).toContain("path-line");
+      expect(expressionLine(expression)).toBeDefined();
   });
 
   it("surfaces a clipboard failure without crashing", async () => {
@@ -360,7 +357,7 @@ describe("App end-to-end", () => {
     await user.paste('{"\\ud800": 1}');
     await user.click(within(row("\ud800")).getByText("\ud800"));
     expect(screen.getByText(/can't be expressed as a jq path/)).toBeDefined();
-    expect((screen.getByRole("button", { name: "Copy" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Copy" })).toBeNull();
   });
 
   it("keeps representable outputs when one selected key is a lone surrogate", async () => {
@@ -370,12 +367,10 @@ describe("App end-to-end", () => {
     await user.paste('{"\\ud800": 1, "id": 2}');
     await user.click(within(row("\ud800")).getByText("\ud800"));
     await user.click(within(row("id")).getByText("id"));
-    const lines = screen.getAllByText(".id").filter((el) => el.className === "path-line");
+    const lines = screen.getAllByText(".id").filter((el) => el.className === "path-expression");
     expect(lines).toHaveLength(1);
     expect(screen.getByText(/lone surrogate/)).toBeDefined();
-    expect((screen.getByRole("button", { name: "Copy" }) as HTMLButtonElement).disabled).toBe(
-      false,
-    );
+    expect(screen.getByRole("button", { name: "Copy" })).toBeDefined();
   });
 
   it("shows both notices when unrelated selections include a lone-surrogate key", async () => {
@@ -387,8 +382,8 @@ describe("App end-to-end", () => {
     await user.click(within(row("a")).getByText("a"));
     await user.click(within(row("b")).getByText("b"));
     expect(screen.getByText(/No common pattern.*lone surrogate/)).toBeDefined();
-    expect(screen.getAllByText(".a").map((el) => el.className)).toContain("path-line");
-    expect(screen.getAllByText(".b").map((el) => el.className)).toContain("path-line");
+    expect(expressionLine(".a")).toBeDefined();
+    expect(expressionLine(".b")).toBeDefined();
   });
 
   it("shows a positioned parse error with a caret excerpt", async () => {
@@ -506,7 +501,7 @@ describe("App end-to-end", () => {
     await user.click(within(row("if")).getByText("if"));
     const generated = screen
       .getAllByText('."a-b"[0]."if"')
-      .find((element) => element.className === "path-line")?.textContent;
+      .find((element) => element.className === "path-expression")?.textContent;
     if (generated === undefined || generated === null) throw new Error("no generated path");
 
     const filter = screen.getByLabelText("Highlight nodes matching a jq expression");

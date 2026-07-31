@@ -199,14 +199,10 @@ function constructionOverAncestor(
   const source = constructionSource(ancestor, element, elementPath.segments);
   if (source === null) return null;
   const elementCount = source.elements.length;
-  const objects = source.elements.filter(
-    (node) => node.value !== null && typeof node.value === "object" && !Array.isArray(node.value),
-  );
-  const constructible = source.elements.filter(
-    (node) => node.value === null || (typeof node.value === "object" && !Array.isArray(node.value)),
-  );
-  const needsOptional = source.iterating && constructible.length < elementCount;
-  const matchCount = source.iterating ? constructible.length : source.matchCount;
+  const objects = source.elements.filter(isObject);
+  const matchingElements = objects.filter((node) => keys.every((key) => hasKey(node, key)));
+  const needsOptional = source.iterating && matchingElements.length < elementCount;
+  const matchCount = source.iterating ? matchingElements.length : source.matchCount;
   const heterogeneous = needsOptional;
   const optional = source.optional || needsOptional;
   const matches = objects.flatMap((match) =>
@@ -229,10 +225,16 @@ function constructionOverAncestor(
   };
 }
 
-function rootOf(node: ModelNode): ModelNode {
-  let current = node;
-  while (current.parent !== null) current = current.parent;
-  return current;
+function isObject(node: ModelNode): boolean {
+  return node.value !== null && typeof node.value === "object" && !Array.isArray(node.value);
+}
+
+function hasKey(node: ModelNode, key: string): boolean {
+  return (
+    node.children?.some(
+      (child) => child.exists && child.segment?.kind === "key" && child.segment.key === key,
+    ) ?? false
+  );
 }
 
 interface ConstructionSource {
@@ -264,20 +266,22 @@ function constructionSource(
   const ancestorPath = pathTo(ancestor);
   if (ancestorPath.kind !== "path" || ancestor.children === null) return null;
   const depth = ancestorPath.segments.length;
-  const bare: PathStep[] = elementSegments.slice(0, depth).map((segment) => ({ ...segment }));
-  bare.push({ kind: "iterate" });
+  const prefix = elementSegments.slice(0, depth).map((segment) => ({ ...segment }));
+  const relative: PathStep[] = [{ kind: "iterate" }];
   for (let index = depth + 1; index < elementSegments.length; index++) {
     const segment = elementSegments[index];
-    bare.push(segment.kind === "index" ? { kind: "iterate" } : { ...segment });
+    relative.push(segment.kind === "index" ? { kind: "iterate" } : { ...segment });
   }
-  const root = rootOf(ancestor);
-  const trace = evaluateTrace([root], bare);
-  const steps: PathStep[] = bare.map((step, index) =>
-    trace.optional[index] ? { ...step, optional: true } : step,
-  );
+  const trace = evaluateTrace(ancestor.children, relative.slice(1));
+  const steps: PathStep[] = [
+    relative[0],
+    ...relative
+      .slice(1)
+      .map((step, index) => (trace.optional[index] ? { ...step, optional: true } : step)),
+  ];
   const elements = trace.matches;
   return {
-    expression: { kind: "path", steps },
+    expression: { kind: "path", steps: [...prefix, ...steps] },
     elements,
     matchCount: elements.length,
     elementCount: elements.length,

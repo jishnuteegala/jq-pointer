@@ -93,13 +93,13 @@ describe("resolveSelection construction", () => {
     expect(selection.outputs[0].elementCount).toBe(2);
   });
 
-  it("keeps the plain form when otherwise-object elements are missing selected keys", () => {
+  it("counts objects missing any selected key as heterogeneous", () => {
     const r = root({ items: [{ name: "a", id: 1 }, { name: "b" }] });
     const element = at(child(r, "items"), 0);
     const selection = resolveSelection([child(element, "name"), child(element, "id")]);
-    expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}");
-    expect(selection.outputs[0].heterogeneous).toBe(false);
-    expect(selection.outputs[0].matchCount).toBe(2);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}?");
+    expect(selection.outputs[0].heterogeneous).toBe(true);
+    expect(selection.outputs[0].matchCount).toBe(1);
   });
 
   it("treats a present-null selected key as a matching object", () => {
@@ -115,13 +115,13 @@ describe("resolveSelection construction", () => {
     expect(selection.outputs[0].heterogeneous).toBe(false);
   });
 
-  it("keeps the plain form when a sibling element is null (jq constructs over null)", () => {
+  it("counts a null sibling as absent for selected-key presence", () => {
     const r = root({ items: [{ name: "a", id: 1 }, null] });
     const element = at(child(r, "items"), 0);
     const selection = resolveSelection([child(element, "name"), child(element, "id")]);
-    expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}");
-    expect(selection.outputs[0].heterogeneous).toBe(false);
-    expect(selection.outputs[0].matchCount).toBe(2);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}?");
+    expect(selection.outputs[0].heterogeneous).toBe(true);
+    expect(selection.outputs[0].matchCount).toBe(1);
     expect(selection.outputs[0].elementCount).toBe(2);
   });
 
@@ -131,7 +131,7 @@ describe("resolveSelection construction", () => {
     const selection = resolveSelection([child(element, "name"), child(element, "id")]);
     expect(printExpression(selection.outputs[0].expression)).toBe(".items[] | {name, id}?");
     expect(selection.outputs[0].heterogeneous).toBe(true);
-    expect(selection.outputs[0].matchCount).toBe(2);
+    expect(selection.outputs[0].matchCount).toBe(1);
     expect(selection.outputs[0].elementCount).toBe(3);
   });
 
@@ -167,6 +167,24 @@ describe("resolveSelection construction", () => {
 });
 
 describe("resolveSelection widening across unsafe intermediates", () => {
+  it("scopes construction tracing to a deeply nested ancestor subtree", () => {
+    const unrelated = Array.from({ length: 10_000 }, (_, index) => ({ index, noise: [index] }));
+    const r = root({
+      unrelated,
+      nested: {
+        items: [
+          { name: "a", id: 1 },
+          { name: "b", id: 2 },
+        ],
+      },
+    });
+    const element = at(child(child(r, "nested"), "items"), 0);
+    const started = performance.now();
+    const selection = resolveSelection([child(element, "name"), child(element, "id")]);
+    expect(performance.now() - started).toBeLessThan(100);
+    expect(printExpression(selection.outputs[0].expression)).toBe(".nested.items[] | {name, id}");
+  });
+
   it("applies ? at the inner iterator when a widened intermediate is null", () => {
     const r = root({ data: [{ items: [{ v: 1 }, { v: 2 }] }, { items: null }] });
     const clicks = [
@@ -206,7 +224,7 @@ describe("resolveSelection widening across unsafe intermediates", () => {
     const selection = resolveSelectionAt([child(inner, "a"), child(inner, "b")], 1);
     const output = selection.outputs[0];
     expect(printExpression(output.expression)).toBe(".data[].item? | {a, b}?");
-    expect(output.matchCount).toBe(2);
+    expect(output.matchCount).toBe(1);
     expect(output.elementCount).toBe(3);
     expect(output.matches.map((node) => node.value)).toEqual([1, 2]);
   });
