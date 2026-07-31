@@ -47,19 +47,27 @@ export interface VisibleTree {
   indexOf: (node: ModelNode) => number;
 }
 
-const visibleTrees = new WeakMap<ModelNode, WeakMap<ReadonlySet<ModelNode>, VisibleTree>>();
-
-export function visibleTree(root: ModelNode, expanded: ReadonlySet<ModelNode>): VisibleTree {
-  const byExpansion = visibleTrees.get(root);
-  const cached = byExpansion?.get(expanded);
-  if (cached !== undefined) return cached;
-  const tree = createVisibleTree(root, expanded);
-  if (byExpansion !== undefined) byExpansion.set(expanded, tree);
-  else visibleTrees.set(root, new WeakMap([[expanded, tree]]));
-  return tree;
+function positionOf(node: ModelNode): number {
+  if (node.segment?.kind === "index") return node.segment.index;
+  const siblings = node.parent?.children ?? [];
+  for (let index = 0; index < siblings.length; index++) {
+    if (siblings[index] === node) return index;
+  }
+  return 0;
 }
 
-function createVisibleTree(root: ModelNode, expanded: ReadonlySet<ModelNode>): VisibleTree {
+function firstChildAtOrAfter(prefix: Float64Array, offset: number): number {
+  let low = 0;
+  let high = prefix.length - 2;
+  while (low < high) {
+    const middle = (low + high) >> 1;
+    if (prefix[middle + 1] > offset) high = middle;
+    else low = middle + 1;
+  }
+  return low;
+}
+
+export function visibleTree(root: ModelNode, expanded: ReadonlySet<ModelNode>): VisibleTree {
   const counts = new Map<ModelNode, number>();
   const prefixes = new Map<ModelNode, Float64Array>();
 
@@ -113,27 +121,7 @@ function createVisibleTree(root: ModelNode, expanded: ReadonlySet<ModelNode>): V
     }
   };
 
-  const positionOf = (node: ModelNode): number => {
-    if (node.segment?.kind === "index") return node.segment.index;
-    const siblings = node.parent?.children ?? [];
-    for (let index = 0; index < siblings.length; index++) {
-      if (siblings[index] === node) return index;
-    }
-    return 0;
-  };
-
   const total = countOf(root);
-
-  const firstChildAtOrAfter = (prefix: Float64Array, offset: number): number => {
-    let low = 0;
-    let high = prefix.length - 2;
-    while (low < high) {
-      const middle = (low + high) >> 1;
-      if (prefix[middle + 1] > offset) high = middle;
-      else low = middle + 1;
-    }
-    return low;
-  };
 
   interface WindowFrame {
     node: ModelNode;
