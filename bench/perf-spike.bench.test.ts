@@ -3,7 +3,7 @@ import { generateFixture } from "./fixture";
 import { runClickPair } from "./click-pipeline";
 import { buildPathModel, type ModelNode } from "../src/lib/path-model";
 import type { JsonValue } from "../src/lib/json-value";
-import { coldEstimate, percentile } from "./stats";
+import { coldStart, percentile } from "./stats";
 
 const TARGET_BYTES = 10 * 1024 * 1024;
 const INTERACTIVE_BUDGET_MS = 2000;
@@ -71,7 +71,7 @@ describe("D7 performance spike: 10MB parse + path model + click evaluation", () 
       matchCount = result?.matches.length ?? 0;
     }
 
-    const coldMs = coldEstimate(timings);
+    const coldMs = coldStart(timings);
     const medianMs = percentile(timings, 50);
     const p95Ms = percentile(timings, 95);
     const maxMs = Math.max(...timings);

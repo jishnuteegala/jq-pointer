@@ -588,7 +588,6 @@ button.tree-toggle:hover {
   min-height: var(--tap-target);
   padding: var(--space-1) var(--space-2);
   max-width: 100%;
-  min-width: 0;
   overflow-wrap: anywhere;
   cursor: pointer;
   color: var(--color-muted);

@@ -49,6 +49,7 @@ export default defineConfig({
         test: {
           name: "unit",
           include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+          sequence: { groupOrder: 0 },
         },
       },
       {
@@ -58,6 +59,7 @@ export default defineConfig({
           include: ["bench/**/*.test.ts"],
           pool: "forks",
           poolOptions: { forks: { singleFork: true } },
+          sequence: { groupOrder: 1 },
         },
       },
     ],
