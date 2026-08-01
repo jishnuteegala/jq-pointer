@@ -23,6 +23,25 @@ function expressionLine(expression: string): HTMLElement {
   return line as HTMLElement;
 }
 
+function fakeFile(
+  size: number,
+  contents: string,
+  resolveWith?: (release: () => void) => void,
+): File {
+  return {
+    size,
+    text: () =>
+      new Promise<string>((resolve) => {
+        if (resolveWith === undefined) resolve(contents);
+        else resolveWith(() => resolve(contents));
+      }),
+  } as unknown as File;
+}
+
+function dropFile(target: HTMLElement, file: File): void {
+  fireEvent.drop(target, { dataTransfer: { files: [file], getData: () => "" } });
+}
+
 describe("App end-to-end", () => {
   it("pastes JSON, clicks a scalar array element, and copies the indexed path", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
@@ -316,25 +335,6 @@ describe("App end-to-end", () => {
 
     expect(await screen.findByText(/Couldn.t copy/)).toBeDefined();
   });
-
-  function fakeFile(
-    size: number,
-    contents: string,
-    resolveWith?: (release: () => void) => void,
-  ): File {
-    return {
-      size,
-      text: () =>
-        new Promise<string>((resolve) => {
-          if (resolveWith === undefined) resolve(contents);
-          else resolveWith(() => resolve(contents));
-        }),
-    } as unknown as File;
-  }
-
-  function dropFile(target: HTMLElement, file: File): void {
-    fireEvent.drop(target, { dataTransfer: { files: [file], getData: () => "" } });
-  }
 
   it("renders a tree from a dropped JSON file", async () => {
     render(<App />);
