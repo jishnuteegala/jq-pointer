@@ -44,6 +44,11 @@ if (!/Content-Security-Policy:.*connect-src 'self'/.test(headers)) {
 if (!/Content-Security-Policy:.*default-src 'self'/.test(headers)) {
   failures.push("dist/_headers: CSP must restrict default-src to 'self'");
 }
+for (const name of ["NEL", "Report-To", "Reporting-Endpoints"]) {
+  if (!new RegExp(`^[\\t ]*! ${name}[\\t ]*$`, "im").test(headers)) {
+    failures.push(`dist/_headers: ${name} must be detached with "! ${name}"`);
+  }
+}
 
 if (failures.length > 0) {
   console.error("Privacy check failed - off-origin references found:");

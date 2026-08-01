@@ -4,6 +4,6 @@ export function percentile(values: number[], p: number): number {
   return sorted[Math.max(0, index)];
 }
 
-export function coldEstimate(timings: number[]): number {
-  return Math.min(...timings.slice(0, 3));
+export function coldStart(timings: number[]): number {
+  return timings[0];
 }

@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
@@ -41,5 +41,27 @@ export default defineConfig({
         "design-system": resolve(import.meta.dirname, "design-system/index.html"),
       },
     },
+  },
+  test: {
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
+          sequence: { groupOrder: 0 },
+        },
+      },
+      {
+        extends: true,
+        test: {
+          name: "bench",
+          include: ["bench/**/*.test.ts"],
+          pool: "forks",
+          poolOptions: { forks: { singleFork: true } },
+          sequence: { groupOrder: 1 },
+        },
+      },
+    ],
   },
 });

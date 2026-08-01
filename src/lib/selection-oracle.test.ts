@@ -42,6 +42,33 @@ const objectElement = array(constantFrom<JsonValue>("v", 1, null, true), {
 const mixedElement = oneof(objectElement, constantFrom<JsonValue>(5, "text", null, true, [1, 2]));
 
 oracle("construction oracle", () => {
+  it("counts missing keys, null values, null elements, and scalar elements by selected-key presence", () => {
+    const items: JsonValue[] = [
+      { name: "a", id: 1 },
+      { name: "b" },
+      { name: null, id: null },
+      null,
+      5,
+    ];
+    const model = buildPathModel({ items });
+    const element = model.root.children?.[0]?.children?.[0];
+    if (element === undefined) throw new Error("fixture is missing its first item");
+    const name = fieldNode(element, "name");
+    const id = fieldNode(element, "id");
+    if (name === undefined || id === undefined)
+      throw new Error("fixture is missing selected fields");
+    const output = resolveSelection([name, id]).outputs[0];
+    expect(output.matchCount).toBe(2);
+    expect(output.elementCount).toBe(5);
+    expect(output.heterogeneous).toBe(true);
+    expect(
+      runJq(
+        { items },
+        '[.items[] | select(type == "object" and has("name") and has("id"))] | length',
+      ),
+    ).toEqual([2]);
+  });
+
   it("emits a construction whose value stream matches real jq exactly", () => {
     assert(
       property(
@@ -82,7 +109,7 @@ oracle("construction oracle", () => {
     );
   });
 
-  it("counts constructible (object or null) elements as N-of-M to match real jq", () => {
+  it("counts object elements with every selected key as N-of-M to match real jq", () => {
     assert(
       property(
         array(mixedElement, { minLength: 2, maxLength: 6 }),
@@ -102,9 +129,12 @@ oracle("construction oracle", () => {
           const selection = resolveSelection(clicks);
           const output = selection.outputs[0];
           if (selection.noCommonPattern || output.expression.kind !== "construction") return;
+          const presence = output.expression.keys
+            .map((key) => `has(${JSON.stringify(key)})`)
+            .join(" and ");
           const reference = runJq(
             { items },
-            '[.items[] | (type == "object" or . == null)] | map(select(.)) | length',
+            `[.items[] | select(type == "object" and (${presence}))] | length`,
           );
           expect(output.matchCount).toEqual(reference[0]);
           expect(output.elementCount).toBe(items.length);

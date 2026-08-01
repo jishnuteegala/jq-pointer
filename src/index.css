@@ -260,15 +260,42 @@ h1 {
 }
 
 .path-line {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-1) 0;
 }
 
-.path-line::before {
+.path-expression::before {
   content: "$ ";
   color: var(--color-accent);
   font-weight: 700;
   user-select: none;
+}
+
+.path-expression {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.path-copy {
+  flex: 0 0 auto;
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-accent-strong);
+  background: transparent;
+  cursor: pointer;
+}
+
+.path-copy:hover {
+  background: var(--color-accent-soft);
+}
+
+.path-copy-copied {
+  color: var(--color-success);
 }
 
 .path-line + .path-line {
@@ -397,7 +424,7 @@ h1 {
   position: absolute;
   left: 0;
   right: 0;
-  height: 28px;
+  height: var(--tap-target);
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -438,8 +465,9 @@ h1 {
 
 button.tree-toggle {
   cursor: pointer;
-  min-width: 1.5rem;
-  min-height: 1.5rem;
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
+  margin-inline: calc((var(--tap-target) - 1rem) / -2);
   padding: 0;
   color: var(--color-muted);
   background: transparent;
@@ -516,8 +544,9 @@ button.tree-toggle:hover {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 1.375rem;
-  height: 1.375rem;
+  width: var(--tap-target);
+  height: var(--tap-target);
+  margin: calc((var(--tap-target) - 1.375rem) / -2);
   line-height: 1;
   border-radius: var(--radius-full);
 }
@@ -527,6 +556,8 @@ button.tree-toggle:hover {
 }
 
 .chip-clear {
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
   padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-xs);
   color: var(--color-muted);
@@ -553,9 +584,10 @@ button.tree-toggle:hover {
   font: inherit;
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
+  min-width: var(--tap-target);
+  min-height: var(--tap-target);
   padding: var(--space-1) var(--space-2);
   max-width: 100%;
-  min-width: 0;
   overflow-wrap: anywhere;
   cursor: pointer;
   color: var(--color-muted);
@@ -628,16 +660,6 @@ button.tree-toggle:focus-visible {
 
 @media (pointer: coarse) {
   .chip {
-    padding-block: var(--space-2);
-  }
-
-  .chip-remove {
-    width: 1.75rem;
-    height: 1.75rem;
-  }
-
-  .breadcrumb-item,
-  .chip-clear {
-    padding-block: var(--space-2);
+    padding-block: var(--space-3);
   }
 }

@@ -4,7 +4,7 @@ import type { ModelNode } from "../lib/path-model";
 import { rowLabel, valuePreview, visibleTree, type TreeRow } from "../lib/tree-rows";
 import { computeWindow, scrollTopForRow } from "../lib/virtual-scroll";
 
-const ROW_HEIGHT = 28;
+const ROW_HEIGHT = 44;
 const OVERSCAN = 10;
 const INITIAL_VIEWPORT = 480;
 

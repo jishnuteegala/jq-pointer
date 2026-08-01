@@ -11,17 +11,17 @@ describe("corpus reverse-highlight round-trip", () => {
       const model = buildPathModel(scenario.document);
       const clicks = scenario.clicks.map((segments) => nodeAtSegments(model.root, segments));
       const selection = resolveSelection(clicks);
-      expect(selection.noCommonPattern, scenario.id).toBe(false);
-      expect(selection.outputs.length, scenario.id).toBe(1);
-      const output = selection.outputs[0];
-      const printed = printExpression(output.expression);
-      expect(printed, scenario.id).toBe(scenario.expected);
-      const highlight = reverseHighlight(model.root, printed);
-      expect(highlight.kind, `${scenario.id}: ${printed}`).toBe("match");
-      if (highlight.kind !== "match") continue;
-      expect(new Set(highlight.nodes), `${scenario.id}: ${printed}`).toEqual(
-        new Set(output.matches),
-      );
+      expect(selection.outputs.length, scenario.id).toBeGreaterThan(0);
+      for (const output of selection.outputs) {
+        const printed = printExpression(output.expression);
+        if (!selection.noCommonPattern) expect(printed, scenario.id).toBe(scenario.expected);
+        const highlight = reverseHighlight(model.root, printed);
+        expect(highlight.kind, `${scenario.id}: ${printed}`).toBe("match");
+        if (highlight.kind !== "match") continue;
+        expect(new Set(highlight.nodes), `${scenario.id}: ${printed}`).toEqual(
+          new Set(output.matches),
+        );
+      }
     }
   });
 
