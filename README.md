@@ -86,6 +86,16 @@ sets the security headers automatically.
 npx vercel deploy dist --prod
 ```
 
+**Netlify**
+
+```sh
+npx netlify-cli deploy --dir dist --prod
+```
+
+Or drag-and-drop the `dist` folder onto the Netlify dashboard's deploy area.
+Netlify reads the bundled `_headers` file too and applies the security headers;
+the Cloudflare-specific `! Header` detach lines in it are ignored there.
+
 **GitHub Pages**
 
 ```sh
