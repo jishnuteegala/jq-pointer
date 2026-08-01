@@ -129,7 +129,9 @@ oracle("construction oracle", () => {
           const selection = resolveSelection(clicks);
           const output = selection.outputs[0];
           if (selection.noCommonPattern || output.expression.kind !== "construction") return;
-          const presence = keys.map((key) => `has(${JSON.stringify(key)})`).join(" and ");
+          const presence = output.expression.keys
+            .map((key) => `has(${JSON.stringify(key)})`)
+            .join(" and ");
           const reference = runJq(
             { items },
             `[.items[] | select(type == "object" and (${presence}))] | length`,

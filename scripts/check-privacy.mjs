@@ -45,8 +45,9 @@ if (!/Content-Security-Policy:.*default-src 'self'/.test(headers)) {
   failures.push("dist/_headers: CSP must restrict default-src to 'self'");
 }
 for (const name of ["NEL", "Report-To", "Reporting-Endpoints"]) {
-  const header = new RegExp(`^[\\t ]*${name}:[\\t ]*(.+)$`, "im").exec(headers);
-  if (header?.[1].trim()) failures.push(`dist/_headers: ${name} must be empty`);
+  if (!new RegExp(`^[\\t ]*! ${name}[\\t ]*$`, "im").test(headers)) {
+    failures.push(`dist/_headers: ${name} must be detached with "! ${name}"`);
+  }
 }
 
 if (failures.length > 0) {
