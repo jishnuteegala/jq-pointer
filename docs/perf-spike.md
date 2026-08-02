@@ -31,6 +31,9 @@ Two measurements:
    runs cannot hide behind the median; the absolute max is reported as
    diagnostic output but not asserted, so a single scheduler pause on a
    shared CI runner cannot flake the suite.
+3. **NDJSON parse**: the same seeded records serialized one per line and
+   parsed through `parseDocument` under the same 2s budget. The fixture stays
+   just below the shared 10MB input cap.
 
 ## Measured results
 

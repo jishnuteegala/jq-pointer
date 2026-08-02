@@ -211,6 +211,42 @@ h1 {
   color: var(--color-text);
 }
 
+.record-nav {
+  margin-top: var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.record-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+}
+
+.record-controls .button {
+  padding-inline: var(--space-3);
+}
+
+.record-error {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border);
+  color: var(--color-danger);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+}
+
+.record-error pre {
+  margin: var(--space-1) 0 0;
+  overflow-x: auto;
+  color: var(--color-text);
+}
+
 .path-bar {
   display: flex;
   align-items: stretch;

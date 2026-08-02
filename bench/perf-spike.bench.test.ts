@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { generateFixture } from "./fixture";
+import { generateFixture, generateNdjsonFixture } from "./fixture";
 import { runClickPair } from "./click-pipeline";
 import { buildPathModel, type ModelNode } from "../src/lib/path-model";
 import type { JsonValue } from "../src/lib/json-value";
 import { coldStart, percentile } from "./stats";
+import { parseDocument } from "../src/lib/parse-document";
 
 const TARGET_BYTES = 10 * 1024 * 1024;
 const INTERACTIVE_BUDGET_MS = 2000;
@@ -24,6 +25,17 @@ function descend(node: ModelNode, keys: string[]): ModelNode {
 
 describe("D7 performance spike: 10MB parse + path model + click evaluation", () => {
   const { json, itemCount } = generateFixture(TARGET_BYTES);
+  const { ndjson, itemCount: ndjsonCount } = generateNdjsonFixture(TARGET_BYTES * 0.99);
+
+  it(`parses ~10MB NDJSON under ${INTERACTIVE_BUDGET_MS}ms`, () => {
+    const start = performance.now();
+    const outcome = parseDocument(ndjson);
+    const elapsed = performance.now() - start;
+    expect(outcome.kind).toBe("ndjson");
+    if (outcome.kind === "ndjson") expect(outcome.records).toHaveLength(ndjsonCount);
+    expect(ndjson.length).toBeGreaterThan(TARGET_BYTES * 0.95);
+    expect(elapsed).toBeLessThan(INTERACTIVE_BUDGET_MS);
+  });
 
   it(`parses ~10MB and builds the path model under ${INTERACTIVE_BUDGET_MS}ms`, () => {
     const parseStart = performance.now();
@@ -83,5 +95,40 @@ describe("D7 performance spike: 10MB parse + path model + click evaluation", () 
     expect(medianMs).toBeLessThan(CLICK_BUDGET_MS);
     expect(p95Ms).toBeLessThan(CLICK_BUDGET_MS);
     expect(coldMs).toBeLessThan(CLICK_BUDGET_MS);
+  });
+
+  it(`runs the NDJSON click-pair pipeline with cold, median, and p95 under ${CLICK_BUDGET_MS}ms`, () => {
+    const outcome = parseDocument(ndjson);
+    expect(outcome.kind).toBe("ndjson");
+    if (outcome.kind !== "ndjson") return;
+    const model = buildPathModel(outcome.records[0].value);
+    const labels = descend(model.root, ["meta", "labels"]);
+    const elements = labels.children;
+    expect(elements).not.toBeNull();
+    const first = descend((elements as ModelNode[])[0], ["name"]);
+    const last = descend((elements as ModelNode[])[(elements as ModelNode[]).length - 1], ["name"]);
+
+    const timings: number[] = [];
+    let matchCount = 0;
+    for (let i = 0; i < CLICK_SAMPLES; i++) {
+      const start = performance.now();
+      const result = runClickPair(first, last);
+      timings.push(performance.now() - start);
+      expect(result).not.toBeNull();
+      expect(result?.ancestor).toBe(labels);
+      matchCount = result?.matches.length ?? 0;
+    }
+
+    const coldMs = coldStart(timings);
+    const medianMs = percentile(timings, 50);
+    const p95Ms = percentile(timings, 95);
+    console.log(
+      `[perf-spike] ndjson-click-pipeline matches=${matchCount}/3 cold=${coldMs.toFixed(2)}ms median=${medianMs.toFixed(2)}ms p95=${p95Ms.toFixed(2)}ms budget=${CLICK_BUDGET_MS}ms`,
+    );
+
+    expect(matchCount).toBe(3);
+    expect(coldMs).toBeLessThan(CLICK_BUDGET_MS);
+    expect(medianMs).toBeLessThan(CLICK_BUDGET_MS);
+    expect(p95Ms).toBeLessThan(CLICK_BUDGET_MS);
   });
 });
