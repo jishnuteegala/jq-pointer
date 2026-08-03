@@ -75,3 +75,9 @@ export function generateFixture(targetBytes: number): { json: string; itemCount:
   const json = `{"kind":"RecordList","apiVersion":"v1","items":[${parts.join(",")}]}`;
   return { json, itemCount: index };
 }
+
+export function generateNdjsonFixture(targetBytes: number): { ndjson: string; itemCount: number } {
+  const { json, itemCount } = generateFixture(targetBytes);
+  const parsed = JSON.parse(json) as { items: JsonValue[] };
+  return { ndjson: parsed.items.map((item) => JSON.stringify(item)).join("\n"), itemCount };
+}

@@ -4,6 +4,11 @@ export const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
 
 export type ParseOutcome =
   | { kind: "ok"; value: JsonValue }
+  | {
+      kind: "ndjson";
+      records: Array<{ line: number; value: JsonValue }>;
+      errors: Array<{ line: number; excerpt: string }>;
+    }
   | { kind: "too-large"; bytes: number; limit: number }
   | { kind: "error"; message: string; excerpt: string };
 
@@ -17,12 +22,35 @@ export function parseDocument(text: string): ParseOutcome {
     return { kind: "ok", value };
   } catch (error) {
     const detail = error instanceof Error ? error.message : "invalid JSON";
+    const ndjson = parseNdjson(text);
+    if (ndjson !== null) return ndjson;
     const offset = errorOffset(text, detail);
     const line = text.slice(0, offset).split(/\r\n|\r|\n/).length;
     const column = offset - lineStartAt(text, offset) + 1;
     const message = `${inputHint(text)}${detail} (line ${line}, column ${column})`;
     return { kind: "error", message, excerpt: excerptAt(text, offset) };
   }
+}
+
+function parseNdjson(text: string): Extract<ParseOutcome, { kind: "ndjson" }> | null {
+  const lines = text.split(/\r\n|\r|\n/);
+  const nonEmpty = lines
+    .map((line, index) => ({ line, number: index + 1 }))
+    .filter(({ line }) => line.trim() !== "");
+  if (nonEmpty.length < 2) return null;
+
+  const records: Array<{ line: number; value: JsonValue }> = [];
+  const errors: Array<{ line: number; excerpt: string }> = [];
+  for (const { line, number } of nonEmpty) {
+    try {
+      records.push({ line: number, value: JSON.parse(line) as JsonValue });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "invalid JSON";
+      errors.push({ line: number, excerpt: caretExcerpt(line, message) });
+    }
+  }
+  if (records.length < 2 || records.length / nonEmpty.length < 0.9) return null;
+  return { kind: "ndjson", records, errors };
 }
 
 function errorOffset(text: string, message: string): number {
@@ -285,9 +313,6 @@ function inputHint(text: string): string {
   if (looksLikeJsLiteral(trimmed)) {
     return "This looks like a JavaScript literal, not strict JSON. ";
   }
-  if (looksLikeNdjson(trimmed)) {
-    return "This looks like NDJSON. Paste one JSON value instead. ";
-  }
   return "";
 }
 
@@ -321,19 +346,6 @@ function maskStrings(text: string): string {
     masked += char;
   }
   return masked;
-}
-
-function looksLikeNdjson(trimmed: string): boolean {
-  const lines = trimmed.split(/\r\n|\r|\n/).filter((line) => line.trim() !== "");
-  if (lines.length < 2) return false;
-  return lines.every((line) => {
-    try {
-      JSON.parse(line);
-      return true;
-    } catch {
-      return false;
-    }
-  });
 }
 
 export function caretExcerpt(text: string, message: string): string {

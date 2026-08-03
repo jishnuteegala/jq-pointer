@@ -17,12 +17,21 @@ jobs:
     uses: jishnuteegala/.github/.github/workflows/app-ci.yml@v1
     with:
       pre-check: |
-        curl --fail --location --output jq \
+        curl --fail --location --output jq-1.6 \
+          https://github.com/jqlang/jq/releases/download/jq-1.6/jq-linux64
+        echo "af986793a515d500ab2d35f8d2aecd656e764504b789b66d7e1a0b727a124c44  jq-1.6" | sha256sum --check
+        chmod +x jq-1.6
+        ./jq-1.6 --version | grep -Fx jq-1.6
+        curl --fail --location --output jq-1.7.1 \
           https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
-        echo "5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5  jq" | sha256sum --check
-        chmod +x jq
-        ./jq --version | grep -Fx jq-1.7.1
-        mv jq jq-1.7.1
+        echo "5942c9b0934e510ee61eb3e30273f1b3fe2590df93933a93d7c58b81d19c8ff5  jq-1.7.1" | sha256sum --check
+        chmod +x jq-1.7.1
+        ./jq-1.7.1 --version | grep -Fx jq-1.7.1
+        curl --fail --location --output jq-1.8.1 \
+          https://github.com/jqlang/jq/releases/download/jq-1.8.1/jq-linux-amd64
+        echo "020468de7539ce70ef1bceaf7cde2e8c4f2ca6c3afb84642aabc5c97d9fc2a0d  jq-1.8.1" | sha256sum --check
+        chmod +x jq-1.8.1
+        ./jq-1.8.1 --version | grep -Fx jq-1.8.1
       post-check: |
         pnpm run build
         pnpm run check:privacy

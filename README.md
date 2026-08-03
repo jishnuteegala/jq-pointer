@@ -26,10 +26,12 @@ pnpm dev
 ## Input handling
 
 Parsing is strict `JSON.parse` only - there is no tolerant repair. Invalid input
-shows a positioned error with a caret excerpt of the offending line. NDJSON
-pastes and JavaScript-literal pastes (trailing commas, single quotes, unquoted
-keys) are detected heuristically and named in the error message without any
-repair.
+shows a positioned error with a caret excerpt of the offending line. NDJSON is
+detected automatically when at least 90% of two or more non-empty lines parse;
+each valid record is navigable and malformed lines remain visible as errors.
+The 10MB input cap applies to JSON and NDJSON alike. JavaScript-literal pastes
+(trailing commas, single quotes, unquoted keys) are named in the error message
+without any repair.
 
 Two `JSON.parse` behaviours are inherited deliberately and produce no warning:
 
@@ -45,9 +47,16 @@ The spike result and the main-thread vs worker decision are documented in
 
 ## jq oracle
 
-Grammar property tests use the official [jq 1.7.1](https://github.com/jqlang/jq/releases/tag/jq-1.7.1)
-Linux AMD64 binary as a pinned oracle. CI downloads it as `jq-1.7.1`; the oracle
-tests skip on Windows because that binary cannot execute locally.
+Grammar and copied-invocation property tests run against pinned official Linux AMD64
+binaries for [jq 1.6](https://github.com/jqlang/jq/releases/tag/jq-1.6),
+[jq 1.7.1](https://github.com/jqlang/jq/releases/tag/jq-1.7.1), and
+[jq 1.8.1](https://github.com/jqlang/jq/releases/tag/jq-1.8.1). CI downloads them as
+`jq-1.6`, `jq-1.7.1`, and `jq-1.8.1`; these oracle and shell-round-trip tests skip on
+Windows because the binaries cannot execute locally.
+
+The platform-independent conformance suite checks the parser/evaluator's accepted
+slice of jq's official `tests/jq.test`. Emitted commands are validated against every
+supported jq version.
 
 ## Self-hosting
 

@@ -4,6 +4,7 @@ import { Breadcrumb } from "./components/Breadcrumb";
 import { ChipBar } from "./components/ChipBar";
 import { TreeView } from "./components/TreeView";
 import { printExpression, printPath } from "./lib/jq-expression";
+import { copyInvocation } from "./lib/jq-invocation";
 import { MAX_DOCUMENT_BYTES, parseDocument, type ParseOutcome } from "./lib/parse-document";
 import { buildPathModel, pathTo, type ModelNode, type PathModel } from "./lib/path-model";
 import { reverseHighlight, type ReverseHighlight } from "./lib/reverse-highlight";
@@ -43,6 +44,7 @@ function App() {
   const [text, setText] = useState("");
   const [version, setVersion] = useState(0);
   const [outcome, setOutcome] = useState<ParseOutcome | null>(null);
+  const [recordIndex, setRecordIndex] = useState(0);
   const [clicks, setClicks] = useState<ModelNode[]>([]);
   const [ancestorIndex, setAncestorIndex] = useState(0);
   const [filter, setFilter] = useState("");
@@ -52,9 +54,13 @@ function App() {
   const copyGeneration = useRef(0);
 
   const model: PathModel | null = useMemo(() => {
-    if (outcome === null || outcome.kind !== "ok") return null;
-    return buildPathModel(outcome.value);
-  }, [outcome]);
+    if (outcome === null) return null;
+    if (outcome.kind === "ok") return buildPathModel(outcome.value);
+    if (outcome.kind === "ndjson") return buildPathModel(outcome.records[recordIndex].value);
+    return null;
+  }, [outcome, recordIndex]);
+
+  const ndjson = outcome?.kind === "ndjson" ? outcome : null;
 
   useEffect(() => {
     if (copied === null) return;
@@ -108,6 +114,7 @@ function App() {
     loadGeneration.current += 1;
     setText(displayText(value));
     setVersion((previous) => previous + 1);
+    setRecordIndex(0);
     setClicks([]);
     setAncestorIndex(0);
     setFilter("");
@@ -171,6 +178,17 @@ function App() {
       if (previous.includes(node)) return previous.filter((click) => click !== node);
       return [...previous, node];
     });
+    setAncestorIndex(0);
+    setFilter("");
+    setCopied(null);
+    setCopyFailed(false);
+  };
+
+  const handleRecordChange = (index: number) => {
+    copyGeneration.current += 1;
+    setRecordIndex(index);
+    setVersion((previous) => previous + 1);
+    setClicks([]);
     setAncestorIndex(0);
     setFilter("");
     setCopied(null);
@@ -242,10 +260,14 @@ function App() {
           onDragOver={(event: DragEvent<HTMLTextAreaElement>) => event.preventDefault()}
           placeholder="Paste JSON here or drop a file onto this box"
           spellCheck={false}
-          aria-invalid={outcome !== null && outcome.kind !== "ok"}
-          aria-describedby={outcome !== null && outcome.kind !== "ok" ? "parse-error" : undefined}
+          aria-invalid={outcome !== null && outcome.kind !== "ok" && outcome.kind !== "ndjson"}
+          aria-describedby={
+            outcome !== null && outcome.kind !== "ok" && outcome.kind !== "ndjson"
+              ? "parse-error"
+              : undefined
+          }
         />
-        {outcome !== null && outcome.kind !== "ok" && (
+        {outcome !== null && outcome.kind !== "ok" && outcome.kind !== "ndjson" && (
           <div id="parse-error" className="parse-error" role="alert">
             <p>{describeOutcome(outcome)}</p>
             {outcome.kind === "error" && <pre>{outcome.excerpt}</pre>}
@@ -253,6 +275,38 @@ function App() {
         )}
         {model !== null && (
           <>
+            {ndjson !== null && (
+              <section className="record-nav" aria-label="NDJSON records">
+                <div className="record-controls">
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={() => handleRecordChange(recordIndex - 1)}
+                    disabled={recordIndex === 0}
+                  >
+                    Previous record
+                  </button>
+                  <output>
+                    Record {recordIndex + 1}/{ndjson.records.length} (line{" "}
+                    {ndjson.records[recordIndex].line})
+                  </output>
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={() => handleRecordChange(recordIndex + 1)}
+                    disabled={recordIndex === ndjson.records.length - 1}
+                  >
+                    Next record
+                  </button>
+                </div>
+                {ndjson.errors.map((error) => (
+                  <div key={error.line} className="record-error" role="note">
+                    <strong>Line {error.line}</strong>
+                    <pre>{error.excerpt}</pre>
+                  </div>
+                ))}
+              </section>
+            )}
             <ChipBar
               clicks={clicks}
               labelOf={labelOf}
@@ -275,18 +329,35 @@ function App() {
                   ? "This key can't be expressed as a jq path (lone surrogate in the key)."
                   : path === null
                     ? "Click a value in the tree to get its jq path, then a sibling to generalise"
-                    : path.map((line) => (
-                        <span key={line} className="path-line">
-                          <span className="path-expression">{line}</span>
-                          <button
-                            type="button"
-                            className={`path-copy${copied === line ? " path-copy-copied" : ""}`}
-                            onClick={() => handleCopy(line)}
-                          >
-                            {copied === line ? "Copied" : "Copy"}
-                          </button>
-                        </span>
-                      ))}
+                    : path.map((line) => {
+                        const perLine = ndjson === null ? line : copyInvocation(line, false);
+                        const slurped = copyInvocation(line, true);
+                        return (
+                          <span key={line} className="path-line">
+                            <span className="path-expression">{line}</span>
+                            <button
+                              type="button"
+                              className={`path-copy${copied === perLine ? " path-copy-copied" : ""}`}
+                              onClick={() => handleCopy(perLine)}
+                            >
+                              {copied === perLine
+                                ? "Copied"
+                                : ndjson === null
+                                  ? "Copy"
+                                  : "Copy per-line"}
+                            </button>
+                            {ndjson !== null && (
+                              <button
+                                type="button"
+                                className={`path-copy${copied === slurped ? " path-copy-copied" : ""}`}
+                                onClick={() => handleCopy(slurped)}
+                              >
+                                {copied === slurped ? "Copied" : "Copy slurped"}
+                              </button>
+                            )}
+                          </span>
+                        );
+                      })}
               </output>
             </div>
             {selection.breadcrumb !== null && (

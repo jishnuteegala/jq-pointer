@@ -420,13 +420,138 @@ describe("App end-to-end", () => {
     expect(within(alert).getByText(/\^/)).toBeDefined();
   });
 
-  it("names NDJSON input in the parse error without repairing it", async () => {
+  it("navigates NDJSON records, resets state, and offers invocation-aware copy", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"a": 1}\n{"a": 2}');
+    expect(screen.getByText("Record 1/2 (line 1)")).toBeDefined();
+    await user.click(within(row("a")).getByText("a"));
+    expect(expressionLine(".a")).toBeDefined();
+    const filter = screen.getByLabelText("Highlight nodes matching a jq expression");
+    await user.type(filter, ".a");
+    await user.click(screen.getByRole("button", { name: "Next record" }));
+    expect(screen.getByText("Record 2/2 (line 2)")).toBeDefined();
+    expect(screen.queryByRole("group", { name: "Selected nodes" })).toBeNull();
+    expect((filter as HTMLInputElement).value).toBe("");
+    await user.click(within(row("a")).getByText("a"));
+    await user.click(screen.getByRole("button", { name: "Copy per-line" }));
+    await user.click(screen.getByRole("button", { name: "Copy slurped" }));
+    expect(writeText).toHaveBeenCalledWith("jq '.a'");
+    expect(writeText).toHaveBeenCalledWith("jq -s '.[].a'");
+  });
+
+  it("copies root and top-level array paths as valid NDJSON invocations", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('["first"]\n["second"]');
+
+    await user.click(within(row("$")).getByText("$"));
+    await user.click(screen.getByRole("button", { name: "Copy per-line" }));
+    await user.click(screen.getByRole("button", { name: "Copy slurped" }));
+
+    await user.click(within(row("$")).getByText("$"));
+    await user.click(within(row("[0]")).getByText("[0]"));
+    await user.click(screen.getByRole("button", { name: "Copy per-line" }));
+    await user.click(screen.getByRole("button", { name: "Copy slurped" }));
+
+    expect(writeText).toHaveBeenCalledWith("jq '.'");
+    expect(writeText).toHaveBeenCalledWith("jq -s '.[]'");
+    expect(writeText).toHaveBeenCalledWith("jq '.[0]'");
+    expect(writeText).toHaveBeenCalledWith("jq -s '.[][0]'");
+  });
+
+  it("copies root multi-key construction as valid per-line and slurped NDJSON invocations", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste('{"name": "first", "id": 1}\n{"name": "second", "id": 2}');
+
+    await user.click(within(row("name")).getByText("name"));
+    await user.click(within(row("id")).getByText("id"));
+    expect(expressionLine(". | {name, id}")).toBeDefined();
+
+    await user.click(screen.getByRole("button", { name: "Copy per-line" }));
+    await user.click(screen.getByRole("button", { name: "Copy slurped" }));
+
+    expect(writeText).toHaveBeenCalledWith("jq '. | {name, id}'");
+    expect(writeText).toHaveBeenCalledWith("jq -s '.[] | {name, id}'");
+  });
+
+  it("shell-escapes single quotes in NDJSON jq invocations", async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    const user = userEvent.setup();
+    Object.defineProperty(navigator, "clipboard", {
+      value: { writeText },
+      configurable: true,
+    });
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste(`{"it's": 1}\n{"it's": 2}`);
+    await user.click(within(row("it's")).getByText("it's"));
+    await user.click(screen.getByRole("button", { name: "Copy per-line" }));
+    await user.click(screen.getByRole("button", { name: "Copy slurped" }));
+
+    expect(writeText).toHaveBeenCalledWith(`jq '."it'\\''s"'`);
+    expect(writeText).toHaveBeenCalledWith(`jq -s '.[]."it'\\''s"'`);
+  });
+
+  it("keeps the URL empty while navigating and selecting NDJSON records", async () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByLabelText("JSON document"));
     await user.paste('{"a": 1}\n{"a": 2}');
-    expect(screen.getByRole("alert").textContent).toContain("NDJSON");
-    expect(screen.queryByRole("tree")).toBeNull();
+    await user.click(screen.getByRole("button", { name: "Next record" }));
+    await user.click(within(row("a")).getByText("a"));
+
+    expect(window.location.pathname).toBe("/");
+    expect(window.location.search).toBe("");
+    expect(window.location.hash).toBe("");
+  });
+
+  it("renders malformed NDJSON lines as non-interactive errors", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste(
+      `${Array.from({ length: 9 }, (_, index) => `{"a": ${index}}`).join("\n")}\nnot json`,
+    );
+    const error = screen.getByText("Line 10").parentElement;
+    expect(error?.textContent).toContain("^");
+    expect(error?.querySelector("button")).toBeNull();
+  });
+
+  it("skips malformed NDJSON lines when navigating records", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByLabelText("JSON document"));
+    await user.paste(
+      `${Array.from({ length: 9 }, (_, index) => `{"a": ${index}}`).join("\n")}\nnot json\n{"a": 10}`,
+    );
+
+    expect(screen.getByText("Record 1/10 (line 1)")).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Next record" }));
+    for (let index = 0; index < 8; index++)
+      await user.click(screen.getByRole("button", { name: "Next record" }));
+    expect(screen.getByText("Record 10/10 (line 11)")).toBeDefined();
+    await user.click(screen.getByRole("button", { name: "Previous record" }));
+    expect(screen.getByText("Record 9/10 (line 9)")).toBeDefined();
   });
 
   it("names JS-literal input in the parse error without repairing it", async () => {

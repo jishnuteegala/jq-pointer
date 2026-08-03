@@ -158,13 +158,9 @@ describe("parseDocument", () => {
     expect(caret.indexOf("^")).toBe(line.indexOf("\t"));
   });
 
-  it("reports line numbers across lone carriage-return separators", () => {
+  it("recognizes CR-separated NDJSON", () => {
     const outcome = parseDocument('{"a": 1}\r{"b": 2}');
-    expect(outcome.kind).toBe("error");
-    if (outcome.kind === "error") {
-      expect(outcome.message).toMatch(/line 2, column 1/);
-      expect(outcome.excerpt.split("\n")[0]).toBe('{"b": 2}');
-    }
+    expect(outcome.kind).toBe("ndjson");
   });
 
   it("points at the first mismatching character of a malformed literal", () => {
@@ -208,7 +204,14 @@ describe("parseDocument", () => {
 
   it("detects NDJSON with CR-only line endings", () => {
     const outcome = parseDocument('{"a": 1}\r{"a": 2}');
-    expect(outcome.kind === "error" && outcome.message).toContain("NDJSON");
+    expect(outcome).toEqual({
+      kind: "ndjson",
+      records: [
+        { line: 1, value: { a: 1 } },
+        { line: 2, value: { a: 2 } },
+      ],
+      errors: [],
+    });
   });
 
   it("ignores metadata-like text inside Chromium's quoted snippet", () => {
@@ -244,14 +247,14 @@ describe("parseDocument", () => {
     }
   });
 
-  it("names likely NDJSON input", () => {
+  it("detects valid NDJSON", () => {
     const outcome = parseDocument('{"a": 1}\n{"a": 2}');
-    expect(outcome.kind === "error" && outcome.message).toContain("NDJSON");
+    expect(outcome.kind).toBe("ndjson");
   });
 
   it("detects NDJSON with CRLF line endings", () => {
     const outcome = parseDocument('{"a": 1}\r\n{"a": 2}\r\n');
-    expect(outcome.kind === "error" && outcome.message).toContain("NDJSON");
+    expect(outcome.kind).toBe("ndjson");
   });
 
   it("names likely JavaScript-literal input", () => {
@@ -314,11 +317,31 @@ describe("parseDocument", () => {
     if (outcome.kind === "error") expect(outcome.excerpt).toContain("^");
   });
 
-  it("never repairs detected NDJSON or JS-literal input", () => {
-    expect(parseDocument('{"a": 1}\n{"a": 2}').kind).toBe("error");
+  it("does not repair JavaScript literals", () => {
     expect(parseDocument('{"item": 1,}').kind).toBe("error");
     expect(parseDocument("{'item': 1}").kind).toBe("error");
     expect(parseDocument("{item: 1}").kind).toBe("error");
+  });
+
+  it("uses the 90% NDJSON boundary and retains malformed lines", () => {
+    const atBoundary = Array.from({ length: 10 }, (_, index) => `{"n": ${index}}`);
+    atBoundary[9] = "not json";
+    const outcome = parseDocument(atBoundary.join("\n"));
+    expect(outcome.kind).toBe("ndjson");
+    if (outcome.kind === "ndjson") {
+      expect(outcome.records).toHaveLength(9);
+      expect(outcome.errors[0]).toMatchObject({ line: 10 });
+      expect(outcome.errors[0].excerpt).toContain("^");
+    }
+
+    const belowBoundary = [...atBoundary, "not json"];
+    expect(parseDocument(belowBoundary.join("\n")).kind).toBe("error");
+  });
+
+  it("leaves single-line and whole-input-valid JSON as plain JSON", () => {
+    expect(parseDocument('{"a": 1}').kind).toBe("ok");
+    expect(parseDocument('[\n  {"a": 1},\n  {"a": 2}\n]').kind).toBe("ok");
+    expect(parseDocument('{"a": 1}\nnot json').kind).toBe("error");
   });
 
   it("follows JSON.parse last-wins semantics for duplicate keys", () => {
