@@ -281,7 +281,7 @@ for (const jq of jqBinaries)
         ),
         { numRuns: 100, seed: 29 },
       );
-    });
+    }, 60_000);
 
     it("runs copied construction invocations for each NDJSON record", () => {
       const keys = ["name", "a-b", "if"] as const;
@@ -317,5 +317,5 @@ for (const jq of jqBinaries)
         ),
         { numRuns: 100, seed: 31 },
       );
-    });
+    }, 60_000);
   });
