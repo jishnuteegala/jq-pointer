@@ -48,10 +48,14 @@ function runJq(jq: string, document: unknown, expression: string): unknown[] {
 }
 
 function runInvocation(jq: string, command: string, input: string): unknown[] {
-  const output = execFileSync("sh", ["-c", command.replace(/^jq /, `${JSON.stringify(jq)} `)], {
-    encoding: "utf8",
-    input,
-  });
+  const output = execFileSync(
+    "sh",
+    ["-c", command.replace(/^jq /, `${JSON.stringify(jq)} --compact-output `)],
+    {
+      encoding: "utf8",
+      input,
+    },
+  );
   return output.trim() === ""
     ? []
     : output
