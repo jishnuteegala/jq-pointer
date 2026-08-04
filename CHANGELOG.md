@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/jishnuteegala/jq-pointer/compare/v0.1.0...v0.1.1) (2026-08-04)
+
+
+### Features
+
+* record docs, build, and ci commits in changelogs ([#35](https://github.com/jishnuteegala/jq-pointer/issues/35)) ([aa351bd](https://github.com/jishnuteegala/jq-pointer/commit/aa351bda5b32bb9429ced9458785bd1ab66c7cd4))
+
 ## 0.1.0 (2026-08-03)
 
 
