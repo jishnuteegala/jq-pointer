@@ -24,7 +24,7 @@
     "typographyMeta": {
       "h1": { "displayName": "Display", "purpose": "The single page title." },
       "body": { "displayName": "Body", "purpose": "Intro and prose, capped at ~40rem measure." },
-      "label": { "displayName": "Label", "purpose": "Tracked uppercase eyebrow and input labels." },
+      "label": { "displayName": "Label", "purpose": "Input labels; sentence case, no all-caps form." },
       "mono": {
         "displayName": "Mono",
         "purpose": "All user data: JSON, jq paths, chips, tree rows."
@@ -66,17 +66,17 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The single primary action; copies the derived jq expression.",
-      "html": "<button class=\"ds-btn-primary\">Copy</button>",
-      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; min-height: 44px; padding: 0.5rem 1.5rem; border: 1px solid transparent; border-radius: 10px; background: #5b53e0; color: #ffffff; box-shadow: 0 1px 2px rgb(15 18 30 / 0.06); cursor: pointer; transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease; } .ds-btn-primary:hover { background: #4a42cf; } .ds-btn-primary:active { transform: translateY(1px); box-shadow: none; }"
+      "description": "The filled primary action; used for the NDJSON record navigation, which narrows its horizontal padding to 0.75rem.",
+      "html": "<button class=\"ds-btn-primary\">Next record</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; min-height: 44px; padding: 0.5rem 2rem; border: 1px solid transparent; border-radius: 10px; background: #5b53e0; color: #ffffff; box-shadow: 0 1px 2px rgb(15 18 30 / 0.06); cursor: pointer; transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease; } .ds-btn-primary:hover { background: #4a42cf; } .ds-btn-primary:active { transform: translateY(1px); box-shadow: none; }"
     },
     {
       "name": "Copied Button",
       "kind": "button",
       "refersTo": "button-copied",
-      "description": "The 2-second success confirmation state of the primary button.",
+      "description": "The filled button's success confirmation variant; the app's copy confirmation recolours the inline button's label instead.",
       "html": "<button class=\"ds-btn-copied\">Copied</button>",
-      "css": ".ds-btn-copied { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; min-height: 44px; padding: 0.5rem 1.5rem; border: 1px solid transparent; border-radius: 10px; background: #1a7f47; color: #ffffff; cursor: pointer; }"
+      "css": ".ds-btn-copied { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 0.875rem; min-height: 44px; padding: 0.5rem 2rem; border: 1px solid transparent; border-radius: 10px; background: #1a7f47; color: #ffffff; cursor: pointer; }"
     },
     {
       "name": "Filter Input",
@@ -92,7 +92,7 @@
       "refersTo": "chip",
       "description": "A selection token for one clicked value, with a remove control.",
       "html": "<span class=\"ds-chip\"><span>.items[0].name</span><button class=\"ds-chip-remove\" aria-label=\"Remove\">\u00d7</button></span>",
-      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.25rem 0.25rem 0.75rem; font-family: ui-monospace, monospace; font-size: 0.8125rem; color: #4a42cf; background: #eeecfc; border: 1px solid color-mix(in srgb, #5b53e0 30%, transparent); border-radius: 999px; } .ds-chip-remove { display: inline-flex; align-items: center; justify-content: center; width: 1.375rem; height: 1.375rem; border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; } .ds-chip-remove:hover { background: color-mix(in srgb, #5b53e0 25%, transparent); }"
+      "css": ".ds-chip { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.25rem 0.25rem 0.25rem 0.75rem; font-family: ui-monospace, monospace; font-size: 0.8125rem; color: #4a42cf; background: #eeecfc; border: 1px solid color-mix(in srgb, #5b53e0 30%, transparent); border-radius: 999px; } .ds-chip-remove { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; margin: calc((44px - 1.375rem) / -2); border: 0; border-radius: 999px; background: transparent; color: inherit; cursor: pointer; } .ds-chip-remove:hover { background: color-mix(in srgb, #5b53e0 25%, transparent); }"
     },
     {
       "name": "Breadcrumb Item",
@@ -100,24 +100,24 @@
       "refersTo": "breadcrumb-item",
       "description": "An ancestor button that widens the current selection.",
       "html": "<button class=\"ds-crumb ds-crumb-active\">.items[]</button><button class=\"ds-crumb\">.data[]</button>",
-      "css": ".ds-crumb { font-family: ui-monospace, monospace; font-size: 0.8125rem; padding: 0.25rem 0.5rem; cursor: pointer; color: #5a6173; background: #ffffff; border: 1px solid #c3c8d6; border-radius: 6px; transition: color 150ms ease, border-color 150ms ease, background 150ms ease; } .ds-crumb:hover:not(.ds-crumb-active) { color: #5b53e0; border-color: #5b53e0; background: #eeecfc; } .ds-crumb-active { color: #4a42cf; background: #eeecfc; border-color: color-mix(in srgb, #5b53e0 45%, transparent); font-weight: 600; }"
+      "css": ".ds-crumb { font-family: ui-monospace, monospace; font-size: 0.8125rem; min-width: 44px; min-height: 44px; padding: 0.25rem 0.5rem; cursor: pointer; color: #5a6173; background: #ffffff; border: 1px solid #c3c8d6; border-radius: 6px; transition: color 150ms ease, border-color 150ms ease, background 150ms ease; } .ds-crumb:hover:not(.ds-crumb-active) { color: #5b53e0; border-color: #5b53e0; background: #eeecfc; } .ds-crumb-active { color: #4a42cf; background: #eeecfc; border-color: color-mix(in srgb, #5b53e0 45%, transparent); font-weight: 600; }"
     },
     {
       "name": "Tree Row",
       "kind": "custom",
       "refersTo": "tree-row",
-      "description": "One row of the virtualized value tree; highlighted state marks selection/match.",
+      "description": "One row of the virtualised value tree; highlighted state marks selection/match.",
       "html": "<div class=\"ds-tree-row ds-tree-row-highlighted\"><span class=\"ds-tree-toggle\">\u25be</span><span class=\"ds-tree-label\">name</span><span class=\"ds-tree-value\">\"Ada\"</span></div>",
-      "css": ".ds-tree-row { display: flex; align-items: center; gap: 0.5rem; height: 28px; padding: 0 0.75rem; font-family: ui-monospace, monospace; font-size: 0.875rem; cursor: pointer; white-space: nowrap; overflow: hidden; } .ds-tree-row:hover { background: #f6f7fb; } .ds-tree-row-highlighted { background: #eeecfc; box-shadow: inset 2px 0 0 #5b53e0; } .ds-tree-toggle { width: 1rem; text-align: center; color: #5a6173; } .ds-tree-label { font-weight: 600; color: #1a1d29; } .ds-tree-value { color: #5a6173; overflow: hidden; text-overflow: ellipsis; }"
+      "css": ".ds-tree-row { display: flex; align-items: center; gap: 0.5rem; height: 44px; padding: 0 0.75rem; font-family: ui-monospace, monospace; font-size: 0.875rem; cursor: pointer; white-space: nowrap; overflow: hidden; } .ds-tree-row:hover { background: #f6f7fb; } .ds-tree-row-highlighted { background: #eeecfc; box-shadow: inset 3px 0 0 #5b53e0; } .ds-tree-toggle { width: 1rem; text-align: center; color: #5a6173; } .ds-tree-label { font-weight: 600; color: #1a1d29; } .ds-tree-value { color: #5a6173; overflow: hidden; text-overflow: ellipsis; }"
     }
   ],
   "narrative": {
     "northStar": "The Well-Made Instrument",
-    "overview": "jq-pointer looks like a precision tool, not a landing page. Everything lives in a single narrow reading column on a cool blue-grey field, with a soft radial glow behind the header. Surfaces are flat and calm at rest; the interface earns attention only where the user is working. The palette is a restrained cool-neutral system tinted toward a single indigo accent, the tool's one voice. Monospace carries every piece of user data; Inter carries the surrounding chrome. The system flips wholesale under prefers-color-scheme: dark.",
+    "overview": "jq-pointer looks like a precision tool, not a landing page. Everything lives in a single narrow reading column on a cool blue-grey field, with a soft radial glow behind the header. Surfaces are flat and calm at rest; the interface earns attention only where the user is working. The palette is a restrained cool-neutral system tinted toward a single indigo accent, the tool's one voice. Monospace carries every piece of user data; the sans stack carries the surrounding chrome. The system flips wholesale under prefers-color-scheme: dark.",
     "keyCharacteristics": [
       "Single narrow column, flat surfaces, generous vertical rhythm.",
       "One indigo accent, used sparingly for state and action only.",
-      "Monospace for all data, Inter for all chrome.",
+      "Monospace for all data, the sans stack for all chrome.",
       "Full automatic light/dark parity.",
       "Depth from small ambient shadows, never from borders-plus-glow."
     ],
@@ -129,7 +129,7 @@
       },
       {
         "name": "The Data-Is-Mono Rule",
-        "body": "Every value that comes from or goes to the user's document is set in the monospace stack. Chrome is never monospace; data is never proportional.",
+        "body": "Every value that comes from or goes to the user's document is set in the monospace stack. Chrome is never monospace; data is never proportional. Chrome inside a mono context (the record navigation, the inline copy buttons) inherits mono.",
         "section": "typography"
       },
       {
@@ -140,7 +140,7 @@
     ],
     "dos": [
       "Do keep the indigo accent (#5b53e0) to selection, focus, links, and the single primary action; treat its rarity as the point.",
-      "Do set every piece of user data (JSON, jq paths, chips, breadcrumbs, tree rows) in the monospace stack, and all chrome in Inter.",
+      "Do set every piece of user data (JSON, jq paths, chips, breadcrumbs, tree rows) in the monospace stack, and all chrome in the sans stack.",
       "Do lift surfaces with the small ambient shadow steps (Ambient Low/Mid/High); keep surfaces flat at rest.",
       "Do keep to the single 46rem column and the existing spacing scale (0.25rem to 3rem) for vertical rhythm.",
       "Do write plain, located status text and gate all motion behind prefers-reduced-motion: no-preference.",
@@ -150,9 +150,9 @@
       "Don't add hero metrics, identical feature-card grids, or a tracked-uppercase eyebrow above every section; this is a tool, not a marketing landing page.",
       "Don't use gradient text or background-clip: text for emphasis; emphasis is weight and size.",
       "Don't pair a 1px border with a wide soft drop shadow on the same element, and don't over-round: cards top out at 14px, pills are for chips only.",
-      "Don't use a colored border-left/border-right greater than 1px as an accent stripe; the tree's selection bar is a 2px inset box-shadow, not a border.",
+      "Don't use a coloured border-left/border-right greater than 1px as an accent stripe; the tree's selection bar and the result well's leading bar are inset box-shadow declarations (3px / 2px), not borders.",
       "Don't introduce a second accent hue or use danger/success colours for anything but real error and confirmation states.",
-      "Don't set user data in a proportional font or chrome in monospace."
+      "Don't set user data in a proportional font, or chrome in monospace outside an inherited mono context."
     ]
   }
 }

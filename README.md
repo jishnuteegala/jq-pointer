@@ -1,6 +1,38 @@
 # jq-pointer
 
+[![CI](https://github.com/jishnuteegala/jq-pointer/actions/workflows/ci.yml/badge.svg)](https://github.com/jishnuteegala/jq-pointer/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-5b53e0.svg)](LICENSE)
+
 Paste JSON, click the value you want, get the jq expression that extracts it - the reverse of every jq playground.
+
+Live at [jq-pointer.jishnuteegala.com](https://jq-pointer.jishnuteegala.com).
+
+## How do I get the jq path for a value?
+
+If you searched "jq path for a nested value", "jq expression to extract this field", or "how do I write a jq filter for this JSON", this tool is for you.
+Every jq playground works forwards: write an expression, check what it matches.
+jq-pointer works backwards: point at the value, get the expression.
+
+- Paste JSON (or NDJSON log output) into the box, or drop a file onto it.
+- Click a value to get its path: `.items[0].name`.
+- Click the counterpart in a sibling array element and the path generalises: `.items[].name`.
+- Click other keys of the same element and the output becomes an object construction: `.items[] | {name, id}`.
+- Copy puts the jq expression on the clipboard: `.items[].name`.
+  On NDJSON input the buttons offer shell-ready invocations instead - per-line `jq '<expression>'` and slurped `jq -s` forms.
+- Paste an expression into the highlight box to see every node it matches.
+
+Everything runs in the browser: no accounts, no analytics, no third-party requests, and the document never appears in the URL.
+
+## Agent usage
+
+The [`llms.txt`](llms.txt) at the repository root - also served at [/llms.txt](https://jq-pointer.jishnuteegala.com/llms.txt) - describes the interaction model for agents.
+The emitted expressions are ordinary jq that paste straight into a shell invocation:
+
+```sh
+echo '{"items":[{"name":"a"},{"name":"b"}]}' | jq '.items[].name'
+```
+
+CI checks emitted syntax against pinned jq 1.6, 1.7.1, and 1.8.1 binaries (see "jq oracle" below), so the emitted expression behaves the same under real jq as it does in the tree.
 
 ## Development
 
@@ -11,58 +43,49 @@ pnpm install
 pnpm dev
 ```
 
-| Command             | What it does                                 |
-| ------------------- | -------------------------------------------- |
-| `pnpm dev`          | Start the dev server                         |
-| `pnpm build`        | Type-check and build the static bundle       |
-| `pnpm lint`         | Run oxlint                                   |
-| `pnpm format`       | Check formatting with oxfmt                  |
-| `pnpm format:write` | Format the tree with oxfmt                   |
-| `pnpm typecheck`    | Run the TypeScript compiler                  |
-| `pnpm test`         | Run the test suite (includes the perf spike) |
-| `pnpm bench`        | Run only the performance spike               |
-| `pnpm check`        | lint + format + typecheck + test             |
+| Command              | What it does                                 |
+| -------------------- | -------------------------------------------- |
+| `pnpm dev`           | Start the dev server                         |
+| `pnpm build`         | Type-check and build the static bundle       |
+| `pnpm lint`          | Run oxlint                                   |
+| `pnpm format`        | Check formatting with oxfmt                  |
+| `pnpm format:write`  | Format the tree with oxfmt                   |
+| `pnpm typecheck`     | Run the TypeScript compiler                  |
+| `pnpm test`          | Run the test suite (includes the perf spike) |
+| `pnpm bench`         | Run only the performance spike               |
+| `pnpm preview`       | Serve the built bundle locally               |
+| `pnpm check`         | lint + format + typecheck + test             |
+| `pnpm check:privacy` | Scan dist for third-party requests           |
 
 ## Input handling
 
-Parsing is strict `JSON.parse` only - there is no tolerant repair. Invalid input
-shows a positioned error with a caret excerpt of the offending line. NDJSON is
-detected automatically when at least 90% of two or more non-empty lines parse;
-each valid record is navigable and malformed lines remain visible as errors.
-The 10MB input cap applies to JSON and NDJSON alike. JavaScript-literal pastes
-(trailing commas, single quotes, unquoted keys) are named in the error message
-without any repair.
+Parsing is strict `JSON.parse` only - there is no tolerant repair.
+Invalid input shows a positioned error with a caret excerpt of the offending line.
+NDJSON is detected automatically when at least 90% of two or more non-empty lines parse; each valid record is navigable and malformed lines remain visible as errors.
+The 10MB input cap applies to JSON and NDJSON alike.
+JavaScript-literal pastes (trailing commas, single quotes, unquoted keys) are named in the error message without any repair.
 
 Two `JSON.parse` behaviours are inherited deliberately and produce no warning:
 
-- **Duplicate keys:** the last occurrence wins (`{"a": 1, "a": 2}` parses as
-  `{"a": 2}`).
-- **Number precision:** numbers beyond IEEE 754 double precision lose
-  precision (`9007199254740993` parses as `9007199254740992`).
+- **Duplicate keys:** the last occurrence wins (`{"a": 1, "a": 2}` parses as `{"a": 2}`).
+- **Number precision:** numbers beyond IEEE 754 double precision lose precision (`9007199254740993` parses as `9007199254740992`).
 
 ## Performance spike (D7)
 
-The spike result and the main-thread vs worker decision are documented in
-[docs/perf-spike.md](docs/perf-spike.md).
+The spike result and the main-thread vs worker decision are documented in [docs/perf-spike.md](docs/perf-spike.md).
 
 ## jq oracle
 
-Grammar and copied-invocation property tests run against pinned official Linux AMD64
-binaries for [jq 1.6](https://github.com/jqlang/jq/releases/tag/jq-1.6),
-[jq 1.7.1](https://github.com/jqlang/jq/releases/tag/jq-1.7.1), and
-[jq 1.8.1](https://github.com/jqlang/jq/releases/tag/jq-1.8.1). CI downloads them as
-`jq-1.6`, `jq-1.7.1`, and `jq-1.8.1`; these oracle and shell-round-trip tests skip on
-Windows because the binaries cannot execute locally.
+Grammar and copied-invocation property tests run against pinned official Linux AMD64 binaries for [jq 1.6](https://github.com/jqlang/jq/releases/tag/jq-1.6), [jq 1.7.1](https://github.com/jqlang/jq/releases/tag/jq-1.7.1), and [jq 1.8.1](https://github.com/jqlang/jq/releases/tag/jq-1.8.1).
+CI downloads them as `jq-1.6`, `jq-1.7.1`, and `jq-1.8.1`; these oracle and shell-round-trip tests skip on Windows because the binaries cannot execute locally.
 
-The platform-independent conformance suite checks the parser/evaluator's accepted
-slice of jq's official `tests/jq.test`. Emitted commands are validated against every
-supported jq version.
+The platform-independent conformance suite checks the parser/evaluator's accepted slice of jq's official `tests/jq.test`.
+Emitted commands are validated against every supported jq version.
 
 ## Self-hosting
 
-Deploy from a tagged release, not an arbitrary commit. Every GitHub Release
-carries a prebuilt static dist archive (`jq-pointer-<version>.zip` and
-`.tar.gz`) plus a `SHA256SUMS` file.
+Deploy from a tagged release, not an arbitrary commit.
+Every GitHub Release carries a prebuilt static dist archive (`jq-pointer-<version>.zip` and `.tar.gz`) plus a `SHA256SUMS` file.
 
 ### 1. Download and verify
 
@@ -74,36 +97,33 @@ sha256sum --check --ignore-missing SHA256SUMS
 mkdir -p dist && tar -xzf "jq-pointer-$VERSION.tar.gz" -C dist
 ```
 
-The app is a single static page plus real static routes (`/design-system/`,
-`/llms.txt`); any static file server works with no rewrite rules required.
+The app is a single static page plus real static routes (`/design-system/`, `/llms.txt`); any static file server works with no rewrite rules required.
 
 ### 2. Pick a host
 
 **Cloudflare Pages**
 
 ```sh
-npx wrangler pages deploy dist --project-name jq-pointer
+pnpm dlx wrangler pages deploy dist --project-name jq-pointer
 ```
 
-Or use git integration: import the repo in the Cloudflare dashboard with build
-command `pnpm build` and output directory `dist`. The bundled `_headers` file
-sets the security headers automatically.
+Or use git integration: import the repo in the Cloudflare dashboard with build command `pnpm build` and output directory `dist`.
+The bundled `_headers` file sets the security headers automatically.
 
 **Vercel**
 
 ```sh
-npx vercel deploy dist --prod
+pnpm dlx vercel deploy dist --prod
 ```
 
 **Netlify**
 
 ```sh
-npx netlify-cli deploy --dir dist --prod
+pnpm dlx netlify-cli deploy --dir dist --prod
 ```
 
 Or drag-and-drop the `dist` folder onto the Netlify dashboard's deploy area.
-Netlify reads the bundled `_headers` file too and applies the security headers;
-the Cloudflare-specific `! Header` detach lines in it are ignored there.
+Netlify reads the bundled `_headers` file too and applies the security headers; the Cloudflare-specific `! Header` detach lines in it are ignored there.
 
 **GitHub Pages**
 
@@ -165,9 +185,7 @@ services:
 
 ## Releases
 
-Releases are managed by [release-please](https://github.com/googleapis/release-please):
-merging the release PR tags the version, and the release stays a draft until
-the dist archives are built, checksummed, and uploaded.
+Releases are managed by [release-please](https://github.com/googleapis/release-please): merging the release PR tags the version, and the release stays a draft until the dist archives are built, checksummed, and uploaded.
 
 ## License
 

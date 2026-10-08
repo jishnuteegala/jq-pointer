@@ -68,7 +68,7 @@ components:
     backgroundColor: "{colors.accent}"
     textColor: "{colors.accent-contrast}"
     rounded: "{rounded.md}"
-    padding: "0.5rem 1.5rem"
+    padding: "0.5rem 2rem"
   button-primary-hover:
     backgroundColor: "{colors.accent-strong}"
   button-copied:
@@ -101,11 +101,11 @@ components:
 
 jq-pointer looks like a precision tool, not a landing page. Everything lives in a single narrow reading column (max-width 46rem) on a cool blue-grey field, with a soft radial glow behind the header that gives the page air without decoration. Surfaces are flat and calm at rest; the interface earns attention only where the user is working. It rejects the marketing-tool aesthetic entirely: no hero metrics, no feature-card grids, no gradient-text headlines, no tracked-uppercase eyebrow above every section.
 
-The palette is a restrained cool-neutral system tinted toward a single indigo accent. That accent is the tool's one voice: it marks selection, focus, links, and the primary action, and nothing else competes with it. Monospace carries every piece of user data (JSON input, jq paths, chips, breadcrumbs) so the document and the answer always read as code, while Inter carries the surrounding chrome. The system flips wholesale under `prefers-color-scheme: dark`, trading the light field for a near-black one and lifting the accent to a brighter indigo so it stays legible.
+The palette is a restrained cool-neutral system tinted toward a single indigo accent. That accent is the tool's one voice: it marks selection, focus, links, and the primary action, and nothing else competes with it. Monospace carries every piece of user data (JSON input, jq paths, chips, breadcrumbs) so the document and the answer always read as code, while the sans stack carries the surrounding chrome. The system flips wholesale under `prefers-color-scheme: dark`, trading the light field for a near-black one and lifting the accent to a brighter indigo so it stays legible.
 
 Depth is quiet and structural rather than decorative: small ambient shadows separate the input, tree, and result surfaces from the page, and the tree's inner content is where the density lives. The register is a developer's instrument, confident and legible, that stays out of the way until pointed at.
 
-The instrument has one point of view: **the answer is the loudest thing on the page.** The wordmark sets `jq` in accent monospace against the Inter `-pointer`, so the title states what the tool operates on. The derived expression lands in the result well as a shell-ready command — a leading accent `$` prompt and an accent bar down its edge — one type step larger and heavier than any other data. Click a value and the same accent bar links the highlighted row to the command it produced; on arrival the well plays a single crisp accent beat (instant under reduced motion). Everything else stays restrained so this one moment reads.
+The instrument has one point of view: **the answer is the loudest thing on the page.** The wordmark sets `jq` in accent monospace against the proportional `-pointer`, so the title states what the tool operates on. The derived expression lands in the result well as a shell-ready command - a leading accent `$` prompt and an accent bar down its edge - one type step larger and heavier than any other data. Click a value and the same accent bar links the highlighted row to the command it produced; on arrival the well plays a single crisp accent beat (instant under reduced motion). Everything else stays restrained so this one moment reads.
 
 **Key Characteristics:**
 
@@ -113,11 +113,11 @@ The instrument has one point of view: **the answer is the loudest thing on the p
 - One indigo accent, used sparingly for state and action only.
 - The answer is the focal point: `$`-prompted, accent-barred, one type step up.
 - `jq` wordmark in accent monospace states the tool's subject.
-- Monospace for all data, Inter for all chrome.
+- Monospace for all data, the sans stack for all chrome.
 - Full automatic light/dark parity.
 - Depth from small ambient shadows, never from borders-plus-glow.
 
-## 2. Colors
+## 2. Colours
 
 A cool blue-grey neutral base tinted toward one indigo accent, with reserved danger and success signals.
 
@@ -138,12 +138,12 @@ A cool blue-grey neutral base tinted toward one indigo accent, with reserved dan
 - **Border** (#e2e5ee): Default hairline dividers and container edges.
 - **Border Strong** (#c3c8d6): Interactive field borders (textarea, filter input, breadcrumb items).
 - **Muted** (#5a6173): Secondary text, placeholders, tree values, footer.
-- **Mono Ink** (#3d2f6b): Monospace data text, a desaturated indigo-violet that keeps code visually distinct from prose.
+- **Mono Ink** (#3d2f6b): The text colour inside the JSON input, filter field, and result well - a desaturated indigo-violet that keeps code visually distinct from prose.
 
 ### Signal
 
 - **Danger** (#c0362c) on **Danger Surface** (#fdf1f0): Parse errors, unsupported paths, copy failures.
-- **Success** (#1a7f47): The "Copied" confirmation state on the primary button.
+- **Success** (#1a7f47): The "Copied" confirmation - the inline copy buttons' text, and the filled button variant.
 
 ### Named Rules
 
@@ -151,28 +151,30 @@ A cool blue-grey neutral base tinted toward one indigo accent, with reserved dan
 
 ## 3. Typography
 
-**Body Font:** Inter (with -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif)
+**Body Font:** Inter preferred, falling back to -apple-system, BlinkMacSystemFont, Segoe UI, system-ui, sans-serif; no webfont ships, so the installed system face renders in practice.
 **Mono Font:** SF Mono (with JetBrains Mono, Fira Code, ui-monospace, Cascadia Code, Menlo, Consolas, monospace)
 
-**Character:** A single humanist sans for all chrome paired with a monospace for all user data. The contrast axis is prose-versus-code, not two similar sans families: if it's the document or the answer, it's monospace; if it's the interface talking, it's Inter.
+**Character:** A single humanist sans for all chrome paired with a monospace for all user data. The contrast axis is prose-versus-code, not two similar sans families: if it's the document or the answer, it's monospace; if it's the interface talking, it's the sans stack.
 
 ### Hierarchy
 
 - **H1** (700, 2.25rem, line-height 1.15, letter-spacing -0.02em): The single page title.
 - **H2** (600, 1.0625rem, line-height 1.15): Section headings on the design-system page.
+- **H3** (600, 0.875rem, line-height 1.15): Sub-section headings on the design-system page.
 - **Tagline** (400, 0.875rem, line-height 1.6, muted): The one positioning line under the title, sentence case. No tracked-uppercase kicker sits above the heading.
 - **Body** (400, 1rem, line-height 1.6): Intro and prose; the intro reads at ink weight and caps at ~40rem for readable measure.
 - **Label** (600, 0.875rem, sentence case): Input labels. There is no all-caps label form.
-- **Mono** (400, 0.875rem, line-height 1.6): All JSON input, chips, breadcrumbs, and tree rows.
-- **Answer** (500, 1.0625rem, mono): The derived jq expression in the result well, one step larger and heavier than the rest of the mono data — the loudest piece of type on the page, because it is the answer the tool exists to give.
+- **Mono** (400, 0.875rem, line-height 1.6): JSON input, tree rows, the filter field, the NDJSON record controls, and the parse-error excerpt; chips, breadcrumbs, and record-error text use the same family at the smaller 0.8125rem size.
+- **Answer** (500, 1.0625rem, mono): The derived jq expression in the result well, one step larger and heavier than the rest of the mono data - the loudest piece of type on the page, because it is the answer the tool exists to give. The inline copy buttons inside the well inherit it.
+- **Small** (0.8125rem): Chips, breadcrumbs, match notes, record-error text, and the chip "clear" action.
 
 ### Named Rules
 
-**The Data-Is-Mono Rule.** Every value that comes from or goes to the user's document (input JSON, output paths, chips, breadcrumbs, filter text) is set in the monospace stack. Chrome is never monospace; data is never proportional.
+**The Data-Is-Mono Rule.** Every value that comes from or goes to the user's document (input JSON, output paths, chips, breadcrumbs, filter text) is set in the monospace stack. Chrome is never monospace; data is never proportional. The one exception: chrome that lives inside a mono context inherits the surrounding mono family - the NDJSON record navigation, the inline copy buttons, the unsupported-state message inside the result well, the record-error labels, the chip-remove and tree-toggle glyphs, and the `$` sigil.
 
 ## 4. Elevation
 
-The system is flat by default and lifts surfaces with small, tightly-diffused ambient shadows rather than borders or glows. Three shadow steps separate the input and result surfaces from the page; the tree also carries a subtle inset shadow on its path-output well to read as recessed. In dark mode the shadows deepen to hold separation against the near-black field.
+The system is flat by default and lifts surfaces with small, tightly-diffused ambient shadows rather than borders or glows. Three shadow steps separate the input and result surfaces from the page, and the path-output well adds a subtle inset shadow to read as recessed. In dark mode the shadows deepen to hold separation against the near-black field.
 
 ### Shadow Vocabulary
 
@@ -192,15 +194,15 @@ Radii come from a four-step scale: sm 6px, md 10px, lg 14px, full 999px (pill). 
 ### Buttons
 
 - **Shape:** Gently curved (md, 10px).
-- **Primary:** Indigo accent fill (#5b53e0) with white text, 600 weight, minimum 44px height, padding 0.5rem 1.5rem, resting Ambient Low shadow.
+- **Primary:** Indigo accent fill (#5b53e0) with white text, 600 weight, minimum 44px height, padding 0.5rem 2rem, resting Ambient Low shadow. The record-navigation context narrows the horizontal padding to 0.75rem.
 - **Hover / Active:** Hover deepens to Indigo Deep (#4a42cf); active nudges down 1px and drops the shadow.
-- **Copied:** Swaps to Success green (#1a7f47) for the 2-second confirmation.
+- **Copied:** The filled variant (`.button-copied`) swaps to Success green (#1a7f47) for confirmation. The app's inline copy buttons confirm differently - their label reads "Copied" and their text turns Success for two seconds.
 - **Disabled:** 0.45 opacity, no shadow, default cursor.
 
 ### Chips (selection tokens)
 
 - **Style:** Pill (full radius), Indigo Wash background, Indigo Deep text, hairline accent-tinted border, monospace.
-- **State:** Each chip carries a round remove control; a text-only "clear" action sits alongside. Coarse pointers enlarge the remove target to 1.75rem.
+- **State:** Each chip carries a round remove control with a 44px tap target collapsed onto a 1.375rem visual footprint; a text-only "clear" action sits alongside. Coarse pointers add vertical padding to the chip.
 
 ### Cards / Containers
 
@@ -211,10 +213,10 @@ Radii come from a four-step scale: sm 6px, md 10px, lg 14px, full 999px (pill). 
 
 ### The Answer (result well)
 
-- **Role:** The focal point of the tool — where the derived jq expression appears.
+- **Role:** The focal point of the tool - where the derived jq expression appears.
 - **Type:** Answer size (500, 1.0625rem, mono), the loudest data on the page.
 - **Prompt:** Each expression line is prefixed with an accent `$` sigil (decorative, `user-select: none`) so it reads as a shell-ready command.
-- **Edge:** A 2px inset accent bar down the leading edge (Border Strong hairline around), matching the highlighted tree row so click and answer read as one gesture. The unsupported state swaps the bar to Danger; the empty prompt drops the bar and reverts to Inter body.
+- **Edge:** A 2px inset accent bar down the leading edge (Border Strong hairline around), matching the highlighted tree row so click and answer read as one gesture. The unsupported state swaps the bar to Danger; the empty prompt drops the bar and reverts to the body sans.
 - **Arrival:** On resolve, a single 320ms accent beat (background fades from Indigo Wash, bar settles from 4px to 2px). Gated behind `prefers-reduced-motion: no-preference`; instant otherwise.
 
 ### Inputs / Fields
@@ -229,7 +231,7 @@ Radii come from a four-step scale: sm 6px, md 10px, lg 14px, full 999px (pill). 
 
 ### Signature Component: the value tree
 
-The virtualized JSON tree is the heart of the tool. Rows are fixed 28px, monospace, with a muted toggle, a bold label, and a muted, ellipsized value. Hover tints a row to Sunken Surface. A **highlighted** (selected/matched) row takes an Indigo Wash background with a 3px inset accent bar on its leading edge and lifts its label to Indigo Deep; a **focused** row takes a 2px inset accent ring. The 3px bar deliberately echoes the result well's leading bar, so the clicked row and the command it produces read as the same gesture. Selection and keyboard focus are always visible.
+The virtualised JSON tree is the heart of the tool. Rows are fixed 44px (the shared tap-target token), monospace, with a muted toggle, a bold label, and a muted, ellipsised value. Hover tints a row to Sunken Surface. A **highlighted** (selected/matched) row takes an Indigo Wash background with a 3px inset accent bar on its leading edge and lifts its label to Indigo Deep; a **focused** row takes a 2px inset accent ring. The 3px bar deliberately echoes the result well's leading bar, so the clicked row and the command it produces read as the same gesture. Selection and keyboard focus are always visible.
 
 ## 6. Do's and Don'ts
 
@@ -237,7 +239,7 @@ The virtualized JSON tree is the heart of the tool. Rows are fixed 28px, monospa
 
 - **Do** keep the indigo accent (#5b53e0) to selection, focus, links, and the single primary action; treat its rarity as the point.
 - **Do** let the answer be the loudest element: the result well carries the `$` accent prompt, the leading accent bar, and Answer-size mono. Don't dilute it by making neighbouring chrome compete.
-- **Do** set every piece of user data (JSON, jq paths, chips, breadcrumbs, tree rows) in the monospace stack, and all chrome in Inter.
+- **Do** set every piece of user data (JSON, jq paths, chips, breadcrumbs, tree rows) in the monospace stack, and all chrome in the sans stack (chrome inside a mono context inherits mono).
 - **Do** lift surfaces with the small ambient shadow steps (Ambient Low/Mid/High); keep surfaces flat at rest.
 - **Do** keep to the single 46rem column and the existing spacing scale (0.25rem to 3rem) for vertical rhythm.
 - **Do** write plain, located status text ("matches 3 of 12 elements", "No nodes match this filter") and gate all motion behind `prefers-reduced-motion: no-preference`.
@@ -248,6 +250,6 @@ The virtualized JSON tree is the heart of the tool. Rows are fixed 28px, monospa
 - **Don't** add hero metrics, identical feature-card grids, or any tracked-uppercase eyebrow/kicker above a heading; this is a tool, not a marketing landing page. Positioning is carried by one sentence-case tagline, never an all-caps label.
 - **Don't** use gradient text or `background-clip: text` for emphasis; emphasis is weight and size.
 - **Don't** pair a 1px border with a wide soft drop shadow on the same element, and don't over-round: cards top out at 14px, pills are for chips only.
-- **Don't** use a colored `border-left`/`border-right` greater than 1px as an accent stripe; the tree's selection bar and the result well's leading bar are inset `box-shadow` (3px / 2px), not borders.
+- **Don't** use a coloured `border-left`/`border-right` greater than 1px as an accent stripe; the tree's selection bar and the result well's leading bar are inset `box-shadow` declarations (3px / 2px), not borders.
 - **Don't** introduce a second accent hue or use danger/success colours for anything but real error and confirmation states.
-- **Don't** set user data in a proportional font or chrome in monospace.
+- **Don't** set user data in a proportional font, or chrome in monospace outside an inherited mono context.

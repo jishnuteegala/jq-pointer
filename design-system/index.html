@@ -95,9 +95,9 @@
       <p class="tagline">The reverse of a jq playground: point at the value, get the path.</p>
       <h3>Button</h3>
       <p class="ds-row">
-        <button type="button" class="button">Copy</button>
+        <button type="button" class="button">Next record</button>
         <button type="button" class="button button-copied">Copied</button>
-        <button type="button" class="button" disabled>Copy</button>
+        <button type="button" class="button" disabled>Previous record</button>
       </p>
       <h3>Inputs</h3>
       <p><input class="filter-input" type="text" value=".items[].name" readonly /></p>
@@ -115,7 +115,9 @@
       </p>
       <h3>The answer (path output)</h3>
       <p>
-        <output class="path-output"><span class="path-line">.items[].name</span></output>
+        <output class="path-output"
+          ><span class="path-line"><span class="path-expression">.items[].name</span></span></output
+        >
       </p>
       <p>
         <output class="path-output path-output-empty"
@@ -132,6 +134,7 @@
     </main>
     <footer class="page site-footer">
       <a href="../">Back to jq-pointer</a>
+      <a href="https://jishnuteegala.com/privacy">Privacy</a>
       <a href="https://github.com/jishnuteegala/jq-pointer">Source</a>
     </footer>
   </body>

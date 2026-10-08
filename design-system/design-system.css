@@ -109,6 +109,18 @@
   letter-spacing: var(--tracking-tight);
   font-weight: 700;
 }
+h2,
+h3 {
+  line-height: var(--leading-tight);
+  font-weight: 600;
+  color: var(--color-heading);
+}
+h2 {
+  font-size: var(--font-size-h2);
+}
+h3 {
+  font-size: var(--font-size-sm);
+}
 .ds-font-body {
   font-family: var(--font-body);
 }

@@ -403,7 +403,7 @@ h1 {
 .button-copied,
 .button-copied:hover:not(:disabled) {
   background: var(--color-success);
-  color: #ffffff;
+  color: var(--color-accent-contrast);
 }
 
 .filter-input {

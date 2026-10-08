@@ -1,12 +1,36 @@
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
+
+const llmsTxtSource = () => readFileSync(resolve(import.meta.dirname, "llms.txt"), "utf-8");
+
+function llmsTxt(): Plugin {
+  return {
+    name: "jq-pointer-llms-txt",
+    configureServer(server) {
+      server.middlewares.use((request, response, next) => {
+        if (request.url?.split("?")[0] !== "/llms.txt") {
+          next();
+          return;
+        }
+        response.setHeader("Content-Type", "text/plain; charset=utf-8");
+        response.end(llmsTxtSource());
+      });
+    },
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "llms.txt", source: llmsTxtSource() });
+    },
+  };
+}
 
 export default defineConfig({
   base: "./",
   plugins: [
     react(),
+    llmsTxt(),
     VitePWA({
       injectRegister: "script",
       registerType: "autoUpdate",
