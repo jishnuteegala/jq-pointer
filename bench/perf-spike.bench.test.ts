@@ -3,7 +3,7 @@ import { generateFixture, generateNdjsonFixture } from "./fixture";
 import { runClickPair } from "./click-pipeline";
 import { buildPathModel, type ModelNode } from "../src/lib/path-model";
 import type { JsonValue } from "../src/lib/json-value";
-import { coldStart, percentile } from "./stats";
+import { first, percentile } from "./stats";
 import { parseDocument } from "../src/lib/parse-document";
 
 const TARGET_BYTES = 10 * 1024 * 1024;
@@ -65,8 +65,8 @@ describe("D7 performance spike: 10MB parse + path model + click evaluation", () 
     const items = descend(model.root, ["items"]);
     const elements = items.children;
     expect(elements).not.toBeNull();
-    const first = descend((elements as ModelNode[])[0], ["meta", "owner", "login"]);
-    const last = descend((elements as ModelNode[])[(elements as ModelNode[]).length - 1], [
+    const firstNode = descend((elements as ModelNode[])[0], ["meta", "owner", "login"]);
+    const lastNode = descend((elements as ModelNode[])[(elements as ModelNode[]).length - 1], [
       "meta",
       "owner",
       "login",
@@ -76,14 +76,14 @@ describe("D7 performance spike: 10MB parse + path model + click evaluation", () 
     let matchCount = 0;
     for (let i = 0; i < CLICK_SAMPLES; i++) {
       const start = performance.now();
-      const result = runClickPair(first, last);
+      const result = runClickPair(firstNode, lastNode);
       timings.push(performance.now() - start);
       expect(result).not.toBeNull();
       expect(result?.ancestor).toBe(items);
       matchCount = result?.matches.length ?? 0;
     }
 
-    const coldMs = coldStart(timings);
+    const coldMs = first(timings);
     const medianMs = percentile(timings, 50);
     const p95Ms = percentile(timings, 95);
     const maxMs = Math.max(...timings);
@@ -105,21 +105,23 @@ describe("D7 performance spike: 10MB parse + path model + click evaluation", () 
     const labels = descend(model.root, ["meta", "labels"]);
     const elements = labels.children;
     expect(elements).not.toBeNull();
-    const first = descend((elements as ModelNode[])[0], ["name"]);
-    const last = descend((elements as ModelNode[])[(elements as ModelNode[]).length - 1], ["name"]);
+    const firstNode = descend((elements as ModelNode[])[0], ["name"]);
+    const lastNode = descend((elements as ModelNode[])[(elements as ModelNode[]).length - 1], [
+      "name",
+    ]);
 
     const timings: number[] = [];
     let matchCount = 0;
     for (let i = 0; i < CLICK_SAMPLES; i++) {
       const start = performance.now();
-      const result = runClickPair(first, last);
+      const result = runClickPair(firstNode, lastNode);
       timings.push(performance.now() - start);
       expect(result).not.toBeNull();
       expect(result?.ancestor).toBe(labels);
       matchCount = result?.matches.length ?? 0;
     }
 
-    const coldMs = coldStart(timings);
+    const coldMs = first(timings);
     const medianMs = percentile(timings, 50);
     const p95Ms = percentile(timings, 95);
     console.log(

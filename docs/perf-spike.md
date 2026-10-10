@@ -31,7 +31,7 @@ Two measurements:
    runs cannot hide behind the median; the absolute max is reported as
    diagnostic output but not asserted, so a single scheduler pause on a
    shared CI runner cannot flake the suite.
-3. **NDJSON parse**: the same seeded records serialized one per line and
+3. **NDJSON parse**: the same seeded records serialised one per line and
    parsed through `parseDocument` under the same 2s budget. The fixture stays
    just below the shared 10MB input cap.
 
@@ -49,8 +49,8 @@ Local run (Node 20, Windows, 2026-07-24):
 ## Scope of the measurement
 
 The harness runs in Node, not a browser, and measures the data layer only:
-no React rendering, virtualization, or paint is included, because the tree
-view does not exist yet (ticket #8). Node and browser main threads share
+no React rendering, virtualisation, or paint is included, because the tree
+view did not exist yet at the time of the spike (ticket #8). Node and browser main threads share
 the same V8 engine, so parse/build times are representative of browser
 main-thread cost; rendering cost is not covered by this spike.
 

@@ -3,6 +3,8 @@ import { join } from "node:path";
 
 const dist = process.argv[2] ?? "dist";
 const allowed = new Set([
+  "https://jq-pointer.jishnuteegala.com/",
+  "https://jq-pointer.jishnuteegala.com/pwa-512.png",
   "https://jishnuteegala.com/privacy",
   "https://github.com/jishnuteegala/jq-pointer",
   "http://www.w3.org/2000/svg",
@@ -26,13 +28,16 @@ const failures = [];
 for (const path of walk(dist)) {
   if (!textExtensions.test(path)) continue;
   const contents = readFileSync(path, "utf8");
-  for (const match of contents.matchAll(/https?:\/\/[^\s"'`<>\\)]+/g)) {
+  for (const match of contents.matchAll(/[a-zA-Z][a-zA-Z0-9+.-]*:\/\/[^\s"'`<>\\)]+/g)) {
     const url = match[0].replace(/[.,;]+$/, "");
     if (allowed.has(url)) continue;
     if (allowedPrefixes.some((prefix) => url.startsWith(prefix))) continue;
     failures.push(`${path}: ${url}`);
   }
-  if (/@import\s+url|fonts\.googleapis|fonts\.gstatic|use\.typekit/.test(contents)) {
+  for (const match of contents.matchAll(/[\w:.-]+\s*=\s*["']?\s*\/\/|["'(`]\s*\/\/[\w:$.@-]+/gi)) {
+    failures.push(`${path}: protocol-relative URL (${match[0].trim()})`);
+  }
+  if (/@import\s*(?:url|["'])|fonts\.googleapis|fonts\.gstatic|use\.typekit/.test(contents)) {
     failures.push(`${path}: external font reference`);
   }
 }
