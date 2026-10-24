@@ -26,11 +26,7 @@ function clickable(root: ModelNode): ModelNode[] {
   // row (the "$" row) and exercises the empty-steps "." print/parse boundary.
   while ((node = stack.pop()) !== undefined) {
     if (node.jqAddressable) out.push(node);
-    const children = node.children ?? [];
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      if (child !== undefined) stack.push(child);
-    }
+    for (const child of (node.children ?? []).toReversed()) stack.push(child);
   }
   return out;
 }
@@ -256,7 +252,7 @@ describe("formal verify: selection pipeline", () => {
             firstArrayAncestor(a) === firstArrayAncestor(b)
           ) {
             pairAssertions++;
-            expectOne([a, b], 0, `pair ${a.segment.key}`);
+            expectOne([a, b], 0, `doc${CURATED.indexOf(doc)} pair ${a.segment.key}`);
           }
         }
       }

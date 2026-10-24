@@ -17,7 +17,7 @@ The contract is the product: an expression jq-pointer emits selects exactly what
 pnpm vitest run --config .agents/skills/formal-verify-jq-pointer/vitest.config.ts
 ```
 
-Needs the repo's vitest + fast-check (both devDeps already). The bundled `vitest.config.ts` is required: the repo's own vitest projects only include `src/**` and `bench/**`, so the check carries its own config rooted at the skill dir with the node environment (the pipeline is pure). ~4.5s wall.
+Needs the repo's vitest + fast-check (both devDeps already). The bundled `vitest.config.ts` is required: the repo's own vitest projects only include `src/**` and `bench/**`, so the check carries its own config rooted at the skill dir with the node environment (the pipeline is pure). ~6s wall.
 
 No repo tsconfig covers `.agents/`, and vitest transpiles without typechecking - run the bundled typecheck after edits (it covers both `check.test.ts` and `vitest.config.ts`):
 
