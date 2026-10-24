@@ -33,5 +33,5 @@ Preconditions:
 
 - The exclusivity is one-directional: clicking a row clears the filter, but typing a filter does NOT clear click selections - chips and `.path-output` survive (only the click-driven row highlight is visually suppressed while the filter matches render); clearing the filter restores the click highlight. Drive them in separate fills anyway to keep assertions unambiguous.
 - The status line lives in `#filter-status` and is `aria-live`; assert its text, not row colours alone.
-- Only an unsupported filter sets `aria-invalid="true"` on the input (plus a `filter-status-unsupported` class on the status); a runtime-error filter reports its message with `aria-invalid="false"`. Clearing the input removes the flag.
+- Only an unsupported filter sets `aria-invalid="true"` on the input; a runtime-error filter reports its message with `aria-invalid="false"`. Both kinds get the `filter-status-unsupported` class on the status line. Clearing the input removes the flag.
 - Highlighted ancestors auto-expand - a deep match may reveal rows without manual expansion.
