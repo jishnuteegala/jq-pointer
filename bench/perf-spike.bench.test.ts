@@ -3,7 +3,7 @@ import { generateFixture, generateNdjsonFixture } from "./fixture";
 import { runClickPair } from "./click-pipeline";
 import { buildPathModel, type ModelNode } from "../src/lib/path-model";
 import type { JsonValue } from "../src/lib/json-value";
-import { first, percentile } from "./stats";
+import { coldEstimate, percentile } from "./stats";
 import { parseDocument } from "../src/lib/parse-document";
 
 const TARGET_BYTES = 10 * 1024 * 1024;
@@ -31,6 +31,9 @@ function descend(node: ModelNode, keys: string[]): ModelNode {
 }
 
 describe("D7 performance spike: 10MB parse + path model + click evaluation", GATE_ATTEMPTS, () => {
+  if (typeof globalThis.gc !== "function") {
+    throw new Error("bench gates require --expose-gc (test.poolOptions.forks.execArgv)");
+  }
   const { json, itemCount } = generateFixture(TARGET_BYTES);
   const { ndjson, itemCount: ndjsonCount } = generateNdjsonFixture(TARGET_BYTES * 0.99);
 
@@ -93,7 +96,7 @@ describe("D7 performance spike: 10MB parse + path model + click evaluation", GAT
       matchCount = result?.matches.length ?? 0;
     }
 
-    const coldMs = first(timings);
+    const coldMs = coldEstimate(timings);
     const medianMs = percentile(timings, 50);
     const p95Ms = percentile(timings, 95);
     const maxMs = Math.max(...timings);
@@ -132,7 +135,7 @@ describe("D7 performance spike: 10MB parse + path model + click evaluation", GAT
       matchCount = result?.matches.length ?? 0;
     }
 
-    const coldMs = first(timings);
+    const coldMs = coldEstimate(timings);
     const medianMs = percentile(timings, 50);
     const p95Ms = percentile(timings, 95);
     console.log(
