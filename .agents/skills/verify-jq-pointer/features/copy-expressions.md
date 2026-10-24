@@ -23,7 +23,7 @@ Preconditions:
 - A selection exists: `fill '#json-input' '{"items":[{"name":"a"},{"name":"b"}]}'`, expand `items` and `[0]`, `clickrow name 0`, so `.path-output` shows `.items[0].name`.
 
 - **Plain copy.** Press the `Copy` button. `node "$HELPER" click 'role=button[name="Copy"]'` - the button relabels `Copied` and gains the `.path-copy-copied` class.
-- **Read back.** Confirm clipboard content with `node "$HELPER" eval "return await page.evaluate(async () => await navigator.clipboard.readText())"` - the printed value is `.items[0].name` exactly (the bare expression, no `jq` prefix).
+- **Read back.** The reliable read-back stubs `navigator.clipboard` before the click: `node "$HELPER" eval "await page.evaluate(() => { Object.defineProperty(navigator,'clipboard',{value:{writeText:(t)=>{window.__copied=t;return Promise.resolve();}},configurable:true}); }); await page.locator('role=button[name=\"Copy\"]').click(); return await page.evaluate(()=>window.__copied)"` - the printed value is `.items[0].name` exactly (the bare expression, no `jq` prefix).
 - **NDJSON buttons.** Fill NDJSON input. `node "$HELPER" fill '#json-input' @fixture.ndjson` where the file holds two JSON lines - the record nav appears and each path line shows `Copy per-line` and `Copy slurped` buttons instead of `Copy`.
 - **Per-line copy.** `node "$HELPER" click 'role=button[name="Copy per-line"]'` then the same `eval` read-back - clipboard is `jq '.items[0].name'` (quoted invocation).
 - **Slurped copy.** `node "$HELPER" click 'role=button[name="Copy slurped"]'` then read back - clipboard is `jq -s '.[].items[0].name'` (the expression re-rooted for the slurped array).
@@ -32,7 +32,7 @@ Preconditions:
 
 ## Gotchas
 
-- Clipboard read needs permission in the launched profile; Edge headless grants `clipboard-read`/`clipboard-write` on localhost by default in recent versions - if `readText` rejects, assert the `Copied` label plus `.path-copy-copied` class and record that as the substitute proof.
-- A denied clipboard shows `.copy-error` ("Couldn't copy to the clipboard. Select the path above and copy it manually.") - that path is also worth driving once via `eval` with permissions revoked.
+- Clipboard read needs permission in the launched profile; Edge headless grants `clipboard-read`/`clipboard-write` on localhost by default in recent versions - if `readText` rejects, use the `window.__copied` stub above, or assert the `Copied` label plus `.path-copy-copied` class as substitute proof.
+- A denied clipboard shows `.copy-error[role=alert]` ("Couldn't copy to the clipboard. Select the path above and copy it manually.") - drive it by stubbing `writeText` to `Promise.reject(...)` instead of resolving.
 - The `Copied` state is per-button: copying one line does not relabel the other buttons.
 - Plain-JSON input has no `Copy per-line`/`Copy slurped` pair; asserting their presence is an NDJSON-only check.

@@ -79,7 +79,8 @@ node "$HELPER" stop
 `launch` starts a detached keeper process (a headless Edge with a temp profile and CDP on `127.0.0.1:9223`) and writes `pw-state.json` into the working directory (`$PW_DIR`), never into the repo.
 Every later command connects over CDP, acts, and disconnects.
 Selectors accept a CSS selector, `text=`, `role=<role>[name="..."]`, or `@file` for `fill` values.
-`eval '<js>'` runs an async body with `page` in scope for anything the primitives miss (clipboard reads need `eval "await page.context().browser().contexts()[0]"`-level access - prefer asserting the `Copied` label state instead).
+`eval '<js>'` runs an async body with `page` in scope for anything the primitives miss - the body executes in Node, not the page, so page-side JS goes through `await page.evaluate(...)`. For clipboard proof, stub it first: `await page.evaluate(() => { Object.defineProperty(navigator,'clipboard',{value:{writeText:(t)=>{window.__copied=t;return Promise.resolve();}},configurable:true}); })` then read `window.__copied` after the click.
+`open` navigates a new tab; pass a full URL (`http://localhost:4199/design-system/`) - a leading-slash path is mangled by MSYS into `C:/Program Files/Git/...` and fails `ERR_FILE_NOT_FOUND`.
 
 Stable handles (from `src/`): `#json-input`, `#filter-input`, `#filter-status`, `#tree-view` (role `tree`), `.tree-row` (role `treeitem`, `aria-selected`; select one with `clickrow <label>` - plain `text=` matches collide with row text and placeholders), `.tree-toggle` (`Expand|Collapse <label>`), `.path-output`, `.path-expression`, `.path-copy` (`Copy`/`Copy per-line`/`Copy slurped`/`Copied`), `.chip-bar` (`Remove <path>`, `Clear`), `.breadcrumb` (`Widen the iterated array`), `.record-nav` (`NDJSON records`, `Previous record`/`Next record`), `.match-note`, `#parse-error` (role `alert`), footer `Privacy`/`Source` links.
 
