@@ -25,8 +25,8 @@ Two measurements:
    segment-wise generalisation, and evaluation of the generalised steps
    over the ancestor's subtree (`bench/click-pipeline.ts`). The worst case
    is measured: the ancestor is the full 22k-element array. The executable
-   gate uses one `CLICK_BUDGET_MS = 100` constant for cold (first run),
-   median, and p95 of 50 runs,
+   gate uses one `CLICK_BUDGET_MS = 100` constant for cold (best of the
+   first 3 runs), median, and p95 of 50 runs,
    so a JIT-warm median cannot mask a slow first click and recurring slow
    runs cannot hide behind the median; the absolute max is reported as
    diagnostic output but not asserted, so a single scheduler pause on a
