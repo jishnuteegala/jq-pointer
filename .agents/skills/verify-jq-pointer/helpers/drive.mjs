@@ -10,7 +10,7 @@
 //   node drive.mjs text <selector>               print innerText of first match
 //   node drive.mjs shot <file.png>               screenshot
 //   node drive.mjs aria <file.txt>               accessibility-tree dump
-//   node drive.mjs open <path>                   navigate a new tab to a path
+//   node drive.mjs open <path>                   navigate the live tab to a path
 //   node drive.mjs eval <js-body>                run async body with {page}
 
 import { spawn } from "node:child_process";
