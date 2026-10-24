@@ -9,7 +9,7 @@ description: "Verify jq-pointer's click-to-expression pipeline (src/lib/selectio
 
 The contract is the product: an expression jq-pointer emits selects exactly what the UI highlights - never less (a clicked node silently dropped means the copied query misses data the user saw selected) and never a `TypeError` (an emitted expression that crashes real jq on a heterogeneous document is a broken promise the UI can't see). The subtle bugs live in generalization: `mergeSegment` collapsing `[0]`/`[2]` into `[0]` loses all clicks after the first.
 
-`check.test.ts` runs the **real** `buildPathModel`/`resolveSelection`/`evaluateJqExpression`/`evaluateExpression`/`printExpression`/`parseExpression` over ~150 generated documents (fast-check `jsonValue`, maxDepth 4) plus 6 curated hostile ones (heterogeneous arrays, nested iteration, jq keywords/quoted/space/leading-digit keys). Per document it samples singles, stride-pairs, same-array-ancestor pairs, and sibling-key construction pairs, and sweeps `ancestorIndex` 0-2. J1: every click is in some output's evaluation (union - `separateOutputs` emits one output per click). J2: `evaluateExpression` equals `output.matches` exactly, `matchCount <= elementCount`, `heterogeneous === (matchCount < elementCount)`. J3: `evaluateJqExpression` never throws. J4: `parseExpression(printExpression(e))` deep-equals `e`. J5: single-click paths round-trip.
+`check.test.ts` runs the **real** `buildPathModel`/`resolveSelection`/`evaluateJqExpression`/`evaluateExpression`/`printExpression`/`parseExpression` over ~150 generated documents (fast-check `jsonValue`, maxDepth 4) plus 6 curated hostile ones (heterogeneous arrays, nested iteration, jq keywords/quoted/space/leading-digit keys). Per document it samples singles, ordered pairs (first-C(n,2), capped), same-array-ancestor pairs and triples (triples reach merge-continuation logic pairs cannot), and sibling-key construction pairs, and sweeps `ancestorIndex` 0-3. J1: every click is in some output's evaluation (union - `separateOutputs` emits one output per click). J2: `evaluateExpression` equals `output.matches` exactly, `matchCount <= elementCount`, `heterogeneous === (matchCount < elementCount)` - self-consistency assertions, provable by construction, kept as regression guards. J3: `evaluateJqExpression` never throws. J4: `parseExpression(printExpression(e))` deep-equals `e`. J5: single-click paths round-trip. J6: two same-key clicks inside one array ancestor must produce a single generalized output - an impl that always emits `separateOutputs` passes J1-J5 but fails here.
 
 ## Run
 
@@ -17,7 +17,13 @@ The contract is the product: an expression jq-pointer emits selects exactly what
 pnpm vitest run --config .agents/skills/formal-verify-jq-pointer/vitest.config.ts
 ```
 
-Needs the repo's vitest + fast-check (both devDeps already). The bundled `vitest.config.ts` is required: the repo's own vitest projects only include `src/**`, so the check carries its own config rooted at the skill dir with the node environment (the pipeline is pure). ~1s.
+Needs the repo's vitest + fast-check (both devDeps already). The bundled `vitest.config.ts` is required: the repo's own vitest projects only include `src/**` and `bench/**`, so the check carries its own config rooted at the skill dir with the node environment (the pipeline is pure). ~4.5s wall.
+
+No repo tsconfig covers `.agents/`, and vitest transpiles without typechecking - run the bundled typecheck after edits:
+
+```bash
+pnpm exec tsc -p .agents/skills/formal-verify-jq-pointer/tsconfig.json
+```
 
 ## Coverage record
 
@@ -27,7 +33,7 @@ Needs the repo's vitest + fast-check (both devDeps already). The bundled `vitest
 | `src/lib/jq-expression.ts` | `evaluateJqExpression`, `evaluateExpression`, `printExpression`, `parseExpression`                                                                   | eval fidelity + print/parse round-trip |
 | `src/lib/path-model.ts`    | `buildPathModel`, `pathTo`, `evaluateSteps`, `evaluateTrace`                                                                                         | via the pipeline                       |
 
-**Sync commit:** `8eed533` (2026-10-24). Move this forward only after re-running the check and confirming the invariants describe the code at the new commit.
+**Sync commit:** `8eed533` (committed 2026-10-10; verified in sync on 2026-10-24). Move this forward only after re-running the check and confirming the invariants describe the code at the new commit.
 
 Not covered, on purpose: real-jq oracle comparison (`evaluateJqExpression` is the self-consistency oracle; a jq binary comparison is documented in `jq-oracle.test.ts` but platform-skipped on Windows), `parseDocument`/NDJSON input handling, and all UI code. `ancestorIndex` is swept but the breadcrumb metadata shape itself is not asserted.
 

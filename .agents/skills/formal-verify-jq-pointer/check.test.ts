@@ -38,16 +38,19 @@ function firstArrayAncestor(node: ModelNode): ModelNode | null {
   return null;
 }
 
-// Deterministic click sets: singles, arbitrary pairs (stride-sampled),
-// same-array-ancestor pairs, and construction pairs (sibling keys).
+// Deterministic click sets: singles, arbitrary pairs (first-C(n,2) capped),
+// same-array-ancestor pairs and triples, and construction pairs (sibling keys).
+// Triples matter: generaliseOverAncestor's merge loop has continuation logic a
+// pair can never reach.
 function clickSets(nodes: ModelNode[]): ModelNode[][] {
   const sets: ModelNode[][] = [];
   for (const n of nodes.slice(0, 8)) sets.push([n]);
   const pairCap = Math.min(40, (nodes.length * (nodes.length - 1)) / 2);
-  for (let i = 0; i < pairCap; i++) {
-    const a = nodes[(i * 7) % nodes.length];
-    const b = nodes[(i * 13 + 5) % nodes.length];
-    if (a !== b) sets.push([a, b]);
+  outer: for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      if (sets.length - 8 >= pairCap) break outer;
+      sets.push([nodes[i], nodes[j]]);
+    }
   }
   const byArray = new Map<ModelNode, ModelNode[]>();
   for (const n of nodes) {
@@ -58,6 +61,9 @@ function clickSets(nodes: ModelNode[]): ModelNode[][] {
   for (const group of byArray.values()) {
     for (let i = 0; i + 1 < group.length && i < 6; i += 2) {
       if (group[i] !== group[i + 1]) sets.push([group[i], group[i + 1]]);
+    }
+    for (let i = 0; i + 2 < group.length && i < 6; i += 3) {
+      sets.push([group[i], group[i + 1], group[i + 2]]);
     }
   }
   const parents = new Map<ModelNode, ModelNode[]>();
@@ -77,7 +83,7 @@ function clickSets(nodes: ModelNode[]): ModelNode[][] {
 // --- invariants -----------------------------------------------------------
 
 function checkSelection(root: ModelNode, clicks: ModelNode[], bad: string[], tag: string) {
-  for (const ancestorIndex of [0, 1, 2]) {
+  for (const ancestorIndex of [0, 1, 2, 3]) {
     const sel = resolveSelection(clicks, ancestorIndex);
     // J1: every click appears in the union of all outputs' evaluations.
     // (separateOutputs emits one output per click - coverage is collective.)
@@ -195,17 +201,47 @@ describe("formal verify: selection pipeline", () => {
             } catch (error) {
               bad.push(`${printExpression(output.expression)}: threw ${String(error)}`);
             }
-            const reparsed = parseExpression(printExpression(output.expression));
             try {
+              const reparsed = parseExpression(printExpression(output.expression));
               expect(reparsed).toEqual(output.expression);
-            } catch {
-              bad.push(`${printExpression(output.expression)}: no round-trip`);
+            } catch (err) {
+              bad.push(
+                `${printExpression(output.expression)}: ${err instanceof Error ? err.message.split("\n")[0] : String(err)}`,
+              );
             }
           }
         }
       }),
       { numRuns: 100 },
     );
+    expect(bad).toEqual([]);
+  });
+
+  it("J6 same-array same-key clicks merge into one generalized output", () => {
+    // The headline feature: clicking two name fields inside one array must
+    // emit a single `.items[].name`-style expression, not per-click outputs.
+    // An impl that always returns separateOutputs passes J1-J5 but fails here.
+    const model = buildPathModel(CURATED[0]);
+    const nameRows = clickable(model.root).filter(
+      (n) =>
+        n.segment?.kind === "key" &&
+        n.segment.key === "name" &&
+        firstArrayAncestor(n) !== null,
+    );
+    expect(nameRows.length).toBeGreaterThanOrEqual(2);
+    const byAncestor = new Map<ModelNode, ModelNode[]>();
+    for (const n of nameRows) {
+      const a = firstArrayAncestor(n);
+      if (a !== null) byAncestor.set(a, [...(byAncestor.get(a) ?? []), n]);
+    }
+    const bad: string[] = [];
+    for (const group of byAncestor.values()) {
+      for (let i = 0; i + 1 < group.length; i++) {
+        const sel = resolveSelection([group[i], group[i + 1]], 0);
+        if (sel.outputs.length !== 1)
+          bad.push(`${sel.outputs.length} outputs for same-array same-key pair`);
+      }
+    }
     expect(bad).toEqual([]);
   });
 });
