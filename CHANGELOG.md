@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.1](https://github.com/jishnuteegala/jq-pointer/compare/v0.1.0...v0.1.1) (2026-10-24)
+
+
+### Features
+
+* record docs, build, and ci commits in changelogs ([#35](https://github.com/jishnuteegala/jq-pointer/issues/35)) ([aa351bd](https://github.com/jishnuteegala/jq-pointer/commit/aa351bda5b32bb9429ced9458785bd1ab66c7cd4))
+
+
+### Bug Fixes
+
+* harden bench p95 gates against GC debt and scheduler noise ([#48](https://github.com/jishnuteegala/jq-pointer/issues/48)) ([f1e4c0b](https://github.com/jishnuteegala/jq-pointer/commit/f1e4c0b29edd8589afb682683441485b869dc4a3))
+* pin LF line endings via .gitattributes ([#47](https://github.com/jishnuteegala/jq-pointer/issues/47)) ([216bf32](https://github.com/jishnuteegala/jq-pointer/commit/216bf3256046a45805ced9078c848f120a45a30b))
+* quality pass over released surfaces and prose ([#39](https://github.com/jishnuteegala/jq-pointer/issues/39)) ([8eed533](https://github.com/jishnuteegala/jq-pointer/commit/8eed5330c4260b78a32549d602f9a26138e120f1))
+
+
+### Documentation
+
+* fix verify-jq-pointer map drift found in weekly pass ([#45](https://github.com/jishnuteegala/jq-pointer/issues/45)) ([e84efe6](https://github.com/jishnuteegala/jq-pointer/commit/e84efe647b283e918e7877a91e70cb13e6288b5a))
+
 ## 0.1.0 (2026-08-03)
 
 
