@@ -22,9 +22,15 @@ function clickable(root: ModelNode): ModelNode[] {
   const out: ModelNode[] = [];
   const stack: ModelNode[] = [root];
   let node: ModelNode | undefined;
+  // Left-to-right DFS; the root itself is included - it is a real clickable
+  // row (the "$" row) and exercises the empty-steps "." print/parse boundary.
   while ((node = stack.pop()) !== undefined) {
-    if (node.exists && node.jqAddressable && node.segment !== null) out.push(node);
-    for (const child of node.children ?? []) stack.push(child);
+    if (node.jqAddressable) out.push(node);
+    const children = node.children ?? [];
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      if (child !== undefined) stack.push(child);
+    }
   }
   return out;
 }
@@ -46,10 +52,12 @@ function clickSets(nodes: ModelNode[]): ModelNode[][] {
   const sets: ModelNode[][] = [];
   for (const n of nodes.slice(0, 8)) sets.push([n]);
   const pairCap = Math.min(40, (nodes.length * (nodes.length - 1)) / 2);
+  let pairs = 0;
   outer: for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
-      if (sets.length - 8 >= pairCap) break outer;
+      if (pairs >= pairCap) break outer;
       sets.push([nodes[i], nodes[j]]);
+      pairs++;
     }
   }
   const byArray = new Map<ModelNode, ModelNode[]>();
@@ -60,7 +68,7 @@ function clickSets(nodes: ModelNode[]): ModelNode[][] {
   }
   for (const group of byArray.values()) {
     for (let i = 0; i + 1 < group.length && i < 6; i += 2) {
-      if (group[i] !== group[i + 1]) sets.push([group[i], group[i + 1]]);
+      sets.push([group[i], group[i + 1]]);
     }
     for (let i = 0; i + 2 < group.length && i < 6; i += 3) {
       sets.push([group[i], group[i + 1], group[i + 2]]);
@@ -74,7 +82,7 @@ function clickSets(nodes: ModelNode[]): ModelNode[][] {
   }
   for (const sibs of parents.values()) {
     for (let i = 0; i + 1 < sibs.length && i < 4; i += 2) {
-      if (sibs[i] !== sibs[i + 1]) sets.push([sibs[i], sibs[i + 1]]);
+      sets.push([sibs[i], sibs[i + 1]]);
     }
   }
   return sets;
@@ -121,6 +129,7 @@ function checkSelection(root: ModelNode, clicks: ModelNode[], bad: string[], tag
         highlights = evaluateExpression(root, output.expression);
       } catch (error) {
         bad.push(`${tag} ${printed}: highlight eval threw ${String(error)}`);
+        continue;
       }
       const matchSet = new Set(output.matches);
       if (highlights.length !== matchSet.size || !highlights.every((node) => matchSet.has(node))) {
@@ -138,11 +147,11 @@ function checkSelection(root: ModelNode, clicks: ModelNode[], bad: string[], tag
         );
 
       // J4: printed expressions round-trip through the strict parser.
-      const reparsed = parseExpression(printed);
       try {
+        const reparsed = parseExpression(printed);
         expect(reparsed).toEqual(output.expression);
       } catch {
-        bad.push(`${tag} ${printed}: parse(print(e)) != e (${JSON.stringify(reparsed)})`);
+        bad.push(`${tag} ${printed}: parse(print(e)) failed`);
       }
     }
   }
@@ -217,31 +226,94 @@ describe("formal verify: selection pipeline", () => {
     expect(bad).toEqual([]);
   });
 
-  it("J6 same-array same-key clicks merge into one generalized output", () => {
-    // The headline feature: clicking two name fields inside one array must
-    // emit a single `.items[].name`-style expression, not per-click outputs.
-    // An impl that always returns separateOutputs passes J1-J5 but fails here.
-    const model = buildPathModel(CURATED[0]);
-    const nameRows = clickable(model.root).filter(
-      (n) =>
-        n.segment?.kind === "key" &&
-        n.segment.key === "name" &&
-        firstArrayAncestor(n) !== null,
+  it("J6 merge: same-array same-key clicks emit one generalized output", () => {
+    // The headline feature: clicking fields of the same key inside a shared
+    // array must emit a single `.items[].name`-style expression, not per-click
+    // outputs. J1-J5 pass on an impl that always returns separateOutputs -
+    // these assertions are the only pin on merging actually happening.
+    const bad: string[] = [];
+    const expectOne = (clicks: ModelNode[], ancestorIndex: number, tag: string) => {
+      const sel = resolveSelection(clicks, ancestorIndex);
+      if (sel.outputs.length !== 1) bad.push(`${tag}: ${sel.outputs.length} outputs, want 1`);
+      return sel;
+    };
+
+    // Every same-key pair sharing a first array ancestor, over every curated
+    // doc - not just the first doc's `name` group.
+    let pairAssertions = 0;
+    for (const doc of CURATED) {
+      const model = buildPathModel(doc);
+      const keyed = clickable(model.root).filter((n) => n.segment?.kind === "key");
+      for (let i = 0; i < keyed.length; i++) {
+        for (let j = i + 1; j < keyed.length; j++) {
+          const a = keyed[i];
+          const b = keyed[j];
+          if (
+            a?.segment?.kind === "key" &&
+            b?.segment?.kind === "key" &&
+            a.segment.key === b.segment.key &&
+            firstArrayAncestor(a) !== null &&
+            firstArrayAncestor(a) === firstArrayAncestor(b)
+          ) {
+            pairAssertions++;
+            expectOne([a, b], 0, `pair ${a.segment.key}`);
+          }
+        }
+      }
+    }
+    // Vacuity guard: if the curated docs drift so no same-ancestor same-key
+    // pair exists, this test must fail rather than pass on nothing.
+    if (pairAssertions === 0) bad.push("J6 asserted no same-ancestor pair - curated docs drifted");
+
+    // Widened and cross-inner merges: CURATED[1] nests two arrays under one
+    // outer array, so same-key clicks share one or two array ancestors.
+    const nested = buildPathModel(CURATED[1]);
+    const names = clickable(nested.root).filter(
+      (n) => n.segment?.kind === "key" && n.segment.key === "name",
     );
-    expect(nameRows.length).toBeGreaterThanOrEqual(2);
+    expect(names.length).toBe(3);
     const byAncestor = new Map<ModelNode, ModelNode[]>();
-    for (const n of nameRows) {
+    for (const n of names) {
       const a = firstArrayAncestor(n);
       if (a !== null) byAncestor.set(a, [...(byAncestor.get(a) ?? []), n]);
     }
-    const bad: string[] = [];
-    for (const group of byAncestor.values()) {
-      for (let i = 0; i + 1 < group.length; i++) {
-        const sel = resolveSelection([group[i], group[i + 1]], 0);
-        if (sel.outputs.length !== 1)
-          bad.push(`${sel.outputs.length} outputs for same-array same-key pair`);
-      }
+    const innerPair = [...byAncestor.values()].find((g) => g.length === 2);
+    const loner = [...byAncestor.values()].find((g) => g.length === 1)?.[0];
+    if (innerPair === undefined || loner === undefined) {
+      bad.push("CURATED[1] drifted - expected a 2-node and a 1-node name group");
+    } else {
+      const [x, y] = innerPair;
+      expectOne([x, y], 1, "same-inner pair widened to outer ancestor");
+      expectOne([x, loner], 0, "cross-inner pair sharing only the outer array");
     }
+
+    // Triples: merge continuation logic a pair can never reach.
+    const tripleDoc = buildPathModel({ rows: [{ v: 1 }, { v: 2 }, { v: 3 }] });
+    const vs = clickable(tripleDoc.root).filter(
+      (n) => n.segment?.kind === "key" && n.segment.key === "v",
+    );
+    expect(vs.length).toBe(3);
+    if (vs[0] !== undefined && vs[1] !== undefined && vs[2] !== undefined) {
+      expectOne([vs[0], vs[1], vs[2]], 0, "same-array same-key triple");
+    }
+
+    // Construction: sibling keys under one object emit a construction
+    // expression, not separate paths.
+    const usersDoc = buildPathModel(CURATED[5]);
+    const ids = clickable(usersDoc.root).filter(
+      (n) => n.segment?.kind === "key" && n.segment.key === "id",
+    );
+    const tags = clickable(usersDoc.root).filter(
+      (n) => n.segment?.kind === "key" && n.segment.key === "tags",
+    );
+    if (ids[0] === undefined || tags[0] === undefined) {
+      bad.push("CURATED[5] drifted - expected id and tags sibling keys");
+    } else {
+      const sel = expectOne([ids[0], tags[0]], 0, "sibling-key construction pair");
+      if (sel.outputs[0]?.expression.kind !== "construction")
+        bad.push(`sibling-key pair emitted ${sel.outputs[0]?.expression.kind}, want construction`);
+    }
+
     expect(bad).toEqual([]);
   });
 });

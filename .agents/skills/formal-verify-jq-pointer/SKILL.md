@@ -9,7 +9,7 @@ description: "Verify jq-pointer's click-to-expression pipeline (src/lib/selectio
 
 The contract is the product: an expression jq-pointer emits selects exactly what the UI highlights - never less (a clicked node silently dropped means the copied query misses data the user saw selected) and never a `TypeError` (an emitted expression that crashes real jq on a heterogeneous document is a broken promise the UI can't see). The subtle bugs live in generalization: `mergeSegment` collapsing `[0]`/`[2]` into `[0]` loses all clicks after the first.
 
-`check.test.ts` runs the **real** `buildPathModel`/`resolveSelection`/`evaluateJqExpression`/`evaluateExpression`/`printExpression`/`parseExpression` over ~150 generated documents (fast-check `jsonValue`, maxDepth 4) plus 6 curated hostile ones (heterogeneous arrays, nested iteration, jq keywords/quoted/space/leading-digit keys). Per document it samples singles, ordered pairs (first-C(n,2), capped), same-array-ancestor pairs and triples (triples reach merge-continuation logic pairs cannot), and sibling-key construction pairs, and sweeps `ancestorIndex` 0-3. J1: every click is in some output's evaluation (union - `separateOutputs` emits one output per click). J2: `evaluateExpression` equals `output.matches` exactly, `matchCount <= elementCount`, `heterogeneous === (matchCount < elementCount)` - self-consistency assertions, provable by construction, kept as regression guards. J3: `evaluateJqExpression` never throws. J4: `parseExpression(printExpression(e))` deep-equals `e`. J5: single-click paths round-trip. J6: two same-key clicks inside one array ancestor must produce a single generalized output - an impl that always emits `separateOutputs` passes J1-J5 but fails here.
+`check.test.ts` runs the **real** `buildPathModel`/`resolveSelection`/`evaluateJqExpression`/`evaluateExpression`/`printExpression`/`parseExpression` over 150 generated documents (fast-check `jsonValue`, maxDepth 4) plus 6 curated hostile ones (heterogeneous arrays, nested iteration, jq keywords/quoted/space/leading-digit keys), and 100 more documents at maxDepth 3 for J5's single-click round-trips. Clickables include the root `"$"` row, which exercises the empty-path `"."` print/parse boundary. Per document it samples up to 8 singles, up to 40 unordered i<j pairs (first C(n,2)), same-array-ancestor pairs and triples (3 pairs + 2 triples per group; triples reach merge-continuation logic pairs cannot), and sibling-key construction pairs (2 per parent), and sweeps `ancestorIndex` 0-3. J1: every click is in some output's evaluation (union - `separateOutputs` emits one output per click). J2: `evaluateExpression` equals `output.matches` exactly, `matchCount <= elementCount`, `heterogeneous === (matchCount < elementCount)` - self-consistency assertions, provable by construction, kept as regression guards. J3: `evaluateJqExpression` never throws. J4: `parseExpression(printExpression(e))` deep-equals `e`. J5: single-click paths round-trip. J6: the merge pin - every same-key pair sharing an array ancestor over all curated docs must emit one generalized output (vacuity-guarded), plus a widened-ancestor merge, a cross-inner-array merge, a same-key triple, and a sibling-key pair asserting `kind === "construction"`. An impl that always emits `separateOutputs` passes J1-J5 but fails J6.
 
 ## Run
 
@@ -19,7 +19,7 @@ pnpm vitest run --config .agents/skills/formal-verify-jq-pointer/vitest.config.t
 
 Needs the repo's vitest + fast-check (both devDeps already). The bundled `vitest.config.ts` is required: the repo's own vitest projects only include `src/**` and `bench/**`, so the check carries its own config rooted at the skill dir with the node environment (the pipeline is pure). ~4.5s wall.
 
-No repo tsconfig covers `.agents/`, and vitest transpiles without typechecking - run the bundled typecheck after edits:
+No repo tsconfig covers `.agents/`, and vitest transpiles without typechecking - run the bundled typecheck after edits (it covers both `check.test.ts` and `vitest.config.ts`):
 
 ```bash
 pnpm exec tsc -p .agents/skills/formal-verify-jq-pointer/tsconfig.json
@@ -27,11 +27,11 @@ pnpm exec tsc -p .agents/skills/formal-verify-jq-pointer/tsconfig.json
 
 ## Coverage record
 
-| Covered                    | Functions                                                                                                                                            | Notes                                  |
-| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| `src/lib/selection.ts`     | `resolveSelection`, `generaliseOverAncestor`, `resolveConstruction`, `separateOutputs`, `singlePathOutput`, `finaliseGeneralisation`, `mergeSegment` | all output kinds                       |
-| `src/lib/jq-expression.ts` | `evaluateJqExpression`, `evaluateExpression`, `printExpression`, `parseExpression`                                                                   | eval fidelity + print/parse round-trip |
-| `src/lib/path-model.ts`    | `buildPathModel`, `pathTo`, `evaluateSteps`, `evaluateTrace`                                                                                         | via the pipeline                       |
+| Covered                    | Functions                                                                                                                                                                  | Notes                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
+| `src/lib/selection.ts`     | `resolveSelection`, `resolveSelectionAt`, `generaliseOverAncestor`, `resolveConstruction`, `separateOutputs`, `singlePathOutput`, `finaliseGeneralisation`, `mergeSegment` | all output kinds incl. `construction`  |
+| `src/lib/jq-expression.ts` | `evaluateJqExpression`, `evaluateExpression`, `printExpression`, `parseExpression`                                                                                         | eval fidelity + print/parse round-trip |
+| `src/lib/path-model.ts`    | `buildPathModel`, `pathTo`, `evaluateSteps`, `evaluateTrace`                                                                                                               | via the pipeline                       |
 
 **Sync commit:** `8eed533` (committed 2026-10-10; verified in sync on 2026-10-24). Move this forward only after re-running the check and confirming the invariants describe the code at the new commit.
 
