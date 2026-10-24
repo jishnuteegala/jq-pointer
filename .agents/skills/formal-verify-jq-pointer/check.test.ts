@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as fc from "fast-check";
+import type { JsonValue } from "../../../src/lib/json-value";
 import { buildPathModel, type ModelNode } from "../../../src/lib/path-model";
 import { resolveSelection } from "../../../src/lib/selection";
 import {
@@ -44,8 +45,8 @@ function clickSets(nodes: ModelNode[]): ModelNode[][] {
   for (const n of nodes.slice(0, 8)) sets.push([n]);
   const pairCap = Math.min(40, (nodes.length * (nodes.length - 1)) / 2);
   for (let i = 0; i < pairCap; i++) {
-    const a = nodes[(i * 7) % nodes.length]!;
-    const b = nodes[(i * 13 + 5) % nodes.length]!;
+    const a = nodes[(i * 7) % nodes.length];
+    const b = nodes[(i * 13 + 5) % nodes.length];
     if (a !== b) sets.push([a, b]);
   }
   const byArray = new Map<ModelNode, ModelNode[]>();
@@ -56,7 +57,7 @@ function clickSets(nodes: ModelNode[]): ModelNode[][] {
   }
   for (const group of byArray.values()) {
     for (let i = 0; i + 1 < group.length && i < 6; i += 2) {
-      if (group[i] !== group[i + 1]) sets.push([group[i]!, group[i + 1]!]);
+      if (group[i] !== group[i + 1]) sets.push([group[i], group[i + 1]]);
     }
   }
   const parents = new Map<ModelNode, ModelNode[]>();
@@ -67,7 +68,7 @@ function clickSets(nodes: ModelNode[]): ModelNode[][] {
   }
   for (const sibs of parents.values()) {
     for (let i = 0; i + 1 < sibs.length && i < 4; i += 2) {
-      if (sibs[i] !== sibs[i + 1]) sets.push([sibs[i]!, sibs[i + 1]!]);
+      if (sibs[i] !== sibs[i + 1]) sets.push([sibs[i], sibs[i + 1]]);
     }
   }
   return sets;
@@ -141,7 +142,7 @@ function checkSelection(root: ModelNode, clicks: ModelNode[], bad: string[], tag
   }
 }
 
-const CURATED: unknown[] = [
+const CURATED: JsonValue[] = [
   { items: [{ name: "a" }, { name: "b", extra: 1 }, 5, null] },
   { items: [[{ name: "x" }, { name: "y" }], [{ name: "z" }]] },
   { if: 1, "a b": 2, "2fa": 3, '"q"': 4, nested: { while: [1, 2] } },
@@ -159,7 +160,7 @@ describe("formal verify: selection pipeline", () => {
   it("J1-J4 hold over curated documents", () => {
     const bad: string[] = [];
     for (const doc of CURATED) {
-      const model = buildPathModel(doc as never);
+      const model = buildPathModel(doc);
       for (const clicks of clickSets(clickable(model.root))) {
         checkSelection(model.root, clicks, bad, "curated");
       }
@@ -171,7 +172,7 @@ describe("formal verify: selection pipeline", () => {
     const bad: string[] = [];
     fc.assert(
       fc.property(fc.jsonValue({ maxDepth: 4 }), (doc) => {
-        const model = buildPathModel(doc as never);
+        const model = buildPathModel(doc as JsonValue);
         for (const clicks of clickSets(clickable(model.root))) {
           checkSelection(model.root, clicks, bad, `doc=${JSON.stringify(doc)?.slice(0, 120)}`);
         }
@@ -185,7 +186,7 @@ describe("formal verify: selection pipeline", () => {
     const bad: string[] = [];
     fc.assert(
       fc.property(fc.jsonValue({ maxDepth: 3 }), (doc) => {
-        const model = buildPathModel(doc as never);
+        const model = buildPathModel(doc as JsonValue);
         for (const node of clickable(model.root)) {
           const sel = resolveSelection([node]);
           for (const output of sel.outputs) {
