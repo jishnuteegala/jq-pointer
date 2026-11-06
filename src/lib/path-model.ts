@@ -101,10 +101,21 @@ export function pathTo(node: ModelNode): PathResult {
   return { kind: "path", segments };
 }
 
+// Sibling objects in an array usually share key order, so the previous match position is
+// tried first; keys are unique within an object, so a hit there is the only match.
+let lastKeyIndex = 0;
+
 function childByKey(node: ModelNode, key: string): ModelNode | undefined {
-  if (node.children === null) return undefined;
-  for (const child of node.children) {
-    if (child.segment?.kind === "key" && child.segment.key === key) return child;
+  const children = node.children;
+  if (children === null) return undefined;
+  const guess = children[lastKeyIndex]?.segment;
+  if (guess?.kind === "key" && guess.key === key) return children[lastKeyIndex];
+  for (let index = 0; index < children.length; index++) {
+    const segment = children[index].segment;
+    if (segment?.kind === "key" && segment.key === key) {
+      lastKeyIndex = index;
+      return children[index];
+    }
   }
   return undefined;
 }

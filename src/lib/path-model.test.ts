@@ -79,6 +79,17 @@ describe("evaluateSteps", () => {
     expect(results.map((n) => n.value)).toEqual([1, 2]);
   });
 
+  it("finds keys in siblings whose key order differs", () => {
+    const model = buildPathModel([{ a: 1, b: 2 }, { b: 3, a: 4 }, { c: 5 }, { a: 6 }]);
+    const results = evaluateSteps(model.root, [{ kind: "iterate" }, { kind: "key", key: "b" }]);
+    expect(results.map((n) => [n.value, n.exists])).toEqual([
+      [2, true],
+      [3, true],
+      [null, false],
+      [null, false],
+    ]);
+  });
+
   it("returns jq nulls for missing keys and out-of-range indices", () => {
     const model = buildPathModel(doc);
     expect(
