@@ -155,18 +155,6 @@ function evaluateStepsFrom(roots: ModelNode[], steps: PathStep[]): ModelNode[] {
   return current;
 }
 
-function stepUnsafe(node: ModelNode, step: PathStep): boolean {
-  if (step.kind === "iterate") return node.children === null || node.children.length === 0;
-  if (step.kind === "index") {
-    if (!Array.isArray(node.value) || node.children === null) return true;
-    const at = step.index < 0 ? node.children.length + step.index : step.index;
-    return at < 0 || at >= node.children.length;
-  }
-  if (node.value === null || typeof node.value !== "object" || Array.isArray(node.value))
-    return true;
-  return childByKey(node, step.key) === undefined;
-}
-
 export function evaluateTrace(
   roots: ModelNode[],
   steps: PathStep[],
@@ -179,8 +167,11 @@ export function evaluateTrace(
     const next: ModelNode[] = [];
     let anyUnsafe = false;
     for (const node of current) {
-      if (!anyUnsafe && stepUnsafe(node, step)) anyUnsafe = true;
+      const before = next.length;
       applyStep(node, safeStep, next);
+      // The non-optional step would throw or yield jq's synthetic null exactly when the
+      // optional step yields nothing or a non-existent node.
+      if (next.length === before || !next[next.length - 1].exists) anyUnsafe = true;
     }
     optional[s] = anyUnsafe;
     current = next;
