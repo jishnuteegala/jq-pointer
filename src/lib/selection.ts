@@ -309,10 +309,10 @@ export function finaliseGeneralisation(
     kind: "path",
     steps: [...ancestorSegments, ...steps],
   };
+  // Key and index steps yield at most one node per element, so each match is its own element.
   const matchCount = tail.some((step) => step.kind === "iterate")
     ? countPresentElements(matches, tail.length)
-    : // Key and index steps yield at most one node per element, so each match is its own element.
-      matches.length;
+    : matches.length;
   return {
     expression,
     matches,
