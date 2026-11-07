@@ -166,28 +166,34 @@ function evaluateStepsFrom(roots: ModelNode[], steps: PathStep[]): ModelNode[] {
   return current;
 }
 
+// Each block of roots runs through every step before the next block starts, so the nodes one
+// step yields are still in cache when the next step reads them. Steps map each node to its
+// results in order, so concatenating the blocks gives the same matches as one pass.
+const TRACE_BLOCK = 512;
+
 export function evaluateTrace(
   roots: ModelNode[],
   steps: PathStep[],
 ): { optional: boolean[]; matches: ModelNode[] } {
   const optional: boolean[] = Array.from({ length: steps.length }, () => false);
-  let current: ModelNode[] = roots;
-  for (let s = 0; s < steps.length; s++) {
-    const step = steps[s];
-    const safeStep: PathStep = { ...step, optional: true };
-    const next: ModelNode[] = [];
-    let anyUnsafe = false;
-    for (const node of current) {
-      const before = next.length;
-      applyStep(node, safeStep, next);
-      // The non-optional step would throw or yield jq's synthetic null exactly when the
-      // optional step yields nothing or a non-existent node.
-      if (next.length === before || !next[next.length - 1].exists) anyUnsafe = true;
+  const safeSteps: PathStep[] = steps.map((step) => ({ ...step, optional: true }));
+  const matches: ModelNode[] = [];
+  for (let start = 0; start < roots.length; start += TRACE_BLOCK) {
+    let current = roots.slice(start, start + TRACE_BLOCK);
+    for (let s = 0; s < safeSteps.length; s++) {
+      const next: ModelNode[] = [];
+      for (const node of current) {
+        const before = next.length;
+        applyStep(node, safeSteps[s], next);
+        // The non-optional step would throw or yield jq's synthetic null exactly when the
+        // optional step yields nothing or a non-existent node.
+        if (next.length === before || !next[next.length - 1].exists) optional[s] = true;
+      }
+      current = next;
     }
-    optional[s] = anyUnsafe;
-    current = next;
+    for (const node of current) matches.push(node);
   }
-  return { optional, matches: current };
+  return { optional, matches };
 }
 
 /** Returns only document nodes that can be highlighted, excluding jq's synthetic null results. */

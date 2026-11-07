@@ -3,6 +3,7 @@ import {
   buildPathModel,
   commonArrayAncestor,
   evaluateSteps,
+  evaluateTrace,
   matchingNodes,
   pathTo,
   type ModelNode,
@@ -202,5 +203,22 @@ describe("commonArrayAncestor", () => {
     const rows = child(model.root, "rows");
     const x = child(at(rows, 0), "x");
     expect(commonArrayAncestor(child(x, "p"), child(x, "q"))).toBe(rows);
+  });
+});
+
+describe("evaluateTrace", () => {
+  it("keeps document order and finds unsafe steps anywhere in a long array", () => {
+    const indices = Array.from({ length: 1500 }, (_, index) => index);
+    const model = buildPathModel(
+      indices.map((index): JsonValue => (index === 1400 ? {} : { tags: [index] })),
+    );
+    const trace = evaluateTrace(model.root.children as ModelNode[], [
+      { kind: "key", key: "tags" },
+      { kind: "iterate" },
+    ]);
+    expect(trace.optional).toEqual([true, true]);
+    expect(trace.matches.map((node) => node.value)).toEqual(
+      indices.filter((index) => index !== 1400),
+    );
   });
 });
