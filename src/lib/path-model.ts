@@ -194,8 +194,8 @@ export function evaluateTrace(
       for (const node of current) {
         const before = next.length;
         applyStep(node, safeSteps[s], next);
-        const foundNothing = next.length === before || !next[next.length - 1].exists;
-        if (foundNothing) optional[s] = true;
+        const missed = next.length === before || !next[next.length - 1].exists;
+        if (missed) optional[s] = true;
       }
       current = next;
     }
