@@ -1,6 +1,8 @@
 import type { JsonValue } from "./json-value";
 
-export type PathSegment = { kind: "key"; key: string } | { kind: "index"; index: number };
+export type PathSegment =
+  | { readonly kind: "key"; readonly key: string }
+  | { readonly kind: "index"; readonly index: number };
 
 export type PathStep =
   | (PathSegment & { optional?: boolean })
@@ -27,7 +29,7 @@ export type PathResult =
 export function buildPathModel(value: JsonValue): PathModel {
   let nodeCount = 0;
   // Children share one segment object per key and per index: the click path reads every child's
-  // segment, and a shared one stays in cache. Shared segments must never be mutated.
+  // segment, and a shared one stays in cache.
   const keySegments = new Map<string, PathSegment>();
   const indexSegments: PathSegment[] = [];
   const root: ModelNode = {
