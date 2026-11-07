@@ -81,13 +81,13 @@ describe("evaluateSteps", () => {
   });
 
   it("finds keys in siblings whose key order differs", () => {
-    const model = buildPathModel([{ a: 1, b: 2 }, { b: 3, a: 4 }, { c: 5 }, { a: 6 }]);
+    const model = buildPathModel([{ a: 1, b: 2 }, { a: 7, b: 8 }, { c: 5 }, { b: 3, a: 4 }]);
     const results = evaluateSteps(model.root, [{ kind: "iterate" }, { kind: "key", key: "b" }]);
     expect(results.map((n) => [n.value, n.exists])).toEqual([
       [2, true],
+      [8, true],
+      [null, false],
       [3, true],
-      [null, false],
-      [null, false],
     ]);
   });
 
@@ -207,7 +207,7 @@ describe("commonArrayAncestor", () => {
 });
 
 describe("evaluateTrace", () => {
-  it("keeps document order and finds unsafe steps anywhere in a long array", () => {
+  it("keeps document order and marks a step optional when any element misses it", () => {
     const indices = Array.from({ length: 1500 }, (_, index) => index);
     const model = buildPathModel(
       indices.map((index): JsonValue => (index === 1400 ? {} : { tags: [index] })),
