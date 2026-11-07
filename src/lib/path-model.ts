@@ -28,8 +28,6 @@ export type PathResult =
 
 export function buildPathModel(value: JsonValue): PathModel {
   let nodeCount = 0;
-  // Children share one segment object per key and per index: the click path reads every child's
-  // segment, and a shared one stays in cache.
   const keySegments = new Map<string, PathSegment>();
   const indexSegments: PathSegment[] = [];
   const root: ModelNode = {
@@ -117,8 +115,6 @@ export function pathTo(node: ModelNode): PathResult {
   return { kind: "path", segments };
 }
 
-// Sibling objects in an array usually share key order, so the previous match position is
-// tried first; keys are unique within an object, so a hit there is the only match.
 let lastKeyIndex = 0;
 
 function childByKey(node: ModelNode, key: string): ModelNode | undefined {
@@ -182,9 +178,6 @@ function evaluateStepsFrom(roots: ModelNode[], steps: PathStep[]): ModelNode[] {
   return current;
 }
 
-// Each block of roots runs through every step before the next block starts, so the nodes one
-// step yields are still in cache when the next step reads them. Steps map each node to its
-// results in order, so concatenating the blocks gives the same matches as one pass.
 const TRACE_BLOCK = 512;
 
 export function evaluateTrace(
@@ -201,8 +194,6 @@ export function evaluateTrace(
       for (const node of current) {
         const before = next.length;
         applyStep(node, safeSteps[s], next);
-        // The non-optional step would throw or yield jq's synthetic null exactly when the
-        // optional step yields nothing or a non-existent node.
         if (next.length === before || !next[next.length - 1].exists) optional[s] = true;
       }
       current = next;
