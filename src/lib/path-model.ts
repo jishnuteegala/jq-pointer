@@ -26,6 +26,10 @@ export type PathResult =
 
 export function buildPathModel(value: JsonValue): PathModel {
   let nodeCount = 0;
+  // Children share one segment object per key and per index: the click path reads every child's
+  // segment, and a shared one stays in cache. Shared segments must never be mutated.
+  const keySegments = new Map<string, PathSegment>();
+  const indexSegments: PathSegment[] = [];
   const root: ModelNode = {
     value,
     parent: null,
@@ -48,7 +52,7 @@ export function buildPathModel(value: JsonValue): PathModel {
         const child: ModelNode = {
           value: v[i],
           parent: node,
-          segment: { kind: "index", index: i },
+          segment: (indexSegments[i] ??= { kind: "index", index: i }),
           children: null,
           jqAddressable: node.jqAddressable,
           exists: true,
@@ -63,10 +67,15 @@ export function buildPathModel(value: JsonValue): PathModel {
       const children: ModelNode[] = new Array(keys.length);
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
+        let segment = keySegments.get(key);
+        if (segment === undefined) {
+          segment = { kind: "key", key };
+          keySegments.set(key, segment);
+        }
         const child: ModelNode = {
           value: v[key],
           parent: node,
-          segment: { kind: "key", key },
+          segment,
           children: null,
           jqAddressable: node.jqAddressable && !hasLoneSurrogate(key),
           exists: true,
