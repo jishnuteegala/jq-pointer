@@ -39,8 +39,11 @@ export function buildPathModel(value: JsonValue): PathModel {
   while ((node = stack.pop()) !== undefined) {
     nodeCount++;
     const v = node.value;
+    // Children arrays are sized up front: push-grown arrays keep spare capacity (about a fifth of
+    // the model's heap), and Array.from({ length }) builds the model about four times slower.
     if (Array.isArray(v)) {
-      const children: ModelNode[] = [];
+      // oxlint-disable-next-line unicorn/no-new-array
+      const children: ModelNode[] = new Array(v.length);
       for (let i = 0; i < v.length; i++) {
         const child: ModelNode = {
           value: v[i],
@@ -50,14 +53,16 @@ export function buildPathModel(value: JsonValue): PathModel {
           jqAddressable: node.jqAddressable,
           exists: true,
         };
-        children.push(child);
+        children[i] = child;
         stack.push(child);
       }
       node.children = children;
     } else if (v !== null && typeof v === "object") {
       const keys = Object.keys(v);
-      const children: ModelNode[] = [];
-      for (const key of keys) {
+      // oxlint-disable-next-line unicorn/no-new-array
+      const children: ModelNode[] = new Array(keys.length);
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
         const child: ModelNode = {
           value: v[key],
           parent: node,
@@ -66,7 +71,7 @@ export function buildPathModel(value: JsonValue): PathModel {
           jqAddressable: node.jqAddressable && !hasLoneSurrogate(key),
           exists: true,
         };
-        children.push(child);
+        children[i] = child;
         stack.push(child);
       }
       node.children = children;
