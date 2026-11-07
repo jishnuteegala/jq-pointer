@@ -212,7 +212,7 @@ describe("evaluateTrace", () => {
     const model = buildPathModel(
       indices.map((index): JsonValue => (index === 1400 ? {} : { tags: [index] })),
     );
-    const trace = evaluateTrace(model.root.children as ModelNode[], [
+    const trace = evaluateTrace(model.root.children ?? [], [
       { kind: "key", key: "tags" },
       { kind: "iterate" },
     ]);
