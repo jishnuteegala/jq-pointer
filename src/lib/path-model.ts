@@ -28,8 +28,8 @@ export type PathResult =
 
 export function buildPathModel(value: JsonValue): PathModel {
   let nodeCount = 0;
-  const keySegments = new Map<string, PathSegment>();
-  const indexSegments: PathSegment[] = [];
+  const sharedKeySegments = new Map<string, PathSegment>();
+  const sharedIndexSegments: PathSegment[] = [];
   const root: ModelNode = {
     value,
     parent: null,
@@ -52,7 +52,7 @@ export function buildPathModel(value: JsonValue): PathModel {
         const child: ModelNode = {
           value: v[i],
           parent: node,
-          segment: (indexSegments[i] ??= { kind: "index", index: i }),
+          segment: (sharedIndexSegments[i] ??= { kind: "index", index: i }),
           children: null,
           jqAddressable: node.jqAddressable,
           exists: true,
@@ -67,10 +67,10 @@ export function buildPathModel(value: JsonValue): PathModel {
       const children: ModelNode[] = new Array(keys.length);
       for (let i = 0; i < keys.length; i++) {
         const key = keys[i];
-        let segment = keySegments.get(key);
+        let segment = sharedKeySegments.get(key);
         if (segment === undefined) {
           segment = { kind: "key", key };
-          keySegments.set(key, segment);
+          sharedKeySegments.set(key, segment);
         }
         const child: ModelNode = {
           value: v[key],
@@ -115,17 +115,17 @@ export function pathTo(node: ModelNode): PathResult {
   return { kind: "path", segments };
 }
 
-let lastKeyIndex = 0;
+let keyIndexGuess = 0;
 
 function childByKey(node: ModelNode, key: string): ModelNode | undefined {
   const children = node.children;
   if (children === null) return undefined;
-  const guess = children[lastKeyIndex]?.segment;
-  if (guess?.kind === "key" && guess.key === key) return children[lastKeyIndex];
+  const guess = children[keyIndexGuess]?.segment;
+  if (guess?.kind === "key" && guess.key === key) return children[keyIndexGuess];
   for (let index = 0; index < children.length; index++) {
     const segment = children[index].segment;
     if (segment?.kind === "key" && segment.key === key) {
-      lastKeyIndex = index;
+      keyIndexGuess = index;
       return children[index];
     }
   }
@@ -178,7 +178,7 @@ function evaluateStepsFrom(roots: ModelNode[], steps: PathStep[]): ModelNode[] {
   return current;
 }
 
-const TRACE_BLOCK = 512;
+const TRACE_CACHE_BLOCK = 512;
 
 export function evaluateTrace(
   roots: ModelNode[],
@@ -187,14 +187,15 @@ export function evaluateTrace(
   const optional: boolean[] = Array.from({ length: steps.length }, () => false);
   const safeSteps: PathStep[] = steps.map((step) => ({ ...step, optional: true }));
   const matches: ModelNode[] = [];
-  for (let start = 0; start < roots.length; start += TRACE_BLOCK) {
-    let current = roots.slice(start, start + TRACE_BLOCK);
+  for (let start = 0; start < roots.length; start += TRACE_CACHE_BLOCK) {
+    let current = roots.slice(start, start + TRACE_CACHE_BLOCK);
     for (let s = 0; s < safeSteps.length; s++) {
       const next: ModelNode[] = [];
       for (const node of current) {
         const before = next.length;
         applyStep(node, safeSteps[s], next);
-        if (next.length === before || !next[next.length - 1].exists) optional[s] = true;
+        const foundNothing = next.length === before || !next[next.length - 1].exists;
+        if (foundNothing) optional[s] = true;
       }
       current = next;
     }

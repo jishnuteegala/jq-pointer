@@ -309,9 +309,8 @@ export function finaliseGeneralisation(
     kind: "path",
     steps: [...ancestorSegments, ...steps],
   };
-  const matchCount = tail.some((step) => step.kind === "iterate")
-    ? countPresentElements(matches, tail.length)
-    : matches.length;
+  const fansOut = tail.some((step) => step.kind === "iterate");
+  const matchCount = fansOut ? countPresentElements(matches, tail.length) : matches.length;
   return {
     expression,
     matches,
