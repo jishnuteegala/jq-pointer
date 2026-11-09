@@ -195,6 +195,9 @@ describe("App end-to-end", () => {
 
     await user.click(screen.getByRole("button", { name: /Remove .items\[0\].id/ }));
     expect(expressionLine(".items[0].name")).toBeDefined();
+    expect(document.activeElement).toBe(
+      screen.getByRole("button", { name: /Remove .items\[0\].name/ }),
+    );
   });
 
   it("clears every chip with the Clear button", async () => {

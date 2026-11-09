@@ -55,15 +55,16 @@ describe("TreeView active descendant", () => {
     const nodeX = root.children?.[0]?.children?.[0];
     if (nodeX === undefined) throw new Error("missing nodes");
     const highlighted = new Set([nodeX]);
-    const { container, getByRole, rerender } = render(
+    const { getByRole, getByText, queryByText, rerender } = render(
       <TreeView root={root} highlighted={highlighted} onSelect={() => {}} />,
     );
-    expect(container.textContent).toContain("x");
+    expect(getByText("x")).toBeDefined();
 
     fireEvent.click(getByRole("button", { name: "Collapse a" }));
     rerender(<TreeView root={root} highlighted={highlighted} onSelect={() => {}} />);
 
-    expect(container.textContent).not.toContain("x");
+    expect(getByRole("button", { name: "Expand a" })).toBeDefined();
+    expect(queryByText("x")).toBeNull();
   });
 
   it("declares multiselectable so multi-node click-pair previews announce correctly", () => {
