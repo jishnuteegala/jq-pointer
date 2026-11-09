@@ -58,7 +58,8 @@ function runInvocation(jq: string, command: string, input: string): unknown[] {
 
 export function describeJqOracle(version: string): void {
   const jq = `./jq-${version}`;
-  const oracle = platform() === "win32" || !existsSync(jq) ? describe.skip : describe;
+  const oracle =
+    platform() === "win32" || (!process.env.CI && !existsSync(jq)) ? describe.skip : describe;
   oracle(`jq jq-${version} printer oracle`, () => {
     it("accepts and evaluates emitted key paths", () => {
       assert(
