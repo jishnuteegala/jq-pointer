@@ -1,6 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { existsSync, readdirSync } from "node:fs";
-import { basename } from "node:path";
+import { existsSync } from "node:fs";
 import { platform } from "node:os";
 import {
   array,
@@ -26,13 +25,6 @@ import {
 import { copyInvocation } from "./jq-invocation";
 import type { JsonValue } from "./json-value";
 import { buildPathModel, pathTo } from "./path-model";
-
-const jqBinaries = (
-  process.env.JQ_BINARIES?.split(":") ?? readdirSync(".").map((name) => `./${name}`)
-)
-  .filter((jq) => jq.startsWith("./jq-"))
-  .filter((jq) => existsSync(jq))
-  .toSorted();
 
 function runJq(jq: string, document: unknown, expression: string): unknown[] {
   const output = execFileSync(jq, ["--compact-output", expression], {
@@ -64,15 +56,10 @@ function runInvocation(jq: string, command: string, input: string): unknown[] {
         .map((line) => JSON.parse(line) as unknown);
 }
 
-const oracle = platform() === "win32" || jqBinaries.length === 0 ? describe.skip : describe;
-
-if (platform() === "win32" || jqBinaries.length === 0)
-  describe("jq printer oracle", () => {
-    it.skip("requires a local jq binary on a non-Windows platform", () => {});
-  });
-
-for (const jq of jqBinaries)
-  oracle(`jq ${basename(jq)} printer oracle`, () => {
+export function describeJqOracle(version: string): void {
+  const jq = `./jq-${version}`;
+  const oracle = platform() === "win32" || !existsSync(jq) ? describe.skip : describe;
+  oracle(`jq jq-${version} printer oracle`, () => {
     it("accepts and evaluates emitted key paths", () => {
       assert(
         property(string({ unit: constantFrom("a", "-", " ", '"', "\\", "😀") }), (key) => {
@@ -319,3 +306,4 @@ for (const jq of jqBinaries)
       );
     }, 60_000);
   });
+}

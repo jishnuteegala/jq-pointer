@@ -35,7 +35,7 @@ pnpm exec tsc -p .agents/skills/formal-verify-jq-pointer/tsconfig.json
 
 **Sync commit:** `8eed533` (committed 2026-10-10; verified in sync on 2026-10-24). Move this forward only after re-running the check and confirming the invariants describe the code at the new commit.
 
-Not covered, on purpose: real-jq oracle comparison (`evaluateJqExpression` is the self-consistency oracle; a jq binary comparison is documented in `jq-oracle.test.ts` but platform-skipped on Windows), `parseDocument`/NDJSON input handling, and all UI code. `ancestorIndex` is swept but the breadcrumb metadata shape itself is not asserted.
+Not covered, on purpose: real-jq oracle comparison (`evaluateJqExpression` is the self-consistency oracle; a jq binary comparison is documented in `jq-oracle-suite.ts`, run once per jq version by `jq-oracle-<version>.test.ts`, but platform-skipped on Windows), `parseDocument`/NDJSON input handling, and all UI code. `ancestorIndex` is swept but the breadcrumb metadata shape itself is not asserted.
 
 ## Reading a failure
 
