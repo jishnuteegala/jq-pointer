@@ -8,6 +8,22 @@ const ROW_HEIGHT = 44;
 const OVERSCAN = 10;
 const INITIAL_VIEWPORT = 480;
 
+function withAncestors(
+  expanded: ReadonlySet<ModelNode>,
+  nodes: ReadonlySet<ModelNode>,
+): ReadonlySet<ModelNode> {
+  let next: Set<ModelNode> | null = null;
+  for (const node of nodes) {
+    for (let ancestor = node.parent; ancestor !== null; ancestor = ancestor.parent) {
+      if (!(next ?? expanded).has(ancestor)) {
+        next ??= new Set(expanded);
+        next.add(ancestor);
+      }
+    }
+  }
+  return next ?? expanded;
+}
+
 interface TreeViewProps {
   root: ModelNode;
   highlighted: ReadonlySet<ModelNode>;
@@ -15,24 +31,14 @@ interface TreeViewProps {
 }
 
 export function TreeView({ root, highlighted, onSelect }: TreeViewProps) {
-  const [expanded, setExpanded] = useState<ReadonlySet<ModelNode>>(() => new Set([root]));
-
-  useEffect(() => {
-    setExpanded((previous) => {
-      let next: Set<ModelNode> | null = null;
-      for (const node of highlighted) {
-        let ancestor = node.parent;
-        while (ancestor !== null) {
-          if (!(next ?? previous).has(ancestor)) {
-            next ??= new Set(previous);
-            next.add(ancestor);
-          }
-          ancestor = ancestor.parent;
-        }
-      }
-      return next ?? previous;
-    });
-  }, [highlighted]);
+  const [expanded, setExpanded] = useState<ReadonlySet<ModelNode>>(() =>
+    withAncestors(new Set([root]), highlighted),
+  );
+  const [expandedFor, setExpandedFor] = useState(highlighted);
+  if (expandedFor !== highlighted) {
+    setExpandedFor(highlighted);
+    setExpanded((previous) => withAncestors(previous, highlighted));
+  }
   const [scrollTop, setScrollTop] = useState(0);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(INITIAL_VIEWPORT);

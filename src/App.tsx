@@ -21,6 +21,7 @@ function describeOutcome(outcome: ParseOutcome): string {
 }
 
 const DISPLAY_LIMIT = 256 * 1024;
+const COPYRIGHT_YEAR = new Date().getFullYear();
 
 function pathOf(node: ModelNode): string | null {
   const result = pathTo(node);
@@ -413,7 +414,7 @@ function App() {
         )}
       </main>
       <footer className="page site-footer">
-        <span>&copy; {new Date().getFullYear()} Jishnu Teegala</span>
+        <span>&copy; {COPYRIGHT_YEAR} Jishnu Teegala</span>
         <a href="https://jishnuteegala.com/privacy">Privacy</a>
         <a href="https://github.com/jishnuteegala/jq-pointer">Source</a>
       </footer>
