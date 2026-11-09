@@ -34,9 +34,8 @@ function fieldNode(element: ModelNode, key: string): ModelNode | undefined {
 const objectElement = array(constantFrom<JsonValue>("v", 1, null, true), {
   minLength: 1,
   maxLength: 4,
-}).map(
-  (values): JsonValue =>
-    Object.fromEntries(allKeys.slice(0, values.length).map((k, i) => [k, values[i]])),
+}).map((values): JsonValue =>
+  Object.fromEntries(allKeys.slice(0, values.length).map((k, i) => [k, values[i]])),
 );
 
 const mixedElement = oneof(objectElement, constantFrom<JsonValue>(5, "text", null, true, [1, 2]));
