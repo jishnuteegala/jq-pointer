@@ -32,7 +32,7 @@ function descend(node: ModelNode, keys: string[]): ModelNode {
 
 describe("D7 performance spike: 10MB parse + path model + click evaluation", GATE_ATTEMPTS, () => {
   if (typeof globalThis.gc !== "function") {
-    throw new Error("bench gates require --expose-gc (test.poolOptions.forks.execArgv)");
+    throw new Error("bench gates require --expose-gc (bench project execArgv in vite.config.ts)");
   }
   const { json, itemCount } = generateFixture(TARGET_BYTES);
   const { ndjson, itemCount: ndjsonCount } = generateNdjsonFixture(TARGET_BYTES * 0.99);

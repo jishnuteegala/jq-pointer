@@ -24,7 +24,7 @@ export function ChipBar({ clicks, labelOf, onRemove, onClear, onEmptied }: ChipB
       return;
     }
     (buttons[Math.min(index, buttons.length - 1)] ?? clearRef.current)?.focus();
-  }, [clicks]);
+  });
 
   if (clicks.length === 0) return null;
 

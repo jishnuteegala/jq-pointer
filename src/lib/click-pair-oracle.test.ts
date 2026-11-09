@@ -38,8 +38,8 @@ function firstTwoWithName(items: ModelNode): [ModelNode, ModelNode] | null {
 }
 
 const element = oneof(
-  tuple(boolean(), constantFrom<JsonValue>("x", null, 1, true)).map(
-    ([hasName, value]): JsonValue => (hasName ? { name: value } : {}),
+  tuple(boolean(), constantFrom<JsonValue>("x", null, 1, true)).map(([hasName, value]): JsonValue =>
+    hasName ? { name: value } : {},
   ),
   constantFrom<JsonValue>(5, "text", null, [1, 2], { other: 1 }),
 );

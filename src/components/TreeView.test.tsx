@@ -50,6 +50,23 @@ describe("TreeView active descendant", () => {
     expect(container.textContent).toContain("x");
   });
 
+  it("expands ancestors of nodes highlighted at mount and lets the user collapse them", () => {
+    const { root } = buildPathModel({ a: { x: 1 }, b: 2 });
+    const nodeX = root.children?.[0]?.children?.[0];
+    if (nodeX === undefined) throw new Error("missing nodes");
+    const highlighted = new Set([nodeX]);
+    const { getByRole, getByText, queryByText, rerender } = render(
+      <TreeView root={root} highlighted={highlighted} onSelect={() => {}} />,
+    );
+    expect(getByText("x")).toBeDefined();
+
+    fireEvent.click(getByRole("button", { name: "Collapse a" }));
+    rerender(<TreeView root={root} highlighted={highlighted} onSelect={() => {}} />);
+
+    expect(getByRole("button", { name: "Expand a" })).toBeDefined();
+    expect(queryByText("x")).toBeNull();
+  });
+
   it("declares multiselectable so multi-node click-pair previews announce correctly", () => {
     const { root } = buildPathModel({ items: [{ name: "a" }, { name: "b" }] });
     const highlighted = new Set(root.children ?? []);

@@ -67,12 +67,6 @@ export default defineConfig({
     },
   },
   test: {
-    // --expose-gc lets bench sample loops reclaim each iteration's garbage in
-    // untimed space; production callers pay GC in idle time between clicks,
-    // but a back-to-back loop would otherwise amortise that debt into timed
-    // samples and flake the p95 gate. The flag is global to all forks workers
-    // (poolOptions lives at the root), not just the bench project.
-    poolOptions: { forks: { execArgv: ["--expose-gc"] } },
     projects: [
       {
         extends: true,
@@ -88,7 +82,12 @@ export default defineConfig({
           name: "bench",
           include: ["bench/**/*.test.ts"],
           pool: "forks",
-          poolOptions: { forks: { singleFork: true } },
+          fileParallelism: false,
+          // --expose-gc lets bench sample loops reclaim each iteration's garbage in
+          // untimed space; production callers pay GC in idle time between clicks,
+          // but a back-to-back loop would otherwise amortise that debt into timed
+          // samples and flake the p95 gate.
+          execArgv: ["--expose-gc"],
           sequence: { groupOrder: 1 },
         },
       },
