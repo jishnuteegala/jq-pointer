@@ -20,7 +20,7 @@ const GATE_ATTEMPTS = { retry: 2, timeout: 60_000 };
 
 describe("tree view pipeline on a ~10MB document", GATE_ATTEMPTS, () => {
   if (typeof globalThis.gc !== "function") {
-    throw new Error("bench gates require --expose-gc (test.poolOptions.forks.execArgv)");
+    throw new Error("bench gates require --expose-gc (bench project execArgv in vite.config.ts)");
   }
   const { json, itemCount } = generateFixture(TARGET_BYTES);
   const outcome = parseDocument(json);
