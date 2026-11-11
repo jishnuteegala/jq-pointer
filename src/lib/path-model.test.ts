@@ -208,9 +208,9 @@ describe("commonArrayAncestor", () => {
 
 describe("evaluateTrace", () => {
   it("keeps document order and marks a step optional when any element misses it", () => {
-    const indices = Array.from({ length: 1500 }, (_, index) => index);
+    const indices = Array.from({ length: 5000 }, (_, index) => index);
     const model = buildPathModel(
-      indices.map((index): JsonValue => (index === 1400 ? {} : { tags: [index] })),
+      indices.map((index): JsonValue => (index === 4999 ? {} : { tags: [index] })),
     );
     const trace = evaluateTrace(model.root.children ?? [], [
       { kind: "key", key: "tags" },
@@ -218,7 +218,7 @@ describe("evaluateTrace", () => {
     ]);
     expect(trace.optional).toEqual([true, true]);
     expect(trace.matches.map((node) => node.value)).toEqual(
-      indices.filter((index) => index !== 1400),
+      indices.filter((index) => index !== 4999),
     );
   });
 });
