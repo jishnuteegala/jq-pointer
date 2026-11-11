@@ -33,8 +33,13 @@ jobs:
         echo "020468de7539ce70ef1bceaf7cde2e8c4f2ca6c3afb84642aabc5c97d9fc2a0d  jq-1.8.1" | sha256sum --check
         chmod +x jq-1.8.1
         ./jq-1.8.1 --version | grep -Fx jq-1.8.1
+      check-command: |
+        pnpm run lint
+        pnpm run format
+        pnpm run typecheck
+        pnpm test --project unit
+      parallel-command: pnpm test --project bench
       post-check: |
-        pnpm run build
         pnpm run check:privacy
         test -f dist/index.html
         test -f dist/design-system/index.html
