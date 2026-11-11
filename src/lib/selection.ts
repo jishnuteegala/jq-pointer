@@ -309,18 +309,23 @@ export function finaliseGeneralisation(
     kind: "path",
     steps: [...ancestorSegments, ...steps],
   };
-  const relativeDepth = steps.length - 1;
+  const fansOut = tail.some((step) => step.kind === "iterate");
+  const matchCount = fansOut ? countPresentElements(matches, tail.length) : matches.length;
+  return {
+    expression,
+    matches,
+    matchCount,
+    elementCount,
+    heterogeneous: matchCount < elementCount,
+  };
+}
+
+function countPresentElements(matches: ModelNode[], relativeDepth: number): number {
   const presentElements = new Set<ModelNode>();
   for (const node of matches) {
     let element: ModelNode | null = node;
     for (let hop = 0; hop < relativeDepth && element !== null; hop++) element = element.parent;
     if (element !== null) presentElements.add(element);
   }
-  return {
-    expression,
-    matches,
-    matchCount: presentElements.size,
-    elementCount,
-    heterogeneous: presentElements.size < elementCount,
-  };
+  return presentElements.size;
 }

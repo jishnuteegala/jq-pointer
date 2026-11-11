@@ -1,10 +1,12 @@
 import type { JsonValue } from "./json-value";
 
-export type PathSegment = { kind: "key"; key: string } | { kind: "index"; index: number };
+export type PathSegment =
+  | { readonly kind: "key"; readonly key: string }
+  | { readonly kind: "index"; readonly index: number };
 
 export type PathStep =
-  | (PathSegment & { optional?: boolean })
-  | { kind: "iterate"; optional?: boolean };
+  | (PathSegment & { readonly optional?: boolean })
+  | { readonly kind: "iterate"; readonly optional?: boolean };
 
 export interface ModelNode {
   value: JsonValue;
@@ -26,6 +28,8 @@ export type PathResult =
 
 export function buildPathModel(value: JsonValue): PathModel {
   let nodeCount = 0;
+  const sharedKeySegments = new Map<string, PathSegment>();
+  const sharedIndexSegments: PathSegment[] = [];
   const root: ModelNode = {
     value,
     parent: null,
@@ -39,34 +43,44 @@ export function buildPathModel(value: JsonValue): PathModel {
   while ((node = stack.pop()) !== undefined) {
     nodeCount++;
     const v = node.value;
+    // Children arrays are sized up front: push-grown arrays keep spare capacity, and
+    // Array.from({ length }) builds the model several times slower.
     if (Array.isArray(v)) {
-      const children: ModelNode[] = [];
+      // oxlint-disable-next-line unicorn/no-new-array
+      const children: ModelNode[] = new Array(v.length);
       for (let i = 0; i < v.length; i++) {
         const child: ModelNode = {
           value: v[i],
           parent: node,
-          segment: { kind: "index", index: i },
+          segment: (sharedIndexSegments[i] ??= { kind: "index", index: i }),
           children: null,
           jqAddressable: node.jqAddressable,
           exists: true,
         };
-        children.push(child);
+        children[i] = child;
         stack.push(child);
       }
       node.children = children;
     } else if (v !== null && typeof v === "object") {
       const keys = Object.keys(v);
-      const children: ModelNode[] = [];
-      for (const key of keys) {
+      // oxlint-disable-next-line unicorn/no-new-array
+      const children: ModelNode[] = new Array(keys.length);
+      for (let i = 0; i < keys.length; i++) {
+        const key = keys[i];
+        let segment = sharedKeySegments.get(key);
+        if (segment === undefined) {
+          segment = { kind: "key", key };
+          sharedKeySegments.set(key, segment);
+        }
         const child: ModelNode = {
           value: v[key],
           parent: node,
-          segment: { kind: "key", key },
+          segment,
           children: null,
           jqAddressable: node.jqAddressable && !hasLoneSurrogate(key),
           exists: true,
         };
-        children.push(child);
+        children[i] = child;
         stack.push(child);
       }
       node.children = children;
@@ -101,10 +115,19 @@ export function pathTo(node: ModelNode): PathResult {
   return { kind: "path", segments };
 }
 
+let keyIndexGuess = 0;
+
 function childByKey(node: ModelNode, key: string): ModelNode | undefined {
-  if (node.children === null) return undefined;
-  for (const child of node.children) {
-    if (child.segment?.kind === "key" && child.segment.key === key) return child;
+  const children = node.children;
+  if (children === null) return undefined;
+  const guess = children[keyIndexGuess]?.segment;
+  if (guess?.kind === "key" && guess.key === key) return children[keyIndexGuess];
+  for (let index = 0; index < children.length; index++) {
+    const segment = children[index].segment;
+    if (segment?.kind === "key" && segment.key === key) {
+      keyIndexGuess = index;
+      return children[index];
+    }
   }
   return undefined;
 }
@@ -155,37 +178,30 @@ function evaluateStepsFrom(roots: ModelNode[], steps: PathStep[]): ModelNode[] {
   return current;
 }
 
-function stepUnsafe(node: ModelNode, step: PathStep): boolean {
-  if (step.kind === "iterate") return node.children === null || node.children.length === 0;
-  if (step.kind === "index") {
-    if (!Array.isArray(node.value) || node.children === null) return true;
-    const at = step.index < 0 ? node.children.length + step.index : step.index;
-    return at < 0 || at >= node.children.length;
-  }
-  if (node.value === null || typeof node.value !== "object" || Array.isArray(node.value))
-    return true;
-  return childByKey(node, step.key) === undefined;
-}
+const TRACE_CACHE_BLOCK = 512;
 
 export function evaluateTrace(
   roots: ModelNode[],
   steps: PathStep[],
 ): { optional: boolean[]; matches: ModelNode[] } {
   const optional: boolean[] = Array.from({ length: steps.length }, () => false);
-  let current: ModelNode[] = roots;
-  for (let s = 0; s < steps.length; s++) {
-    const step = steps[s];
-    const safeStep: PathStep = { ...step, optional: true };
-    const next: ModelNode[] = [];
-    let anyUnsafe = false;
-    for (const node of current) {
-      if (!anyUnsafe && stepUnsafe(node, step)) anyUnsafe = true;
-      applyStep(node, safeStep, next);
+  const safeSteps: PathStep[] = steps.map((step) => ({ ...step, optional: true }));
+  const matches: ModelNode[] = [];
+  for (let start = 0; start < roots.length; start += TRACE_CACHE_BLOCK) {
+    let current = roots.slice(start, start + TRACE_CACHE_BLOCK);
+    for (let s = 0; s < safeSteps.length; s++) {
+      const next: ModelNode[] = [];
+      for (const node of current) {
+        const before = next.length;
+        applyStep(node, safeSteps[s], next);
+        const missed = next.length === before || !next[next.length - 1].exists;
+        if (missed) optional[s] = true;
+      }
+      current = next;
     }
-    optional[s] = anyUnsafe;
-    current = next;
+    for (const node of current) matches.push(node);
   }
-  return { optional, matches: current };
+  return { optional, matches };
 }
 
 /** Returns only document nodes that can be highlighted, excluding jq's synthetic null results. */

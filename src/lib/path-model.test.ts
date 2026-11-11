@@ -3,6 +3,7 @@ import {
   buildPathModel,
   commonArrayAncestor,
   evaluateSteps,
+  evaluateTrace,
   matchingNodes,
   pathTo,
   type ModelNode,
@@ -77,6 +78,17 @@ describe("evaluateSteps", () => {
       { kind: "key", key: "id" },
     ]);
     expect(results.map((n) => n.value)).toEqual([1, 2]);
+  });
+
+  it("finds keys in siblings whose key order differs", () => {
+    const model = buildPathModel([{ a: 1, b: 2 }, { a: 7, b: 8 }, { c: 5 }, { b: 3, a: 4 }]);
+    const results = evaluateSteps(model.root, [{ kind: "iterate" }, { kind: "key", key: "b" }]);
+    expect(results.map((n) => [n.value, n.exists])).toEqual([
+      [2, true],
+      [8, true],
+      [null, false],
+      [3, true],
+    ]);
   });
 
   it("returns jq nulls for missing keys and out-of-range indices", () => {
@@ -191,5 +203,22 @@ describe("commonArrayAncestor", () => {
     const rows = child(model.root, "rows");
     const x = child(at(rows, 0), "x");
     expect(commonArrayAncestor(child(x, "p"), child(x, "q"))).toBe(rows);
+  });
+});
+
+describe("evaluateTrace", () => {
+  it("keeps document order and marks a step optional when any element misses it", () => {
+    const indices = Array.from({ length: 5000 }, (_, index) => index);
+    const model = buildPathModel(
+      indices.map((index): JsonValue => (index === 4999 ? {} : { tags: [index] })),
+    );
+    const trace = evaluateTrace(model.root.children ?? [], [
+      { kind: "key", key: "tags" },
+      { kind: "iterate" },
+    ]);
+    expect(trace.optional).toEqual([true, true]);
+    expect(trace.matches.map((node) => node.value)).toEqual(
+      indices.filter((index) => index !== 4999),
+    );
   });
 });
