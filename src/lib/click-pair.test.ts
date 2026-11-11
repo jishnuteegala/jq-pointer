@@ -151,6 +151,20 @@ describe("heterogeneity handling", () => {
     expect(result.heterogeneous).toBe(true);
   });
 
+  it("counts the outer elements that hold a match when elements are arrays", () => {
+    const doc: JsonValue = { rows: [[{ v: 1 }, { v: 2 }], [], [{ v: 3 }]] };
+    const result = pair(
+      doc,
+      (root) => child(at(at(child(root, "rows"), 0), 1), "v"),
+      (root) => child(at(at(child(root, "rows"), 2), 0), "v"),
+    );
+    expect(printPath(result.expression.steps)).toBe(".rows[][]?.v");
+    expect(result.matches.map((node) => node.value)).toEqual([1, 2, 3]);
+    expect(result.matchCount).toBe(2);
+    expect(result.elementCount).toBe(3);
+    expect(result.heterogeneous).toBe(true);
+  });
+
   it("emits ? at the leaf when an element is null", () => {
     const doc: JsonValue = { items: [{ name: "a" }, null, { name: "b" }] };
     const result = pair(
