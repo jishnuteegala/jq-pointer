@@ -5,8 +5,8 @@ export type PathSegment =
   | { readonly kind: "index"; readonly index: number };
 
 export type PathStep =
-  | (PathSegment & { optional?: boolean })
-  | { kind: "iterate"; optional?: boolean };
+  | (PathSegment & { readonly optional?: boolean })
+  | { readonly kind: "iterate"; readonly optional?: boolean };
 
 export interface ModelNode {
   value: JsonValue;
