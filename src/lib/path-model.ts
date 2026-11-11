@@ -43,8 +43,8 @@ export function buildPathModel(value: JsonValue): PathModel {
   while ((node = stack.pop()) !== undefined) {
     nodeCount++;
     const v = node.value;
-    // Children arrays are sized up front: push-grown arrays keep spare capacity (about a fifth of
-    // the model's heap), and Array.from({ length }) builds the model about four times slower.
+    // Children arrays are sized up front: push-grown arrays keep spare capacity, and
+    // Array.from({ length }) builds the model several times slower.
     if (Array.isArray(v)) {
       // oxlint-disable-next-line unicorn/no-new-array
       const children: ModelNode[] = new Array(v.length);
