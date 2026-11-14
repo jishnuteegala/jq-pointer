@@ -27,7 +27,7 @@ Preconditions:
 - **NDJSON buttons.** Fill NDJSON input, then rebuild a selection - loading clears the clicks from the preconditions (every text load calls `setClicks([])`), so no copy buttons exist until a path exists again. `node "$HELPER" fill '#json-input' @fixture.ndjson` (the ten-line fixture from [NDJSON records](./ndjson-records.md), or any NDJSON-detected file - at least 2 records, >=0.9 parseable non-empty lines - whose first record is `{"items":[{"name":"a"}]}`), expand `items` and `[0]` on record 1, `clickrow name 0` - the record nav appears and the path line shows `Copy per-line` and `Copy slurped` buttons instead of `Copy`.
 - **Per-line copy.** `node "$HELPER" click 'role=button[name="Copy per-line"]'` then the read-back eval with `name=\"Copy per-line\"` substituted for `Copy` - clipboard is `jq '.items[0].name'` (quoted invocation).
 - **Slurped copy.** `node "$HELPER" click 'role=button[name="Copy slurped"]'` then the read-back eval with `name=\"Copy slurped\"` substituted - clipboard is `jq -s '.[].items[0].name'` (the expression re-rooted for the slurped array).
-- **State decay.** Wait ~2.5s via `node "$HELPER" eval "await page.waitForTimeout(2500)"` - the button label reverts from `Copied` to its copy verb.
+- **State decay.** Wait ~2.5s via `node "$HELPER" eval "await page.waitForTimeout(2500)"` - the button label reverts from `Copied` to its copy verb. `Copied` also reverts instantly on document/selection mutations (new input, row click, record change, chip remove/widen/clear); typing in the highlight filter does not clear it.
 - **Proof.** `node "$HELPER" shot "$EVIDENCE_DIR/copy-copied.png"` while `Copied` is showing, plus the `eval` outputs appended to `proof.txt`.
 
 ## Gotchas
@@ -37,3 +37,4 @@ Preconditions:
 - The `Copied` state is per-button: copying one line does not relabel the other buttons.
 - Do not reuse the plain-copy read-back eval verbatim in NDJSON state: `name="Copy"` is a substring match that also hits `Copy per-line`/`Copy slurped` - during the ~2s `Copied` window it clicks the other button, and after the window it strict-mode fails on two matches. Always substitute the full button name.
 - Plain-JSON input has no `Copy per-line`/`Copy slurped` pair; asserting their presence is an NDJSON-only check.
+- The visible `$ ` prompt before each expression is a CSS `.path-expression::before` decoration (`user-select:none`); it is not part of the copied payload - clipboard contents are the bare expression.
