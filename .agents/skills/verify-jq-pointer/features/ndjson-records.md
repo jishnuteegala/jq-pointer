@@ -4,10 +4,10 @@ NDJSON records lets a user paste multi-line JSON, see it recognised as NDJSON, a
 
 ## Sub-features
 
-- `ndjson-detect` recognises at least two non-empty lines, ~90% parseable, that are not valid JSON as a whole.
+- `ndjson-detect` recognises input with at least two non-empty lines and at least two parseable records, ~90% parseable, that is not valid JSON as a whole.
 - `ndjson-nav` shows `Record N/M (line L)` and steps between records.
 - `ndjson-errors` reports `Line L` notes for lines that failed to parse.
-- `ndjson-selection` clears clicks and resets the path when the record changes.
+- `ndjson-selection` clears clicks and resets the path when the record changes - it also clears the highlight filter input and remounts the tree, collapsing all expansion.
 
 ## How to get to it (user POV)
 
